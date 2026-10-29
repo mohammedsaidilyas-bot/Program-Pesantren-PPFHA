@@ -20,7 +20,6 @@ async function openQr(target){
  try{if(qrScanner){await closeQr();$('#qrModal').classList.remove('hidden')}qrStarting=true;qrScanner=new Html5Qrcode('qrReader');
  await qrScanner.start({facingMode:'environment'},{fps:10,qrbox:{width:230,height:230}},async decoded=>{
   const raw=String(decoded||'').trim();let nis=raw;try{const obj=JSON.parse(raw);nis=obj.nis||obj.NIS||obj.id||obj.value||raw}catch(e){}
-  if(/^https?:\\/\\//i.test(nis)){try{const u=new URL(nis);nis=u.searchParams.get('nis')||u.searchParams.get('id')||u.pathname.split('/').filter(Boolean).pop()||nis}catch(e){}}
   nis=String(nis).trim().replace(/\D/g,'');if(!nis){$('#qrMessage').textContent='QR tidak berisi NIS yang bisa dibaca.';return}
   $('#nisInput').value=nis;$('#formIzin').classList.remove('hidden');$('#formIzin').scrollIntoView({behavior:'smooth',block:'start'});const namaField=$('#formIzin [name="nama"]');if(namaField)namaField.focus();
   if(qrTarget==='search'){$('#search').value=nis;renderIzin()}
