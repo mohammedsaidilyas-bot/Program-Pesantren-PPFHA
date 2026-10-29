@@ -42,13 +42,13 @@ function doGet(e) {
     const action = String((e && e.parameter && e.parameter.action) || 'health').toLowerCase();
     if (action === 'health') return output_({ok:true,app:'Program Pesantren PPFHA',message:'Endpoint aktif',actions:['izin','pengumuman','kegiatan','student']});
     if (action === 'student') {
-      const nis = String((e && e.parameter && e.parameter.nis) || '').trim().replace(/\\D/g, '');
+      const nis = String((e && e.parameter && e.parameter.nis) || '').trim().replace(/\D/g, '');
       if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
       const studentSS = SpreadsheetApp.openById(STUDENT_DB_ID);
       const studentSheet = studentSS.getSheetByName(STUDENT_SHEET_NAME);
       if (!studentSheet) return output_({ok:false,error:'Tab database Uang Jajan Santri PPFHA tidak ditemukan.'});
       const rows = studentSheet.getDataRange().getDisplayValues();
-      const row = rows.slice(1).find(function(r){ return String(r[0] || '').trim().replace(/\\D/g, '') === nis; });
+      const row = rows.slice(1).find(function(r){ return String(r[0] || '').trim().replace(/\D/g, '') === nis; });
       if (!row) return output_({ok:false,error:'NIS '+nis+' tidak ditemukan di database santri.'});
       if (String(row[7] || '').trim().toLowerCase() !== 'aktif') return output_({ok:false,error:'Santri '+nis+' tidak berstatus aktif.'});
       return output_({ok:true,data:{nis:String(row[0]||'').trim(),nama:String(row[1]||'').trim(),kelas:String(row[2]||'').trim(),asrama:String(row[3]||'').trim(),wali:String(row[4]||'').trim(),noWaWali:String(row[5]||'').trim(),status:String(row[7]||'').trim()}});
