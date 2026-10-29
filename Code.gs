@@ -86,13 +86,14 @@ function doPost(e) {
       if (!sh || sh.getLastRow() < 2) return output_({ok:false,error:'Data izin tidak ditemukan.'});
       const values = sh.getDataRange().getDisplayValues();
       const headers = values[0].map(function(h){return String(h).trim();});
-      const idCol = headers.indexOf('id') + 1, statusCol = headers.indexOf('status') + 1, kembaliCol = headers.indexOf('kembali') + 1;
+      const idCol = headers.indexOf('id') + 1, statusCol = headers.indexOf('status') + 1, kembaliCol = headers.indexOf('kembali') + 1, catatanCol = headers.indexOf('catatan') + 1;
       if (!idCol || !statusCol) return output_({ok:false,error:'Kolom ID atau status tidak ditemukan.'});
       let rowNumber = -1;
       for (let i = 1; i < values.length; i++) { if (String(values[i][idCol-1]).trim() === id) { rowNumber = i + 1; break; } }
       if (rowNumber < 0) return output_({ok:false,error:'ID izin tidak ditemukan.'});
       sh.getRange(rowNumber,statusCol).setValue(status);
       if (status === 'Sudah kembali' && kembaliCol) sh.getRange(rowNumber,kembaliCol).setValue(body.kembaliAt ? new Date(body.kembaliAt) : new Date());
+      if (status === 'Sudah kembali' && catatanCol && body.catatan !== undefined) sh.getRange(rowNumber,catatanCol).setValue(String(body.catatan || ''));
       return output_({ok:true,message:'Status izin berhasil diperbarui.',id:id,status:status});
     }
     const name = ACTION_TO_SHEET[action], input = body.data;
