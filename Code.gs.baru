@@ -1,0 +1,225 @@
+/**
+ * PROGRAM PESANTREN PPFHA — BACKEND BARU
+ * File salinan untuk ditempel ke Apps Script sebagai Code.gs.
+ * Database tetap menggunakan spreadsheet yang sudah ditentukan.
+ *
+ * Catatan keamanan:
+ * - GET hanya membaca data.
+ * - POST untuk menulis data wajib memakai ADMIN_API_KEY di Script Properties.
+ * - Jangan menaruh kunci rahasia di website publik.
+ * - Kode ini tidak mengatasi masalah OAuth invalid_client pada akun/proyek Google.
+ */
+
+const SPREADSHEET_ID = '1JdBEnLlJHeIlb8XI8OoqzxTj84wYGkU2Hr0ySq6p6gA';
+
+const TABLES = {
+  izin: {
+    sheet: 'Izin',
+    headers: ['id','dibuatPada','nis','nama','jenis','status','keluar','rencanaKembali','kembali','wali','catatan','terbit'],
+    required: ['nis','nama','jenis']
+  },
+  pengumuman: {
+    sheet: 'Pengumuman',
+    headers: ['id','dibuatPada','judul','kategori','tanggal','target','nisTarget','isi','status'],
+    required: ['judul','isi']
+  },
+  kegiatan: {
+    sheet: 'Kegiatan',
+    headers: ['id','dibuatPada','judul','lokasi','tanggal','waktu','isi','status'],
+    required: ['judul','tanggal']
+  }
+};
+
+/** Membuat tab/header yang belum ada. Tidak menghapus atau menimpa data. */
+function setupDatabase() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const report = [];
+
+  Object.keys(TABLES).forEach(function(key) {
+    const table = TABLES[key];
+    let sheet = ss.getSheetByName(table.sheet);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(table.sheet);
+      report.push('Dibuat: ' + table.sheet);
+    }
+
+    if (sheet.getLastRow() === 0) {
+      sheet.getRange(1, 1, 1, table.headers.length).setValues([table.headers]);
+      sheet.setFrozenRows(1);
+      report.push('Header disiapkan: ' + table.sheet);
+    } else {
+      report.push('Dipertahankan: ' + table.sheet);
+    }
+  });
+
+  const result = 'Setup database selesai. ' + report.join(' | ');
+  Logger.log(result);
+  return result;
+}
+
+/** Memeriksa apakah Apps Script dapat membuka spreadsheet. */
+function testDatabase() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const result = {
+      ok: true,
+      aplikasi: 'Program Pesantren PPFHA',
+      spreadsheet: ss.getName(),
+      tabs: ss.getSheets().map(function(sheet) {
+        return { nama: sheet.getName(), baris: sheet.getLastRow() };
+      })
+    };
+    Logger.log(JSON.stringify(result));
+    return JSON.stringify(result);
+  } catch (error) {
+    const result = { ok: false, error: explainError_(error) };
+    Logger.log(JSON.stringify(result));
+    return JSON.stringify(result);
+  }
+}
+
+/** GET: ?action=health | izin | pengumuman | kegiatan */
+function doGet(e) {
+  try {
+    const action = String((e && e.parameter && e.parameter.action) || 'health').toLowerCase();
+
+    if (action === 'health') {
+      return jsonResponse_({
+        ok: true,
+        aplikasi: 'Program Pesantren PPFHA',
+        pesan: 'Endpoint aktif',
+        actions: ['izin', 'pengumuman', 'kegiatan']
+      });
+    }
+
+    const table = TABLES[action];
+    if (!table) {
+      return jsonResponse_({ ok: false, error: 'Aksi tidak dikenal: ' + action });
+    }
+
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(table.sheet);
+    if (!sheet) {
+      return jsonResponse_({
+        ok: false,
+        error: 'Tab ' + table.sheet + ' belum tersedia. Siapkan database terlebih dahulu.'
+      });
+    }
+
+    const values = sheet.getDataRange().getValues();
+    if (values.length < 2) return jsonResponse_({ ok: true, data: [] });
+
+    const headers = values[0].map(function(value) { return String(value).trim(); });
+    const records = values.slice(1)
+      .filter(function(row) {
+        return row.some(function(value) { return value !== '' && value !== null; });
+      })
+      .map(function(row) {
+        const item = {};
+        headers.forEach(function(header, index) {
+          if (!header) return;
+          const value = row[index];
+          item[header] = value instanceof Date ? value.toISOString() : value;
+        });
+        return item;
+      })
+      .filter(function(item) {
+        return String(item.status || '').toLowerCase() !== 'draf';
+      });
+
+    return jsonResponse_({ ok: true, data: records });
+  } catch (error) {
+    return jsonResponse_({ ok: false, error: explainError_(error) });
+  }
+}
+
+/**
+ * POST JSON:
+ * {
+ *   "action": "izin",
+ *   "apiKey": "KUNCI_PENGURUS",
+ *   "data": {"nis":"20260001","nama":"Nama Santri","jenis":"Pulang"}
+ * }
+ *
+ * ADMIN_API_KEY harus disetel pada Project Settings > Script Properties.
+ */
+function doPost(e) {
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      throw new Error('Body permintaan kosong. Kirim data JSON.');
+    }
+
+    let body;
+    try {
+      body = JSON.parse(e.postData.contents);
+    } catch (parseError) {
+      throw new Error('JSON tidak valid.');
+    }
+
+    const savedKey = PropertiesService.getScriptProperties().getProperty('ADMIN_API_KEY');
+    if (!savedKey) {
+      return jsonResponse_({ ok: false, error: 'ADMIN_API_KEY belum disetel; penyimpanan dinonaktifkan.' });
+    }
+    if (!body.apiKey || !constantTimeEquals_(String(body.apiKey), savedKey)) {
+      return jsonResponse_({ ok: false, error: 'Akses ditolak: kunci pengurus tidak valid.' });
+    }
+
+    const action = String(body.action || '').toLowerCase();
+    const table = TABLES[action];
+    if (!table) throw new Error('Aksi harus izin, pengumuman, atau kegiatan.');
+
+    const data = body.data;
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Kolom data harus berupa objek.');
+    }
+
+    const missing = table.required.filter(function(key) {
+      return data[key] === undefined || data[key] === null || String(data[key]).trim() === '';
+    });
+    if (missing.length) throw new Error('Kolom wajib belum diisi: ' + missing.join(', '));
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(table.sheet);
+    if (!sheet) sheet = ss.insertSheet(table.sheet);
+
+    if (sheet.getLastRow() === 0) {
+      sheet.getRange(1, 1, 1, table.headers.length).setValues([table.headers]);
+      sheet.setFrozenRows(1);
+    }
+
+    const record = Object.assign({}, data);
+    record.id = record.id || Utilities.getUuid();
+    record.dibuatPada = record.dibuatPada || new Date().toISOString();
+
+    sheet.appendRow(table.headers.map(function(key) {
+      return record[key] === undefined || record[key] === null ? '' : record[key];
+    }));
+
+    return jsonResponse_({ ok: true, message: 'Data berhasil disimpan.', id: record.id });
+  } catch (error) {
+    return jsonResponse_({ ok: false, error: explainError_(error) });
+  }
+}
+
+function jsonResponse_(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function constantTimeEquals_(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+function explainError_(error) {
+  const message = String(error && error.message ? error.message : error);
+  if (/invalid_client|OAuth|authorization/i.test(message)) {
+    return 'Autentikasi Google bermasalah. Ini tidak disebabkan oleh isi database. Periksa akun dan konfigurasi proyek Google Apps Script/Cloud. Detail: ' + message;
+  }
+  if (/permission|access denied|not have permission/i.test(message)) {
+    return 'Akun yang menjalankan Apps Script belum memiliki akses ke spreadsheet. Detail: ' + message;
+  }
+  return message;
+}
