@@ -75,8 +75,28 @@ function doPost(e) {
     if (!savedKey) return output_({ok:false,error:'ADMIN_API_KEY belum disetel di Script Properties; penulisan dinonaktifkan.'});
     if (!body.apiKey || !constantTimeEquals_(String(body.apiKey),savedKey))
       return output_({ok:false,error:'Akses ditolak: kunci pengurus tidak valid.'});
-    const action = String(body.action||'').toLowerCase(), name = ACTION_TO_SHEET[action], input = body.data;
-    if (!name) return output_({ok:false,error:'Aksi tidak dikenal. Gunakan izin, pengumuman, atau kegiatan.'});
+    const action = String(body.action||'').toLowerCase();
+    if (action === 'updatestatus') {
+      const id = String(body.id || '').trim();
+      const status = String(body.status || '').trim();
+      const allowed = ['Diizinkan','Menunggu persetujuan','Ditolak','Sudah keluar','Sudah kembali'];
+      if (!id) return output_({ok:false,error:'ID izin wajib diisi.'});
+      if (allowed.indexOf(status) === -1) return output_({ok:false,error:'Status tidak valid.'});
+      const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Izin');
+      if (!sh || sh.getLastRow() < 2) return output_({ok:false,error:'Data izin tidak ditemukan.'});
+      const values = sh.getDataRange().getDisplayValues();
+      const headers = values[0].map(function(h){return String(h).trim();});
+      const idCol = headers.indexOf('id') + 1, statusCol = headers.indexOf('status') + 1, kembaliCol = headers.indexOf('kembali') + 1;
+      if (!idCol || !statusCol) return output_({ok:false,error:'Kolom ID atau status tidak ditemukan.'});
+      let rowNumber = -1;
+      for (let i = 1; i < values.length; i++) { if (String(values[i][idCol-1]).trim() === id) { rowNumber = i + 1; break; } }
+      if (rowNumber < 0) return output_({ok:false,error:'ID izin tidak ditemukan.'});
+      sh.getRange(rowNumber,statusCol).setValue(status);
+      if (status === 'Sudah kembali' && kembaliCol && !sh.getRange(rowNumber,kembaliCol).getValue()) sh.getRange(rowNumber,kembaliCol).setValue(new Date());
+      return output_({ok:true,message:'Status izin berhasil diperbarui.',id:id,status:status});
+    }
+    const name = ACTION_TO_SHEET[action], input = body.data;
+    if (!name) return output_({ok:false,error:'Aksi tidak dikenal. Gunakan izin, pengumuman, kegiatan, atau updateStatus.'});
     if (!input || typeof input!=='object' || Array.isArray(input)) return output_({ok:false,error:'data harus berupa objek JSON.'});
     const required = {izin:['nis','nama','jenis'],pengumuman:['judul','isi'],kegiatan:['judul','tanggal']}[action];
     const missing = required.filter(function(k){return input[k]===undefined || input[k]===null || String(input[k]).trim()==='';});
