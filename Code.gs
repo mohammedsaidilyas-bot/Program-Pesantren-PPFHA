@@ -92,7 +92,7 @@ function doPost(e) {
       for (let i = 1; i < values.length; i++) { if (String(values[i][idCol-1]).trim() === id) { rowNumber = i + 1; break; } }
       if (rowNumber < 0) return output_({ok:false,error:'ID izin tidak ditemukan.'});
       sh.getRange(rowNumber,statusCol).setValue(status);
-      if (status === 'Sudah kembali' && kembaliCol && !sh.getRange(rowNumber,kembaliCol).getValue()) sh.getRange(rowNumber,kembaliCol).setValue(new Date());
+      if (status === 'Sudah kembali' && kembaliCol) sh.getRange(rowNumber,kembaliCol).setValue(body.kembaliAt ? new Date(body.kembaliAt) : new Date());
       return output_({ok:true,message:'Status izin berhasil diperbarui.',id:id,status:status});
     }
     const name = ACTION_TO_SHEET[action], input = body.data;
