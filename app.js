@@ -30,9 +30,22 @@ async function openQr(target){
  }catch(err){$('#qrMessage').textContent='Kamera gagal dibuka. Izinkan akses kamera pada browser. '+String(err.message||err).slice(0,100);toast('Tidak bisa membuka kamera QR.')}
  finally{qrStarting=false}
 }
+const jenisSelect=$('#formIzin [name="jenis"]');
+const keluarInput=$('#formIzin [name="keluar"]');
+const kembaliInput=$('#formIzin [name="rencanaKembali"]');
+function applyJenisIzin(){
+ const isKeluar=jenisSelect.value==='Izin Keluar (berbatas waktu)';
+ const label=keluarInput.closest('label'); if(label)label.innerHTML=(isKeluar?'Waktu Keluar *':'Tanggal / Waktu Berangkat *')+'<input name="keluar" type="datetime-local" required>';
+ const planLabel=kembaliInput.closest('label'); if(planLabel)planLabel.innerHTML=(isKeluar?'Batas Waktu Kembali *':'Rencana Kembali *')+'<input name="rencanaKembali" type="datetime-local" required>';
+ const freshKeluar=$('#formIzin [name="keluar"]'),freshKembali=$('#formIzin [name="rencanaKembali"]');
+ const now=new Date();now.setMinutes(now.getMinutes()-now.getTimezoneOffset());const local=now.toISOString().slice(0,16);
+ if(!freshKeluar.value)freshKeluar.value=local;
+ if(!freshKembali.value){const later=new Date(now);later.setHours(later.getHours()+(isKeluar?2:24));freshKembali.value=later.toISOString().slice(0,16);}
+}
+jenisSelect.addEventListener('change',applyJenisIzin);
 $('#nisInput').addEventListener('change',()=>lookupStudent($('#nisInput').value));$('#nisInput').addEventListener('blur',()=>lookupStudent($('#nisInput').value));
 $('#scanSearch').onclick=()=>openQr('search');$('#scanForm').onclick=()=>openQr('form');$('#closeQr').onclick=()=>closeQr();$('#qrModal').addEventListener('click',e=>{if(e.target===$('#qrModal'))closeQr()});
-$('#showIzin').onclick=()=>{$('#formIzin').classList.remove('hidden');$('#formIzin').scrollIntoView({behavior:'smooth',block:'start'})};$('#cancelIzin').onclick=()=>{$('#formIzin').classList.add('hidden');$('#formIzin').reset()};$('#search').oninput=renderIzin;$('#filterJenis').onchange=renderIzin;$('#filterStatus').onchange=renderIzin;$('#refreshIzin').onclick=loadIzin;
+$('#showIzin').onclick=()=>{$('#formIzin').classList.remove('hidden');applyJenisIzin();$('#formIzin').scrollIntoView({behavior:'smooth',block:'start'})};$('#cancelIzin').onclick=()=>{$('#formIzin').classList.add('hidden');$('#formIzin').reset()};$('#search').oninput=renderIzin;$('#filterJenis').onchange=renderIzin;$('#filterStatus').onchange=renderIzin;$('#refreshIzin').onclick=loadIzin;
 $('#formIzin').onsubmit=async e=>{e.preventDefault();const form=e.target,d=Object.fromEntries(new FormData(form).entries());if(d.jenis==='Izin Keluar (berbatas waktu)'&&!d.rencanaKembali){toast('Izin keluar wajib memiliki batas waktu kembali.');return}if(new Date(d.rencanaKembali)<new Date(d.keluar)){toast('Batas kembali tidak boleh lebih awal dari waktu keluar.');return}if(!adminKey){adminKey=prompt('Masukkan kunci API pengurus yang disetel di Script Properties (ADMIN_API_KEY). Jangan bagikan kunci ini kepada orang lain.');if(!adminKey){toast('Penyimpanan dibatalkan.');return}}const btn=form.querySelector('button[type="submit"]'),old=btn.textContent;btn.disabled=true;btn.textContent='Menyimpan…';try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'izin',apiKey:adminKey,data:d})});const j=await r.json();if(!j.ok)throw new Error(j.error||'Data gagal disimpan');form.reset();form.classList.add('hidden');await loadIzin();toast('Izin berhasil disimpan ke database.')}catch(err){adminKey='';toast('Penyimpanan belum terkonfirmasi: '+err.message+'. Pastikan ADMIN_API_KEY sudah disetel dan deployment terbaru aktif.')}finally{btn.disabled=false;btn.textContent=old}};
 $('#formPeng').onsubmit=e=>{e.preventDefault();toast('Pengumuman akan disambungkan setelah menu perizinan selesai.')};$('#formKeg').onsubmit=e=>{e.preventDefault();toast('Kegiatan akan disambungkan setelah menu perizinan selesai.')};
 render();loadIzin();
