@@ -42,7 +42,7 @@ function applyJenisIzin(){
  const freshKeluar=$('#formIzin [name="keluar"]'),freshKembali=$('#formIzin [name="rencanaKembali"]');
  const now=new Date();now.setMinutes(now.getMinutes()-now.getTimezoneOffset());const local=now.toISOString().slice(0,16);
  if(!freshKeluar.value)freshKeluar.value=local;
- if(!freshKembali.value){const later=new Date(now);later.setHours(later.getHours()+(isKeluar?1:24));freshKembali.value=later.toISOString().slice(0,16);}if(isKeluar){freshKembali.removeAttribute('min');}
+ if(!freshKembali.value){const later=new Date(now);later.setHours(later.getHours()+(isKeluar?0:24));freshKembali.value=later.toISOString().slice(0,16);}if(isKeluar){freshKembali.removeAttribute('min');}
 }
 jenisSelect.addEventListener('change',applyJenisIzin);
 $('#formIzin').addEventListener('change',e=>{if(e.target.name==='keluar'){applyJenisIzin();return}if(e.target.name==='rencanaKembali'&&jenisSelect.value==='Izin Keluar (berbatas waktu)'){const start=new Date($('#formIzin [name="keluar"]').value),end=new Date(e.target.value);if(end<start){e.target.value=$('#formIzin [name="keluar"]').value;toast('Batas kembali tidak boleh lebih awal dari waktu keluar.')}}});
