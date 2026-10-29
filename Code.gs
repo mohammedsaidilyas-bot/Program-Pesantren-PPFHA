@@ -1,7 +1,129 @@
-// Backend awal Program Pesantren. Jalankan setupDatabase() satu kali.
+// Backend awal Program Pesantren PPFHA
+// Tahap ini menyiapkan tab database dan endpoint baca.
+// Belum menerima penyimpanan data dari website; tambahkan autentikasi sebelum endpoint tulis diaktifkan.
+
 const SPREADSHEET_ID = '1JdBEnLlJHeIlb8XI8OoqzxTj84wYGkU2Hr0ySq6p6gA';
-const HEADERS = { Izin:['id','dibuatPada','nis','nama','jenis','status','keluar','rencanaKembali','kembali','wali','catatan','terbit'], Pengumuman:['id','dibuatPada','judul','kategori','tanggal','target','nisTarget','isi','status'], Kegiatan:['id','dibuatPada','judul','lokasi','tanggal','waktu','isi','status'] };
-function setupDatabase(){const ss=SpreadsheetApp.openById(SPREADSHEET_ID);Object.keys(HEADERS).forEach(n=>{let s=ss.getSheetByName(n)||ss.insertSheet(n);if(s.getLastRow()===0)s.appendRow(HEADERS[n]);});return 'Database siap';}
-function doGet(e){const a=e?.parameter?.action||'health';if(a==='health')return out({ok:true,app:'Program Pesantren'});const type=({izin:'Izin',pengumuman:'Pengumuman',kegiatan:'Kegiatan'})[a];if(!type)return out({ok:false,error:'Aksi tidak dikenal'});const s=SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(type);if(!s)return out({ok:false,error:'Jalankan setupDatabase() terlebih dahulu'});const v=s.getDataRange().getValues();if(v.length<2)return out({ok:true,data:[]});const h=v.shift();const data=v.filter(r=>r.some(x=>x!=='')).map(r=>Object.fromEntries(h.map((k,i)=>[k,r[i] instanceof Date?r[i].toISOString():r[i]])));return out({ok:true,data:data.filter(x=>x.status!=='Draf')});}
-function doPost(e){try{const b=JSON.parse(e.postData.contents||'{}');const type=({izin:'Izin',pengumuman:'Pengumuman',kegiatan:'Kegiatan'})[b.type];if(!type)throw Error('Jenis data tidak dikenal');const s=SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(type);if(!s)throw Error('Jalankan setupDatabase() terlebih dahulu');const row={...b.data,id:Utilities.getUuid(),dibuatPada:new Date().toISOString()};s.appendRow(HEADERS[type].map(k=>row[k]??''));return out({ok:true,id:row.id});}catch(err){return out({ok:false,error:String(err.message||err)});}}
-function out(x){return ContentService.createTextOutput(JSON.stringify(x)).setMimeType(ContentService.MimeType.JSON);}
+
+const HEADERS = {
+  Izin: [
+    'id', 'dibuatPada', 'nis', 'nama', 'jenis',
+    'status', 'keluar', 'rencanaKembali', 'kembali',
+    'wali', 'catatan', 'terbit'
+  ],
+  Pengumuman: [
+    'id', 'dibuatPada', 'judul', 'kategori',
+    'tanggal', 'target', 'nisTarget', 'isi', 'status'
+  ],
+  Kegiatan: [
+    'id', 'dibuatPada', 'judul', 'lokasi',
+    'tanggal', 'waktu', 'isi', 'status'
+  ]
+};
+
+/**
+ * Jalankan sekali dari editor Apps Script untuk membuat tab database.
+ * Tidak menghapus atau mengubah tab yang sudah memiliki isi.
+ */
+function setupDatabase() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  Object.keys(HEADERS).forEach(function(sheetName) {
+    let sheet = ss.getSheetByName(sheetName);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+    }
+
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(HEADERS[sheetName]);
+      sheet.setFrozenRows(1);
+    }
+  });
+
+  return 'Database Program Pesantren siap.';
+}
+
+/**
+ * Endpoint pemeriksaan dan baca data.
+ * Contoh: .../exec?action=izin
+ *          .../exec?action=pengumuman
+ *          .../exec?action=kegiatan
+ */
+function doGet(e) {
+  const action = e && e.parameter
+    ? e.parameter.action
+    : 'health';
+
+  if (!action || action === 'health') {
+    return output({
+      ok: true,
+      app: 'Program Pesantren PPFHA'
+    });
+  }
+
+  const sheetNames = {
+    izin: 'Izin',
+    pengumuman: 'Pengumuman',
+    kegiatan: 'Kegiatan'
+  };
+
+  const sheetName = sheetNames[action];
+
+  if (!sheetName) {
+    return output({
+      ok: false,
+      error: 'Aksi tidak dikenal.'
+    });
+  }
+
+  const sheet = SpreadsheetApp
+    .openById(SPREADSHEET_ID)
+    .getSheetByName(sheetName);
+
+  if (!sheet) {
+    return output({
+      ok: false,
+      error: 'Tab database belum tersedia. Jalankan setupDatabase().'
+    });
+  }
+
+  const values = sheet.getDataRange().getValues();
+
+  if (values.length < 2) {
+    return output({ ok: true, data: [] });
+  }
+
+  const headers = values.shift();
+
+  const data = values
+    .filter(function(row) {
+      return row.some(function(cell) {
+        return cell !== '';
+      });
+    })
+    .map(function(row) {
+      const item = {};
+
+      headers.forEach(function(key, index) {
+        const value = row[index];
+        item[key] = value instanceof Date
+          ? value.toISOString()
+          : value;
+      });
+
+      return item;
+    });
+
+  return output({
+    ok: true,
+    data: data.filter(function(item) {
+      return item.status !== 'Draf';
+    })
+  });
+}
+
+function output(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
