@@ -158,31 +158,29 @@ async function loadAttendanceConfig(){
   const date=$('#attendanceDate');
   if(date&&!date.value)date.value=todayLocal();
   try{
-    const sessions=['Subuh','Dzuhur','Ashar','Maghrib','Isya','Jumat'];
-    const responses=await Promise.all(sessions.map(async session=>{
-      const r=await fetch(API_URL+'?action=attendanceConfig&session='+encodeURIComponent(session),{cache:'no-store'});
-      return r.json();
-    }));
-    const bad=responses.find(x=>!x||!x.ok);
-    if(bad)throw new Error(bad.error||'Backend jadwal sholat belum tersedia');
-    const jamaah={};
-    let other={};
-    responses.forEach(j=>{
-      const d=j.data||{};
-      // Normalisasi jam dari Google Sheets (mis. 3:46) menjadi HH:mm
-      // sebelum dibandingkan secara kronologis dengan jam WIB.
-      const normalizeScheduleTimes=x=>x?({...x,
-        startTime:normalizeTimeInput(x.startTime),
-        onTimeUntil:normalizeTimeInput(x.onTimeUntil),
-        endTime:normalizeTimeInput(x.endTime)
-      }):x;
-      if(d.jamaah&&d.jamaah.startTime){
-        const item=normalizeScheduleTimes(d.jamaah);
-        jamaah[item.session||'Subuh']=item;
-      }
-      Object.keys(d).forEach(k=>{
-        if(k!=='jamaah'&&d[k]&&d[k].startTime)other[k]=normalizeScheduleTimes(d[k]);
+    // Ambil seluruh sesi dalam satu permintaan agar Subuh tidak terlewat
+    // akibat respons terpisah per sesi.
+    const response=await fetch(API_URL+'?action=attendanceConfig&session=all',{cache:'no-store'});
+    const j=await response.json();
+    if(!j||!j.ok)throw new Error(j?.error||'Backend jadwal sholat belum tersedia');
+    const d=j.data||{},jamaah={},other={};
+    const normalizeScheduleTimes=x=>x?({...x,
+      startTime:normalizeTimeInput(x.startTime),
+      onTimeUntil:normalizeTimeInput(x.onTimeUntil),
+      endTime:normalizeTimeInput(x.endTime)
+    }):x;
+    const rawJamaah=d.jamaah||{};
+    if(rawJamaah.startTime){
+      const item=normalizeScheduleTimes(rawJamaah);
+      jamaah[item.session||'Subuh']=item;
+    }else{
+      Object.keys(rawJamaah).forEach(key=>{
+        const item=normalizeScheduleTimes(rawJamaah[key]);
+        if(item&&item.startTime)jamaah[item.session||key]=item;
       });
+    }
+    Object.keys(d).forEach(k=>{
+      if(k!=='jamaah'&&d[k]&&d[k].startTime)other[k]=normalizeScheduleTimes(d[k]);
     });
     attendanceConfig={...other,jamaah};
     Object.keys(ATTENDANCE_ACTIVITIES).forEach(k=>{
@@ -193,7 +191,7 @@ async function loadAttendanceConfig(){
     if(currentAttendanceActivity==='jamaah'){
       const now=jakartaClock();
       const all=Object.keys(jamaah).map(session=>({session,...jamaah[session]}))
-        .filter(x=>x.startTime&&x.endTime&&(x.days||[]).map(Number).includes(now.day))
+        .filter(x=>x.startTime&&x.endTime&&(!(x.days||[]).length||(x.days||[]).map(Number).includes(now.day)))
         .sort((a,b)=>a.startTime.localeCompare(b.startTime));
       const chosen=all.find(x=>now.time>=x.startTime&&now.time<=x.endTime)
         ||all.find(x=>x.startTime>now.time)
