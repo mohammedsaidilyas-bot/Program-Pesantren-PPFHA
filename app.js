@@ -2,7 +2,8 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const API_URL='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbKFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
 const data={izin:[],peng:[],keg:[]};const names={dashboard:'Dashboard',izin:'Izin Santri',pengumuman:'Pengumuman',kegiatan:'Kegiatan & Jadwal',kehadiran:'Kegiatan & Kehadiran',pendidikan:'Pendidikan Santri'};let adminKey=sessionStorage.getItem('ppfha_admin_key')||'';
 function go(p){$$('.page').forEach(x=>x.classList.toggle('active',x.id===p));$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===p));$('#title').textContent=names[p]||'Dashboard';window.scrollTo(0,0);if(p==='izin')loadIzin();if(p==='kehadiran')loadAttendanceConfig()}
-$$('.nav').forEach(x=>x.onclick=()=>go(x.dataset.page));
+$('.nav').forEach(x=>x.onclick=()=>go(x.dataset.page));
+document.addEventListener('click',e=>{const nav=e.target.closest('.nav[data-page]');if(nav){e.preventDefault();go(nav.dataset.page);}});
 function openEducationModule(module){
  const menu=$('#educationMenu');if(menu)menu.classList.add('hidden');
  $$('.education-detail').forEach(x=>x.classList.add('hidden'));
