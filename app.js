@@ -239,6 +239,7 @@ async function lookupRaportStudent(){
 }
 async function loadRaportHistory(nis){
  const body=$('#raportHistory');if(!body)return;
+ if(!adminKey){adminKey=await requestAdminKey('Lihat riwayat nilai raport');if(!adminKey){body.innerHTML='<tr><td colspan="6" class="empty">Masukkan kunci pengurus untuk melihat riwayat.</td></tr>';return}adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey)}
  body.innerHTML='<tr><td colspan="6" class="empty">Memuat riwayat nilai…</td></tr>';
  try{const r=await fetch(API_URL+'?action=educationrecords&type=raport&nis='+encodeURIComponent(nis)+'&key='+encodeURIComponent(adminKey),{cache:'no-store'});const j=await r.json();if(!j.ok)throw new Error(j.error||'Gagal membaca nilai');
  const rows=j.data||[];body.innerHTML=rows.length?rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.mataPelajaran||'—')+'</td><td>'+esc(x.semester||'—')+'</td><td>'+esc(x.prestasi||'—')+'</td><td>'+esc(x.rataRataKelas||'—')+'</td><td>'+esc(x.tahunAjaran||'—')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">Belum ada nilai tersimpan untuk NIS ini.</td></tr>';
