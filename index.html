@@ -34,7 +34,7 @@
   <div class="form-title"><span class="form-icon">📘</span><div><h3>Input Raport Madrasah</h3><p>Masukkan NIS untuk memuat identitas santri, lalu isi nilai Semester I dan II.</p></div></div>
   <form id="formRaport">
    <div class="fields">
-    <label>NIS Santri *<input id="raportNis" name="nis" required inputmode="numeric" autocomplete="off" placeholder="Masukkan NIS santri"><span class="raport-hint" id="raportLookupHint">Masukkan NIS; nama dan kelas akan terisi otomatis.</span><button class="hidden" id="scanRaport" type="button" aria-hidden="true" tabindex="-1">Scan</button><button class="hidden" id="findRaport" type="button" aria-hidden="true" tabindex="-1">Cari</button></label>
+    <label class="raport-search-label">Cari / Scan NIS Santri *<div class="raport-search-row"><button class="primary raport-scan-btn" id="scanRaport" type="button">▦ Scan Barcode</button><input id="raportNis" name="nis" required inputmode="numeric" autocomplete="off" placeholder="Masukkan NIS atau scan kartu…"><button class="secondary" id="findRaport" type="button">Cari</button></div><small class="raport-hint" id="raportLookupHint">Scan QR pada kartu santri atau ketik NIS secara manual.</small></label>
     <label>Nama Santri<input id="raportNama" name="nama" readonly placeholder="Terisi otomatis"></label>
     <label>Kelas<input id="raportKelas" name="kelas" readonly placeholder="Terisi otomatis"></label>
     <label>Tahun Ajaran *<input name="tahunAjaran" required placeholder="Contoh: 2026/2027"></label>
