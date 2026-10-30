@@ -36,3 +36,18 @@
 .attendance-card .activity-status{margin-top:10px;line-height:1.45;font-size:12px;color:#718278;min-height:18px}
 @media(max-width:800px){.attendance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.attendance-grid{grid-template-columns:1fr}.attendance-card{min-height:unset}}
+
+/* Dialog konfirmasi libur kegiatan — tampilan khusus yang selaras dengan tema pesantren */
+.confirm-overlay{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(10,31,24,.48);backdrop-filter:blur(5px);animation:confirmFade .18s ease}
+.confirm-dialog{width:min(100%,440px);padding:30px 28px 24px;border:1px solid #e2eee7;border-radius:24px;background:#fff;box-shadow:0 24px 70px rgba(9,45,31,.24);color:#183b2f;text-align:center;animation:confirmRise .22s ease}
+.confirm-icon{width:58px;height:58px;margin:0 auto 16px;display:grid;place-items:center;border-radius:19px;background:#eaf5ee;color:#176b50;font-size:28px}
+.confirm-dialog h3{margin:0 0 9px;font-size:22px;letter-spacing:-.4px}
+.confirm-message{margin:0 auto;color:#687b72;font-size:14px;line-height:1.7;max-width:340px}
+.confirm-actions{display:flex;justify-content:center;gap:10px;margin-top:25px}
+.confirm-actions button{min-width:120px;min-height:44px;border-radius:12px;font-weight:700}
+.confirm-actions .confirm-accept{background:#176b50;color:#fff;border:1px solid #176b50}
+.confirm-actions .confirm-accept:hover{background:#12563f}
+.confirm-actions .confirm-cancel{background:#f1f5f2;color:#40584c;border:1px solid #e1eae4}
+@keyframes confirmFade{from{opacity:0}to{opacity:1}}
+@keyframes confirmRise{from{opacity:0;transform:translateY(9px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:480px){.confirm-dialog{padding:25px 19px 20px;border-radius:20px}.confirm-dialog h3{font-size:20px}.confirm-actions button{flex:1;min-width:0}}
