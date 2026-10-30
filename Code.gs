@@ -16,6 +16,12 @@ const HEADERS = {
 };
 const ACTION_TO_SHEET = { izin:'Izin', pengumuman:'Pengumuman', kegiatan:'Kegiatan' };
 
+// Helper respons JSON untuk seluruh endpoint doGet/doPost.
+function output_(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 function setupDatabase() {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID), hasil = [];
@@ -477,12 +483,7 @@ function parseBody_(e) {
   if (!e || !e.postData || !e.postData.contents) throw new Error('Body permintaan kosong. Kirim JSON melalui POST.');
   try { return JSON.parse(e.postData.contents); } catch(err) { throw new Error('Format body tidak valid. Gunakan JSON yang benar.'); }
 }
-function output_(data) { return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON); }
-function constantTimeEquals_(a,b) {
-  if(a.length!==b.length)return false; let diff=0;
-  for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);
-  return diff===0;
-}
+
 function explainError_(err) {
   const message=String(err&&err.message?err.message:err);
   if(/invalid_client|OAuth|authorization|otorisasi/i.test(message))
