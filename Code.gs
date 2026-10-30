@@ -339,8 +339,8 @@ function recordAttendanceScan_(data) {
   const schedule = schedules.find(function(s){return s.activity===activity && String(s.session)===session;});
   if (!schedule) return {ok:false,error:'Jadwal '+ATTENDANCE_ACTIVITY_NAMES[activity]+' sesi '+session+' belum diatur.'};
   if (schedule.days.indexOf(weekday)<0) return {ok:false,error:'Kegiatan ini tidak dijadwalkan pada hari ini.'};
-  if (time < String(schedule.startTime)) return {ok:false,error:'Absensi belum dibuka. Mulai pukul '+schedule.startTime+'.'};
-  if (time > String(schedule.endTime)) return {ok:false,error:'Batas scan sudah lewat pukul '+schedule.endTime+'.'};
+  // MODE UJI COBA: batas waktu scan dinonaktifkan sementara. Aktifkan kembali setelah seluruh portal dan penyimpanan teruji.
+
   const students = attendanceStudentRoster_();
   const student = students.find(function(x){return x.nis===nis;});
   if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif.'};
