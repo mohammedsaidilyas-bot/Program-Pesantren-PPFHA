@@ -73,6 +73,7 @@ async function openQr(target){
    if(qrTarget==='raport'){ $('#raportNis').value=nis; await closeQr(); await lookupRaportStudent(); return; }
    if(qrTarget==='albab'){ $('#albabNis').value=nis; await closeQr(); await lookupAlbabStudent(); return; }
    if(qrTarget==='hafalan'){ $('#hafalanNis').value=nis; await closeQr(); await lookupHafalanStudent(); return; }
+  if(qrTarget==='evaluasi'){ $('#evaluasiNis').value=nis; await closeQr(); await lookupEvaluasiStudent(); return; }
    $('#nisInput').value=nis;$('#formIzin').classList.remove('hidden');
    if(qrTarget==='search'){$('#search').value=nis;renderIzin()}
    await closeQr();
