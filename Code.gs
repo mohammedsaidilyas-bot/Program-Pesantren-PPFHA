@@ -176,7 +176,7 @@ const ATTENDANCE_TZ = 'Asia/Jakarta';
 
 function normalizeAttendanceActivity_(value) {
   const raw = String(value || '').normalize('NFKC').trim().toLowerCase()
-    .replace(/[’‘]/g, "'").replace(/[\\s_-]+/g, ' ').replace(/\\s+/g, ' ');
+    .replace(/[’‘]/g, "'").replace(/[\s_-]+/g, ' ').replace(/\s+/g, ' ');
   const aliases = {
     'jamaah':'jamaah','sholat jamaah':'jamaah','sholat berjamaah':'jamaah','shalat berjamaah':'jamaah',
     'shalat jamaah':'jamaah','sholat berjama ah':'jamaah','jamaah sholat':'jamaah',
