@@ -1,6 +1,6 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const API_URL='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbKFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
-const data={izin:[],peng:[],keg:[]};const names={dashboard:'Dashboard',izin:'Izin Santri',pengumuman:'Pengumuman',kegiatan:'Kegiatan & Jadwal',kehadiran:'Kegiatan & Kehadiran'};let adminKey=sessionStorage.getItem('ppfha_admin_key')||'';
+const data={izin:[],peng:[],keg:[]};const names={dashboard:'Dashboard',izin:'Izin Santri',pengumuman:'Pengumuman',kegiatan:'Kegiatan & Jadwal',kehadiran:'Kegiatan & Kehadiran',pendidikan:'Pendidikan Santri'};let adminKey=sessionStorage.getItem('ppfha_admin_key')||'';
 function go(p){$$('.page').forEach(x=>x.classList.toggle('active',x.id===p));$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===p));$('#title').textContent=names[p]||'Dashboard';window.scrollTo(0,0);if(p==='izin')loadIzin();if(p==='kehadiran')loadAttendanceConfig()}
 $$('.nav').forEach(x=>x.onclick=()=>go(x.dataset.page));$$('[data-go]').forEach(x=>x.onclick=()=>go(x.dataset.go));
 function requestAdminKey(title){return new Promise(resolve=>{const modal=$('#adminKeyModal'),form=$('#adminKeyForm'),input=$('#adminKeyInput'),desc=$('#adminKeyDescription'),cancel=$('#cancelAdminKey');if(!modal||!form||!input){resolve('');return}desc.textContent=title+' — masukkan kunci pengurus untuk melanjutkan.';input.value='';modal.classList.remove('hidden');setTimeout(()=>input.focus(),80);let settled=false;const finish=value=>{if(settled)return;settled=true;modal.classList.add('hidden');form.removeEventListener('submit',submit);cancel.removeEventListener('click',cancelClick);modal.removeEventListener('click',outside);resolve(value)};const submit=e=>{e.preventDefault();const value=input.value.trim();if(!value){input.focus();return}adminKey=value;sessionStorage.setItem('ppfha_admin_key',value);finish(value)};const cancelClick=()=>finish('');const outside=e=>{if(e.target===modal)finish('')};form.addEventListener('submit',submit);cancel.addEventListener('click',cancelClick);modal.addEventListener('click',outside)})}
@@ -206,3 +206,72 @@ $('#refreshAttendance').onclick=loadAttendanceConfig;$('#loadAttendanceRecords')
 let attendanceAutoTimer=null;function startAttendanceAutoRefresh(){if(attendanceAutoTimer)clearInterval(attendanceAutoTimer);attendanceAutoTimer=setInterval(()=>{if($('#kehadiran')&&$('#kehadiran').classList.contains('active'))refreshAttendanceScanGate()},1000)}startAttendanceAutoRefresh();
 // Extend existing QR scanner: keep the same KTS QR payload (NIS only).
 const originalQrHandlerMarker='attendance-qr-hook';
+
+
+/* ==================== PENDIDIKAN SANTRI: RAPORT MADRASAH ==================== */
+const raportSubjects=[
+ ['Tafsir','mapel'],['Hadits','mapel'],['Tajwid','mapel'],['Akhlaq','mapel'],['Fiqh','mapel'],
+ ['Bahasa Arab','mapel'],['Nahwu','mapel'],['Shorrof','mapel'],['Tauhid','mapel'],["I’lal",'mapel'],
+ ['Tarikh / Kholashoh','mapel'],['Bhesanah','mapel'],
+ ['Muatan Lokal','group'],["a. Imla’",'lokal'],['b. Baca Kitab','lokal'],['c. Muhafadzoh','lokal'],['d.','custom']
+];
+function renderRaportInputs(){
+ const body=$('#raportSubjects');if(!body)return;
+ body.innerHTML=raportSubjects.map((s,i)=>{
+  const custom=s[1]==='custom'?'<input class="raport-custom-name" data-custom-name placeholder="Nama mapel tambahan">':esc(s[0]);
+  if(s[1]==='group')return '<tr class="raport-group"><td>13.</td><td><b>'+custom+'</b></td><td colspan="4">Muatan lokal</td></tr>';
+  return '<tr><td>'+(s[1]==='lokal'?'':(i+1)+'.')+'</td><td>'+custom+'</td>'+[1,1,2,2].map((sem,k)=>'<td><input class="raport-score" type="number" min="0" max="100" step="0.01" inputmode="decimal" data-subject="'+i+'" data-sem="'+sem+'" data-kind="'+(k%2?'rataRataKelas':'prestasi')+'" aria-label="Nilai '+esc(s[0])+' semester '+sem+'"></td>').join('')+'</tr>';
+ }).join('');
+ body.addEventListener('input',updateRaportTotals);
+}
+function updateRaportTotals(){
+ [1,2].forEach(sem=>['prestasi','rataRataKelas'].forEach(kind=>{
+  const vals=$$('.raport-score').filter(x=>x.dataset.sem===String(sem)&&x.dataset.kind===kind&&x.value.trim()!=='').map(x=>Number(x.value)||0);
+  const total=vals.reduce((a,b)=>a+b,0);
+  const id=kind==='prestasi'?'sumPrestasi':'sumRata';
+  $('#'+id+sem).textContent=total.toLocaleString('id-ID',{maximumFractionDigits:2});
+ }));
+}
+async function lookupRaportStudent(){
+ const nis=$('#raportNis').value.trim().replace(/\D/g,'');if(!nis)return;
+ try{const r=await fetch(API_URL+'?action=student&nis='+encodeURIComponent(nis),{cache:'no-store'});const j=await r.json();if(!j.ok)throw new Error(j.error||'Santri tidak ditemukan');$('#raportNis').value=j.data.nis;$('#raportNama').value=j.data.nama;$('#raportKelas').value=j.data.kelas||'';await loadRaportHistory(nis)}
+ catch(err){$('#raportNama').value='';$('#raportKelas').value='';toast('Data santri: '+err.message)}
+}
+async function loadRaportHistory(nis){
+ const body=$('#raportHistory');if(!body)return;
+ body.innerHTML='<tr><td colspan="6" class="empty">Memuat riwayat nilai…</td></tr>';
+ try{const r=await fetch(API_URL+'?action=educationrecords&type=raport&nis='+encodeURIComponent(nis)+'&key='+encodeURIComponent(adminKey),{cache:'no-store'});const j=await r.json();if(!j.ok)throw new Error(j.error||'Gagal membaca nilai');
+ const rows=j.data||[];body.innerHTML=rows.length?rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.mataPelajaran||'—')+'</td><td>'+esc(x.semester||'—')+'</td><td>'+esc(x.prestasi||'—')+'</td><td>'+esc(x.rataRataKelas||'—')+'</td><td>'+esc(x.tahunAjaran||'—')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">Belum ada nilai tersimpan untuk NIS ini.</td></tr>';
+ }catch(err){body.innerHTML='<tr><td colspan="6" class="empty">'+esc(err.message)+'</td></tr>'}
+}
+$('#raportNis').addEventListener('change',lookupRaportStudent);
+$('#raportNis').addEventListener('blur',lookupRaportStudent);
+$('#refreshRaport').onclick=()=>{const n=$('#raportNis').value.trim();if(n)loadRaportHistory(n);else toast('Masukkan NIS santri terlebih dahulu.')};
+$('#formRaport').addEventListener('reset',()=>setTimeout(()=>{ $('#raportNama').value='';$('#raportKelas').value='';updateRaportTotals();},0));
+$('#formRaport').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const form=e.currentTarget,nis=$('#raportNis').value.trim(),nama=$('#raportNama').value.trim(),kelas=$('#raportKelas').value.trim();
+ if(!nis||!nama){toast('Masukkan NIS santri yang valid terlebih dahulu.');return}
+ const tahunAjaran=form.elements.tahunAjaran.value.trim(),ustaz=form.elements.ustaz.value.trim();
+ const records=[];
+ raportSubjects.forEach((s,i)=>{
+  if(s[1]==='group')return;
+  const name=s[1]==='custom'?($('#raportSubjects [data-custom-name]').value.trim()):s[0];
+  if(!name)return;
+  [1,2].forEach(semester=>{
+   const p=$('.raport-score[data-subject="'+i+'"][data-sem="'+semester+'"][data-kind="prestasi"]');
+   const a=$('.raport-score[data-subject="'+i+'"][data-sem="'+semester+'"][data-kind="rataRataKelas"]');
+   if((p&&p.value!=='')||(a&&a.value!==''))records.push({nis,nama,kelas,tahunAjaran,mataPelajaran:name,kelompok:s[1]==='lokal'?'Muatan Lokal':'Mata Pelajaran',semester,prestasi:p?p.value:'',rataRataKelas:a?a.value:'',ustaz});
+  });
+ });
+ if(!records.length){toast('Isi minimal satu nilai sebelum menyimpan.');return}
+ if(!adminKey){adminKey=await requestAdminKey('Simpan nilai raport madrasah');if(!adminKey)return;sessionStorage.setItem('ppfha_admin_key',adminKey)}
+ const btn=form.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Menyimpan…';
+ try{
+  const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'saveeducationraport',apiKey:adminKey,records})});const j=await r.json();if(!j.ok)throw new Error(j.error||'Nilai gagal disimpan');
+  toast('Nilai raport berhasil disimpan ('+j.saved+' entri).');await loadRaportHistory(nis);
+ }catch(err){toast('Gagal menyimpan nilai raport: '+err.message)}
+ finally{btn.disabled=false;btn.textContent='➤ Simpan Nilai Raport'}
+});
+renderRaportInputs();
+
