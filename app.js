@@ -358,59 +358,44 @@ $('#formAlbab').addEventListener('submit',async e=>{
 
 /* HAFALAN KITAB & NADZOM */
 let hafalanLookupToken=0;
+function setHafalanLookupStatus(message,kind){
+ const el=$('#hafalanLookupStatus');if(!el)return;
+ el.textContent=message;el.style.display='block';el.style.padding='9px 11px';el.style.marginTop='8px';el.style.borderRadius='8px';
+ el.style.background=kind==='error'?'#fff0f0':kind==='success'?'#eaf8ef':'#eef5ff';
+ el.style.color=kind==='error'?'#a12626':kind==='success'?'#176b3a':'#24527a';
+}
 async function lookupHafalanStudent(){
- const input=$('#hafalanNis'),nama=$('#hafalanNama'),kelas=$('#hafalanKelas');
- if(!input||!nama||!kelas){toast('Kolom pencarian hafalan tidak ditemukan.');return}
- // Terima NIS ketikan maupun isi QR kartu, misalnya PPFHA|KTS|NIS:20260001.
- const raw=String(input.value||'').trim();
- const labeled=raw.match(/NIS\s*[:=：-]\s*(\d+)/i);
- const tail=raw.split(/[|;]/).pop()||raw;
+ const input=$('#hafalanNis'),nama=$('#hafalanNama'),kelas=$('#hafalanKelas'),btn=$('#findHafalan');
+ if(!input||!nama||!kelas){toast('Form hafalan tidak ditemukan. Muat ulang halaman.');return}
+ const raw=String(input.value||'').trim(),labeled=raw.match(/NIS\s*[:=：-]\s*(\d+)/i),tail=raw.split(/[|;]/).pop()||raw;
  const nis=(labeled&&labeled[1])||(tail.match(/\d+/g)||[]).join('');
- if(!nis){toast('Masukkan NIS santri yang benar.');input.focus();return}
- input.value=nis;
- const token=++hafalanLookupToken;
- nama.value='';kelas.value='';nama.placeholder='Memeriksa data santri…';kelas.placeholder='Memeriksa data santri…';
- toast('Memeriksa data santri…');
- const btn=$('#findHafalan');if(btn){btn.disabled=true;btn.textContent='Mencari…'}
+ if(!nis){setHafalanLookupStatus('Masukkan NIS santri terlebih dahulu.','error');input.focus();return}
+ const token=++hafalanLookupToken;input.value=nis;nama.value='';kelas.value='';
+ setHafalanLookupStatus('Memeriksa data santri…','loading');
+ if(btn){btn.disabled=true;btn.textContent='Mencari…'}
  try{
-  const url=API_URL+'?action=student&nis='+encodeURIComponent(nis)+'&_='+Date.now();
-  const r=await fetch(url,{method:'GET',cache:'no-store'});
-  if(!r.ok)throw new Error('Server biodata merespons HTTP '+r.status);
-  const j=await r.json();
-  if(token!==hafalanLookupToken)return;
-  if(!j||j.ok!==true||!j.data)throw new Error((j&&j.error)||'NIS tidak ditemukan di database Uang Jajan Santri.');
-  if(!j.data.nama)throw new Error('NIS ditemukan, tetapi nama santri kosong pada database.');
-  input.value=String(j.data.nis||nis).replace(/\D/g,'');
-  nama.value=j.data.nama||'';kelas.value=j.data.kelas||'';
-  nama.placeholder='Terisi otomatis';kelas.placeholder='Terisi otomatis';
- toast('Biodata ditemukan: '+j.data.nama);
+  const response=await fetch(API_URL+'?action=student&nis='+encodeURIComponent(nis)+'&_='+Date.now(),{method:'GET',cache:'no-store'});
+  if(!response.ok)throw new Error('Server biodata merespons HTTP '+response.status);
+  const result=await response.json();if(token!==hafalanLookupToken)return;
+  if(!result||result.ok!==true||!result.data)throw new Error(result&&result.error?result.error:'NIS tidak ditemukan di database Uang Jajan Santri.');
+  const student=result.data;if(!student.nama)throw new Error('NIS ditemukan, tetapi nama santri kosong pada database.');
+  input.value=String(student.nis||nis).replace(/\D/g,'');nama.value=student.nama||'';kelas.value=student.kelas||'';
+  setHafalanLookupStatus('✓ Biodata ditemukan: '+student.nama+(student.kelas?' — '+student.kelas:''),'success');
   loadHafalanHistory(nis).catch(()=>{});
- }catch(err){
-  if(token!==hafalanLookupToken)return;
-  nama.value='';kelas.value='';nama.placeholder='Terisi otomatis';kelas.placeholder='Terisi otomatis';
-  toast('Pencarian gagal: '+(err.message||'Periksa koneksi dan database.'));
- }finally{
-  if(btn){btn.disabled=false;btn.textContent='Cari'}
- }
+ }catch(error){
+  if(token!==hafalanLookupToken)return;nama.value='';kelas.value='';
+  setHafalanLookupStatus('Pencarian gagal: '+(error&&error.message?error.message:'Periksa koneksi internet.'),'error');
+ }finally{if(token===hafalanLookupToken&&btn){btn.disabled=false;btn.textContent='Cari'}}
 }
 window.lookupHafalanStudent=lookupHafalanStudent;
-
-async function loadHafalanHistory(nis){
- const body=$('#hafalanHistory');if(!body)return;
- if(!adminKey){adminKey=await requestAdminKey('Lihat riwayat hafalan kitab dan nadzom');if(!adminKey){body.innerHTML='<tr><td colspan="9" class="empty">Masukkan kunci pengurus untuk melihat riwayat.</td></tr>';return}adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey)}
- body.innerHTML='<tr><td colspan="9" class="empty">Memuat riwayat hafalan…</td></tr>';
- try{const r=await fetch(API_URL+'?action=educationrecords&type=hafalan&nis='+encodeURIComponent(nis)+'&key='+encodeURIComponent(adminKey),{cache:'no-store'});const j=await r.json();if(!j.ok)throw new Error(j.error||'Gagal membaca riwayat');
- const rows=j.data||[];body.innerHTML=rows.length?rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.tanggalInput||'—')+'</td><td>'+esc(x.namaKitabNadzom||'—')+'</td><td>'+esc(x.jenis||'—')+'</td><td>'+esc(x.targetBait||'—')+'</td><td>'+esc(x.capaianBait||'—')+'</td><td>'+esc(x.status||'—')+'</td><td>'+esc(x.catatan||'—')+'</td><td>'+esc(x.ustaz||'—')+'</td></tr>').join(''):'<tr><td colspan="9" class="empty">Belum ada catatan hafalan untuk NIS ini.</td></tr>';
- }catch(err){body.innerHTML='<tr><td colspan="9" class="empty">'+esc(err.message)+'</td></tr>'}
-}
-$('#scanHafalan').addEventListener('click',()=>openQr('hafalan'));
-$('#findHafalan').addEventListener('click',e=>{e.preventDefault();lookupHafalanStudent()});
+$('#findHafalan').onclick=e=>{e.preventDefault();lookupHafalanStudent()};
+$('#scanHafalan').onclick=()=>openQr('hafalan');
 $('#hafalanNis').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupHafalanStudent()}});
-$('#refreshHafalan').onclick=()=>{const n=$('#hafalanNis').value.trim();if(n)loadHafalanHistory(n);else toast('Masukkan NIS santri terlebih dahulu.')};
-$('#formHafalan').addEventListener('reset',()=>setTimeout(()=>{$('#hafalanNama').value='';$('#hafalanKelas').value=''},0));
+$('#refreshHafalan').onclick=()=>{const n=$('#hafalanNis').value.trim();if(n)loadHafalanHistory(n);else setHafalanLookupStatus('Masukkan NIS santri terlebih dahulu.','error')};
+$('#formHafalan').addEventListener('reset',()=>setTimeout(()=>{$('#hafalanNama').value='';$('#hafalanKelas').value='';setHafalanLookupStatus('Form dikosongkan.','loading')},0));
 $('#formHafalan').addEventListener('submit',async e=>{
  e.preventDefault();const form=e.currentTarget,nis=$('#hafalanNis').value.trim(),nama=$('#hafalanNama').value.trim(),kelas=$('#hafalanKelas').value.trim();
- if(!nis||!nama){toast('Masukkan NIS santri yang valid terlebih dahulu.');return}
+ if(!nis||!nama){setHafalanLookupStatus('Cari NIS sampai nama santri muncul sebelum menyimpan.','error');return}
  const target=Number(form.elements.targetBait.value),capaian=Number(form.elements.capaianBait.value);
  if(!Number.isInteger(target)||target<1||!Number.isInteger(capaian)||capaian<0||capaian>target){toast('Capaian bait harus berupa bilangan bulat dan tidak boleh melebihi target.');return}
  if(!adminKey){adminKey=await requestAdminKey('Simpan catatan hafalan');if(!adminKey)return;sessionStorage.setItem('ppfha_admin_key',adminKey)}
@@ -419,7 +404,14 @@ $('#formHafalan').addEventListener('submit',async e=>{
  catch(err){toast('Gagal menyimpan catatan hafalan: '+err.message)}
  finally{btn.disabled=false;btn.textContent='➤ Simpan Catatan Hafalan'}
 });
-
+async function loadHafalanHistory(nis){
+ const body=$('#hafalanHistory');if(!body)return;
+ if(!adminKey){adminKey=await requestAdminKey('Lihat riwayat hafalan kitab dan nadzom');if(!adminKey){body.innerHTML='<tr><td colspan="9" class="empty">Masukkan kunci pengurus untuk melihat riwayat.</td></tr>';return}adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey)}
+ body.innerHTML='<tr><td colspan="9" class="empty">Memuat riwayat hafalan…</td></tr>';
+ try{const r=await fetch(API_URL+'?action=educationrecords&type=hafalan&nis='+encodeURIComponent(nis)+'&key='+encodeURIComponent(adminKey),{cache:'no-store'});const j=await r.json();if(!j.ok)throw new Error(j.error||'Gagal membaca riwayat');
+ const rows=j.data||[];body.innerHTML=rows.length?rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.tanggalInput||'—')+'</td><td>'+esc(x.namaKitabNadzom||'—')+'</td><td>'+esc(x.jenis||'—')+'</td><td>'+esc(x.targetBait||'—')+'</td><td>'+esc(x.capaianBait||'—')+'</td><td>'+esc(x.status||'—')+'</td><td>'+esc(x.catatan||'—')+'</td><td>'+esc(x.ustaz||'—')+'</td></tr>').join(''):'<tr><td colspan="9" class="empty">Belum ada catatan hafalan untuk NIS ini.</td></tr>';
+ }catch(err){body.innerHTML='<tr><td colspan="9" class="empty">'+esc(err.message)+'</td></tr>'}
+}
 /* CATATAN & EVALUASI USTAZ */
 async function lookupEvaluasiStudent(){const nis=$('#evaluasiNis').value.trim().replace(/\D/g,'');if(!nis)return;try{const r=await fetch(API_URL+'?action=student&nis='+encodeURIComponent(nis),{cache:'no-store'});const x=await r.json();if(!x.ok||!x.data)throw new Error(x.error||'Santri tidak ditemukan');$('#evaluasiNis').value=x.data.nis;$('#evaluasiNama').value=x.data.nama;$('#evaluasiKelas').value=x.data.kelas||'';await loadEvaluasiHistory(nis)}catch(err){$('#evaluasiNama').value='';$('#evaluasiKelas').value='';toast('Data santri: '+err.message)}}
 async function loadEvaluasiHistory(nis){const body=$('#evaluasiHistory');if(!body)return;if(!adminKey){adminKey=await requestAdminKey('Lihat riwayat evaluasi ustaz');if(!adminKey){body.innerHTML='<tr><td colspan="6" class="empty">Masukkan kunci pengurus untuk melihat riwayat.</td></tr>';return}adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey)}body.innerHTML='<tr><td colspan="6" class="empty">Memuat riwayat evaluasi…</td></tr>';try{const r=await fetch(API_URL+'?action=educationrecords&type=evaluasi&nis='+encodeURIComponent(nis)+'&key='+encodeURIComponent(adminKey),{cache:'no-store'});const x=await r.json();if(!x.ok)throw new Error(x.error||'Gagal membaca riwayat');const rows=x.data||[];body.innerHTML=rows.length?rows.map((v,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(v.tanggalInput||'—')+'</td><td>'+esc(v.kategori||'—')+'</td><td>'+esc(v.catatanEvaluasi||'—')+'</td><td>'+esc(v.saranTindakLanjut||'—')+'</td><td>'+esc(v.ustaz||'—')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">Belum ada evaluasi untuk NIS ini.</td></tr>'}catch(err){body.innerHTML='<tr><td colspan="6" class="empty">'+esc(err.message)+'</td></tr>'}}
