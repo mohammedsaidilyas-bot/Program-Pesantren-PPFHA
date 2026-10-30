@@ -394,9 +394,7 @@ $('#hafalanNis').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDef
 $('#refreshHafalan').onclick=()=>{const n=$('#hafalanNis').value.trim();if(n)loadHafalanHistory(n);else setHafalanLookupStatus('Masukkan NIS santri terlebih dahulu.','error')};
 $('#formHafalan').addEventListener('reset',()=>setTimeout(()=>{$('#hafalanNama').value='';$('#hafalanKelas').value='';setHafalanLookupStatus('Form dikosongkan.','loading')},0));
 function hafalanSaveStatus(message,kind){
- let el=$('#hafalanSaveStatus');
- if(!el){el=document.createElement('div');el.id='hafalanSaveStatus';el.setAttribute('role','status');el.setAttribute('aria-live','polite');const form=$('#formHafalan');const actions=form&&form.querySelector('.actions');if(actions)form.insertBefore(el,actions);else if(form)form.appendChild(el)}
- el.textContent=message;el.style.cssText='display:block;margin:12px 0;padding:12px 14px;border-radius:10px;font-weight:600;background:'+(kind==='error'?'#fff0f0':kind==='success'?'#eaf8ef':'#eef5ff')+';color:'+(kind==='error'?'#a12626':kind==='success'?'#176b3a':'#24527a');
+ const el=$('#hafalanSaveStatus');if(!el)return;el.textContent=message;el.style.cssText='display:block;margin:12px 0;padding:12px 14px;border-radius:10px;font-weight:600;background:'+(kind==='error'?'#fff0f0':kind==='success'?'#eaf8ef':'#eef5ff')+';color:'+(kind==='error'?'#a12626':kind==='success'?'#176b3a':'#24527a');
 }
 async function sendHafalanSave(payload,key){
  const response=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'saveeducationhafalan',apiKey:key,data:payload})});
@@ -406,6 +404,8 @@ async function sendHafalanSave(payload,key){
  if(!result||result.ok!==true)throw new Error(result&&result.error?result.error:'Server menolak penyimpanan tanpa keterangan.');
  return result;
 }
+$('#saveHafalanBtn').addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();const b=e.currentTarget;if(b.dataset.busy==='1')return;b.dataset.busy='1';try{if(!$('#formHafalan').checkValidity()){$('#formHafalan').reportValidity();return}await window.submitHafalanForm()}catch(err){hafalanSaveStatus('✕ PROSES SIMPAN TERHENTI: '+(err&&err.message?err.message:String(err)),'error')}finally{b.dataset.busy='0'}});
+$('#formHafalan').addEventListener('submit',e=>{e.preventDefault();e.stopPropagation();$('#saveHafalanBtn').click()});
 window.submitHafalanForm=async function(){
  const e={preventDefault:()=>{},currentTarget:$('#formHafalan')};
  e.preventDefault();
@@ -437,7 +437,7 @@ window.submitHafalanForm=async function(){
   toast('Gagal menyimpan: '+(err.message||'Periksa koneksi.'));
  }finally{if(btn){btn.disabled=false;btn.textContent='➤ Simpan Catatan Hafalan'}}
 };
-$('#formHafalan').addEventListener('submit',e=>{e.preventDefault();window.submitHafalanForm()});
+
 async function loadHafalanHistory(nis){
  const body=$('#hafalanHistory');if(!body)return;
  if(!adminKey){adminKey=await requestAdminKey('Lihat riwayat hafalan kitab dan nadzom');if(!adminKey){body.innerHTML='<tr><td colspan="9" class="empty">Masukkan kunci pengurus untuk melihat riwayat.</td></tr>';return}adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey)}
