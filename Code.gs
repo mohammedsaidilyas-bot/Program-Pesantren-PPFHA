@@ -107,8 +107,8 @@ function doGet(e) {
       const nis = String((e.parameter && e.parameter.nis) || '').trim().replace(/\\D/g, '');
       const type = String((e.parameter && e.parameter.type) || 'raport');
       if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
-      if (!['raport','albab','hafalan'].includes(type)) return output_({ok:false,error:'Jenis data belum tersedia.'});
-      const sheetName = type === 'raport' ? 'RaportMadrasah' : type === 'albab' ? 'UjianAlbab' : 'HafalanKitab';
+      if (!['raport','albab','hafalan','evaluasi'].includes(type)) return output_({ok:false,error:'Jenis data belum tersedia.'});
+      const sheetName = type === 'raport' ? 'RaportMadrasah' : type === 'albab' ? 'UjianAlbab' : type === 'hafalan' ? 'HafalanKitab' : 'EvaluasiUstaz';
       const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
       if (!sh || sh.getLastRow() < 2) return output_({ok:true,data:[]});
       const rows = sh.getDataRange().getDisplayValues(), headers = rows[0].map(function(v){return String(v).trim();});
@@ -204,6 +204,16 @@ function doPost(e) {
       try { sh.getRange(sh.getLastRow()+1,1,1,headers.length).setValues([row]); }
       finally { lock.releaseLock(); }
       return output_({ok:true,saved:1,message:'Catatan hafalan berhasil disimpan.'});
+    }
+
+    if (action === 'saveeducationevaluasi') {
+      const x=body.data||{}, nis=String(x.nis||'').trim().replace(/\\D/g,''), kategori=String(x.kategori||'').trim(), catatan=String(x.catatanEvaluasi||'').trim(), ustaz=String(x.ustaz||'').trim();
+      const allowed=['Akademik','Kedisiplinan','Ibadah','Akhlak dan Sikap','Kebersihan','Lainnya'];
+      if(!nis||!catatan||!ustaz||allowed.indexOf(kategori)<0)return output_({ok:false,error:'NIS, kategori, catatan evaluasi, dan nama ustaz wajib diisi.'});
+      const ss=SpreadsheetApp.openById(SPREADSHEET_ID), headers=['id','tanggalInput','nis','nama','kelas','kategori','catatanEvaluasi','saranTindakLanjut','ustaz'];let sh=ss.getSheetByName('EvaluasiUstaz');
+      if(!sh){sh=ss.insertSheet('EvaluasiUstaz');sh.getRange(1,1,1,headers.length).setValues([headers]);sh.setFrozenRows(1)}if(sh.getLastRow()===0){sh.getRange(1,1,1,headers.length).setValues([headers]);sh.setFrozenRows(1)}
+      const row=[Utilities.getUuid(),new Date(),nis,String(x.nama||''),String(x.kelas||''),kategori,catatan,String(x.saranTindakLanjut||''),ustaz],lock=LockService.getScriptLock();lock.waitLock(15000);try{sh.getRange(sh.getLastRow()+1,1,1,headers.length).setValues([row])}finally{lock.releaseLock()}
+      return output_({ok:true,saved:1,message:'Catatan evaluasi berhasil disimpan.'});
     }
     if (action === 'saveattendanceconfig') return output_(saveAttendanceConfig_(body.data || {}));
     if (action === 'toggleattendanceholiday') return output_(toggleAttendanceHoliday_(body.data || {}));
@@ -624,7 +634,7 @@ function explainError_(err) {
 
 /* ==================== DATABASE PENDIDIKAN SANTRI ==================== */
 /**
- * Menyiapkan tiga tab pendidikan pada database Perizinan KTS PPFHA.
+ * Menyiapkan empat tab pendidikan pada database Perizinan KTS PPFHA.
  * Aman: tidak menghapus, menimpa, atau mengubah tab/data yang sudah berisi.
  * Jalankan fungsi ini satu kali dari editor Apps Script.
  */
@@ -642,7 +652,8 @@ function setupEducationDatabase() {
     HafalanKitab: [
       'id','tanggalInput','nis','nama','kelas','namaKitabNadzom',
       'jenis','targetBait','capaianBait','status','catatan','ustaz'
-    ]
+    ],
+    EvaluasiUstaz: ['id','tanggalInput','nis','nama','kelas','kategori','catatanEvaluasi','saranTindakLanjut','ustaz']
   };
 
   try {
