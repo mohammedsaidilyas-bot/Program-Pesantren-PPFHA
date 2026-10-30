@@ -53,11 +53,34 @@ async function closeQr(){
  if(scanner){try{if(scanner.isScanning)await scanner.stop()}catch(e){}try{await scanner.clear()}catch(e){}}
  const reader=$('#qrReader');if(reader)reader.innerHTML='';
 }
+async function ensureQrLibrary(){
+ if(typeof Html5Qrcode!=='undefined')return true;
+ const sources=[
+  'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js',
+  'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
+ ];
+ let lastError=null;
+ for(const src of sources){
+  try{
+   await new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src=src;script.async=true;
+    script.onload=()=>typeof Html5Qrcode!=='undefined'?resolve():reject(new Error('Pustaka pemindai tidak tersedia'));
+    script.onerror=()=>reject(new Error('Sumber pemindai gagal dimuat'));
+    document.head.appendChild(script);
+   });
+   if(typeof Html5Qrcode!=='undefined')return true;
+  }catch(err){lastError=err}
+ }
+ throw lastError||new Error('Pustaka pemindai QR gagal dimuat');
+}
 async function openQr(target){
  if(qrStarting)return;
- if(typeof Html5Qrcode==='undefined'){toast('Pemindai QR belum termuat. Periksa internet lalu muat ulang halaman.');return}
- qrTarget=target;qrLocked=false;$('#qrMessage').textContent='Menyiapkan kamera…';$('#qrModal').classList.remove('hidden');qrStarting=true;
+ qrTarget=target;qrLocked=false;$('#qrMessage').textContent='Memuat pemindai QR…';$('#qrModal').classList.remove('hidden');qrStarting=true;
  try{
+  await ensureQrLibrary();
+  $('#qrMessage').textContent='Menyiapkan kamera…';
   if(qrScanner)await closeQr();
   $('#qrModal').classList.remove('hidden');
   const reader=$('#qrReader');reader.innerHTML='';
@@ -96,7 +119,8 @@ async function openQr(target){
  }catch(err){
   const msg=String(err&&err.message||err||'');
   let help='Kamera tidak bisa dibuka.';
-  if(/permission|denied|notallowed|not allowed/i.test(msg))help='Izin kamera ditolak. Buka setelan situs di browser, izinkan Kamera, lalu coba lagi.';
+  if(/pustaka|sumber pemindai/i.test(msg))help='Pemindai QR gagal dimuat. Periksa koneksi internet, lalu coba lagi.';
+  else if(/permission|denied|notallowed|not allowed/i.test(msg))help='Izin kamera ditolak. Buka setelan situs di browser, izinkan Kamera, lalu coba lagi.';
   else if(/notfound|no camera|device not found/i.test(msg))help='Kamera tidak ditemukan. Pastikan kamera tidak sedang dipakai aplikasi lain.';
   else if(/secure|https/i.test(msg))help='Kamera memerlukan situs HTTPS. Buka alamat aplikasi yang diawali https://.';
   else help+=' Tutup aplikasi lain yang memakai kamera, izinkan akses kamera, lalu coba lagi.';
