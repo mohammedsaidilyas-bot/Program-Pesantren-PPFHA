@@ -96,7 +96,8 @@ function doGet(e) {
       if (!savedKey || !constantTimeEquals_(suppliedKey, savedKey)) return output_({ok:false,error:'Akses rekap absensi ditolak. Masukkan kunci pengurus.'});
       const date = String((e.parameter && e.parameter.date) || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd'));
       const activity = String((e.parameter && e.parameter.activity) || 'all');
-      const result = getAttendanceRecords_(date, activity);
+      const session = String((e.parameter && e.parameter.session) || '');
+      const result = getAttendanceRecords_(date, activity, session);
       return output_(result);
     }
     const name = ACTION_TO_SHEET[action];
@@ -125,7 +126,7 @@ function doPost(e) {
     if (action === 'saveattendanceconfig') return output_(saveAttendanceConfig_(body.data || {}));
     if (action === 'toggleattendanceholiday') return output_(toggleAttendanceHoliday_(body.data || {}));
     if (action === 'attendancescan') return output_(recordAttendanceScan_(body.data || {}));
-    if (action === 'attendancerecords') return output_(getAttendanceRecords_(String(body.date || Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd')), String(body.activity || 'all')));
+    if (action === 'attendancerecords') return output_(getAttendanceRecords_(String(body.date || Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd')), String(body.activity || 'all'), String(body.session || '')));
     if (action === 'updatestatus') {
       const id = String(body.id || '').trim();
       const status = String(body.status || '').trim();
@@ -350,7 +351,9 @@ function attendanceExistingKeys_(sh, date) {
   for (let i=1;i<rows.length;i++) {
     const rowDate = attendanceCellDate_(rows[i][0]);
     if (rowDate === date) {
-      const activity=String(rows[i][1]||''), session=String(rows[i][2]||''), nis=String(rows[i][3]||'');
+      const activity=normalizeAttendanceActivity_(rows[i][1]);
+      const session=String(rows[i][2]||'Utama').trim() || 'Utama';
+      const nis=String(rows[i][3]||'').trim().replace(/\D/g,'');
       set[[date,activity,session,nis].join('|')] = {date:date,activity:activity,session:session,nis:nis,nama:String(rows[i][4]||''),status:String(rows[i][5]||''),time:attendanceCellTime_(rows[i][6])};
     }
   }
@@ -456,7 +459,7 @@ function recordAttendanceScan_(data) {
   lock.waitLock(15000);
   try {
     const sh = ensureAttendanceSheets_().getSheetByName('Absensi');
-    const key=[date,activity,session,nis].join('|');
+    const key=[date,normalizeAttendanceActivity_(activity),String(session||'Utama').trim(),nis].join('|');
     const existing=attendanceExistingKeys_(sh,date);
     if (existing[key]) return {ok:true,duplicate:true,data:existing[key],message:'Santri sudah tercatat pada sesi '+session+' hari ini.'};
     sh.appendRow([date,activity,session,nis,student.nama,status,time,new Date(),'Scan QR KTS']);
@@ -464,7 +467,7 @@ function recordAttendanceScan_(data) {
   } finally { lock.releaseLock(); }
 }
 
-function getAttendanceRecords_(date, activity) {
+function getAttendanceRecords_(date, activity, session) {
   const safeDate = attendanceDateString_(date);
   const process = processAttendanceDeadlines_(safeDate);
   const sh = ensureAttendanceSheets_().getSheetByName('Absensi');
@@ -472,6 +475,7 @@ function getAttendanceRecords_(date, activity) {
   // Google Sheets bisa berbeda (yyyy-MM-dd, dd/MM/yyyy, atau objek Date).
   const rows = sh.getLastRow() < 2 ? [] : sh.getDataRange().getValues().slice(1);
   const wantedActivity = String(activity || 'all').trim().toLowerCase();
+  const wantedSession = String(session || '').trim().toLowerCase();
   const data = rows.map(function(row) {
     return {
       date:attendanceCellDate_(row[0]),
@@ -484,7 +488,9 @@ function getAttendanceRecords_(date, activity) {
       source:String(row[8]||'')
     };
   }).filter(function(row) {
-    return row.date === safeDate && (wantedActivity === 'all' || !wantedActivity || row.activity.toLowerCase() === wantedActivity);
+    const activityMatches = wantedActivity === 'all' || !wantedActivity || row.activity.toLowerCase() === wantedActivity;
+    const sessionMatches = !wantedSession || row.session.toLowerCase() === wantedSession;
+    return row.date === safeDate && activityMatches && sessionMatches;
   }).sort(function(a,b){return String(b.time).localeCompare(String(a.time)) || a.nama.localeCompare(b.nama);});
   const summary={hadir:0,terlambat:0,tidakHadir:0};
   data.forEach(function(x){if(x.status.toLowerCase()==='hadir')summary.hadir++;else if(x.status.toLowerCase()==='terlambat')summary.terlambat++;else if(x.status.toLowerCase()==='tidak hadir')summary.tidakHadir++;});
