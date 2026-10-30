@@ -111,7 +111,7 @@ function loadScheduleForm(){const a=$('#scheduleActivity').value,session=$('#sch
 $('#scheduleActivity').addEventListener('change',()=>{$('#scheduleSession').value=$('#scheduleActivity').value==='jamaah'?'Subuh':'Utama';loadAttendanceConfig()});$('#scheduleSession').addEventListener('change',()=>{if($('#scheduleActivity').value==='jamaah'){loadScheduleForm();updateAttendancePortalSession()}});
 $('#loadSchedule').onclick=loadAttendanceConfig;
 $('#saveSchedule').onclick=async()=>{if(!adminKey){adminKey=await requestAdminKey('Simpan jadwal absensi');if(!adminKey)return;sessionStorage.setItem('ppfha_admin_key',adminKey)}const activity=$('#scheduleActivity').value,session=$('#scheduleSession').value,startTime=$('#scheduleStart').value,onTimeUntil=$('#scheduleOnTime').value,endTime=$('#scheduleEnd').value,days=[];if(!startTime||!onTimeUntil||!endTime){toast('Lengkapi jam mulai, batas tepat waktu, dan batas akhir.');return}if(!(startTime<=onTimeUntil&&onTimeUntil<=endTime)){toast('Urutan waktu harus: mulai ≤ batas tepat waktu ≤ batas akhir.');return}try{const j=await attendancePayload('saveAttendanceConfig',{data:{activity,session,startTime,onTimeUntil,endTime,days}});if(!j.ok)throw new Error(j.error||'Gagal menyimpan jadwal');toast('Jadwal absensi berhasil disimpan.');await loadAttendanceConfig()}catch(e){toast('Jadwal belum tersimpan: '+e.message)}};
-$('.attendance-open').forEach(button=>button.onclick=async()=>{
+$$('.attendance-open').forEach(button=>button.onclick=async()=>{
   const requestedActivity=button.dataset.activity;
   $('#attendanceSessionMessage').textContent='Mencari jadwal kegiatan berdasarkan WIB…';
   await loadAttendanceConfig();
