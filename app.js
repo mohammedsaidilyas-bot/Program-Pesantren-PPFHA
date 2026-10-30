@@ -112,7 +112,7 @@ function loadScheduleForm(){const a=$('#scheduleActivity').value,session=$('#sch
 $('#scheduleActivity').addEventListener('change',()=>{$('#scheduleSession').value=$('#scheduleActivity').value==='jamaah'?'Subuh':'Utama';loadAttendanceConfig()});$('#scheduleSession').addEventListener('change',()=>{if($('#scheduleActivity').value==='jamaah'){loadScheduleForm();updateAttendancePortalSession()}});
 $('#loadSchedule').onclick=loadAttendanceConfig;
 $('#toggleAttendanceHoliday').onclick=async()=>{const a=$('#scheduleActivity').value,session=$('#scheduleSession').value,cfg=attendanceConfig[a]||{},s=a==='jamaah'?(cfg[session]||{}):cfg;if(!s.startTime||!s.endTime){toast('Jadwal belum tersimpan. Libur belum dapat diatur.');return}const next=!s.holidayToday;if(!await askConfirmation(next?'Liburkan Kegiatan Hari Ini?':'Batalkan Libur Kegiatan?',next?'Kegiatan '+ATTENDANCE_ACTIVITIES[a]+' akan dinonaktifkan untuk hari ini. Scan ditolak dan santri tidak dihitung Tidak Hadir.':'Kegiatan '+ATTENDANCE_ACTIVITIES[a]+' akan diaktifkan kembali untuk hari ini.',next?'Ya, Liburkan':'Ya, Aktifkan'))return;const j=await attendancePayload('toggleAttendanceHoliday',{data:{date:todayLocal(),activity:a,session:session||'Utama',isHoliday:next}});if(!j.ok){toast(j.error||'Status libur gagal disimpan.');return}await loadAttendanceConfig();toast(j.message||'Status kegiatan diperbarui.');};
-$('.attendance-open').forEach(button=>button.onclick=()=>{
+$$('.attendance-open').forEach(button=>button.onclick=()=>{
   const requestedActivity=button.dataset.activity;
   // Buka portal lebih dahulu agar tidak menunggu enam permintaan jadwal.
   let selected=findActiveAttendanceScheduleForActivity(requestedActivity);
