@@ -406,7 +406,8 @@ async function sendHafalanSave(payload,key){
  if(!result||result.ok!==true)throw new Error(result&&result.error?result.error:'Server menolak penyimpanan tanpa keterangan.');
  return result;
 }
-$('#formHafalan').addEventListener('submit',async e=>{
+window.submitHafalanForm=async function(){
+ const e={preventDefault:()=>{},currentTarget:$('#formHafalan')};
  e.preventDefault();
  const form=e.currentTarget,nis=String($('#hafalanNis').value||'').replace(/\D/g,''),nama=$('#hafalanNama').value.trim(),kelas=$('#hafalanKelas').value.trim();
  if(!nis||!nama){setHafalanLookupStatus('Cari NIS sampai biodata santri muncul sebelum menyimpan.','error');return}
@@ -435,7 +436,8 @@ $('#formHafalan').addEventListener('submit',async e=>{
   hafalanSaveStatus('✕ GAGAL DISIMPAN: '+(err&&err.message?err.message:'Kesalahan tidak diketahui.'),'error');
   toast('Gagal menyimpan: '+(err.message||'Periksa koneksi.'));
  }finally{btn.disabled=false;btn.textContent='➤ Simpan Catatan Hafalan'}
-});
+};
+$('#formHafalan').addEventListener('submit',e=>{e.preventDefault();window.submitHafalanForm()});
 async function loadHafalanHistory(nis){
  const body=$('#hafalanHistory');if(!body)return;
  if(!adminKey){adminKey=await requestAdminKey('Lihat riwayat hafalan kitab dan nadzom');if(!adminKey){body.innerHTML='<tr><td colspan="9" class="empty">Masukkan kunci pengurus untuk melihat riwayat.</td></tr>';return}adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey)}
