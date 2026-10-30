@@ -100,6 +100,20 @@ function doGet(e) {
       const result = getAttendanceRecords_(date, activity, session);
       return output_(result);
     }
+    if (action === 'educationrecords') {
+      const savedKey = PropertiesService.getScriptProperties().getProperty('ADMIN_API_KEY');
+      const suppliedKey = String((e.parameter && e.parameter.key) || '');
+      if (!savedKey || !constantTimeEquals_(suppliedKey, savedKey)) return output_({ok:false,error:'Akses data pendidikan ditolak. Masukkan kunci pengurus.'});
+      const nis = String((e.parameter && e.parameter.nis) || '').trim().replace(/\\D/g, '');
+      const type = String((e.parameter && e.parameter.type) || 'raport');
+      if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
+      if (type !== 'raport') return output_({ok:false,error:'Jenis data belum tersedia.'});
+      const sh = SpreadsheetApp.openById(STUDENT_DB_ID).getSheetByName('RaportMadrasah');
+      if (!sh || sh.getLastRow() < 2) return output_({ok:true,data:[]});
+      const rows = sh.getDataRange().getDisplayValues(), headers = rows[0].map(function(v){return String(v).trim();});
+      const data = rows.slice(1).map(function(row){const o={};headers.forEach(function(k,i){if(k)o[k]=row[i];});return o;}).filter(function(o){return String(o.nis||'').replace(/\\D/g,'')===nis;});
+      return output_({ok:true,data:data});
+    }
     const name = ACTION_TO_SHEET[action];
     if (!name) return output_({ok:false,error:'Aksi tidak dikenal: '+action});
     const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(name);
@@ -123,6 +137,32 @@ function doPost(e) {
     if (!body.apiKey || !constantTimeEquals_(String(body.apiKey),savedKey))
       return output_({ok:false,error:'Akses ditolak: kunci pengurus tidak valid.'});
     const action = String(body.action||'').toLowerCase();
+    if (action === 'saveeducationraport') {
+      const records = Array.isArray(body.records) ? body.records : [];
+      if (!records.length) return output_({ok:false,error:'Tidak ada nilai raport untuk disimpan.'});
+      if (records.length > 40) return output_({ok:false,error:'Jumlah entri terlalu banyak dalam satu penyimpanan.'});
+      const ss = SpreadsheetApp.openById(STUDENT_DB_ID);
+      let sh = ss.getSheetByName('RaportMadrasah');
+      const headers = ['id','tanggalInput','nis','nama','kelas','tahunAjaran','mataPelajaran','kelompok','semester','prestasi','rataRataKelas','ustaz','catatan'];
+      if (!sh) { sh=ss.insertSheet('RaportMadrasah'); sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); }
+      if (sh.getLastRow() === 0) { sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); }
+      const now = new Date(), rows = [];
+      records.forEach(function(x) {
+        const nis = String(x.nis||'').trim().replace(/\\D/g,'');
+        const semester = String(x.semester||'');
+        const mapel = String(x.mataPelajaran||'').trim();
+        if (!nis || !mapel || !['1','2'].includes(semester)) throw new Error('Data NIS, mata pelajaran, atau semester tidak valid.');
+        ['prestasi','rataRataKelas'].forEach(function(k) {
+          const raw = x[k];
+          if (raw !== '' && raw !== null && raw !== undefined && (!isFinite(Number(raw)) || Number(raw)<0 || Number(raw)>100)) throw new Error('Nilai harus berupa angka 0 sampai 100.');
+        });
+        rows.push([Utilities.getUuid(),now,nis,String(x.nama||''),String(x.kelas||''),String(x.tahunAjaran||''),mapel,String(x.kelompok||''),semester,x.prestasi===''?'':Number(x.prestasi),x.rataRataKelas===''?'':Number(x.rataRataKelas),String(x.ustaz||''),'']);
+      });
+      const lock=LockService.getScriptLock();lock.waitLock(15000);
+      try { sh.getRange(sh.getLastRow()+1,1,rows.length,headers.length).setValues(rows); }
+      finally { lock.releaseLock(); }
+      return output_({ok:true,saved:rows.length,message:'Nilai raport berhasil disimpan.'});
+    }
     if (action === 'saveattendanceconfig') return output_(saveAttendanceConfig_(body.data || {}));
     if (action === 'toggleattendanceholiday') return output_(toggleAttendanceHoliday_(body.data || {}));
     if (action === 'attendancescan') return output_(recordAttendanceScan_(body.data || {}));
