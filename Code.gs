@@ -139,6 +139,12 @@ const ATTENDANCE_ACTIVITY_NAMES = {
 };
 const ATTENDANCE_TZ = 'Asia/Jakarta';
 
+function normalizeAttendanceActivity_(value) {
+  const raw = String(value || '').trim().toLowerCase().replace(/[’‘]/g, "'");
+  const aliases = {'jamaah':'jamaah','sholat jamaah':'jamaah','sholat berjamaah':'jamaah','shalat berjamaah':'jamaah','kitab-pagi':'kitab-pagi','ngaji kitab pagi':'kitab-pagi','albab':'albab','ngaji kitab albab':'albab','ngaji kitab metode albab':'albab','alquran':'alquran',"ngaji al-qur'an":'alquran','madrasiyah':'madrasiyah'};
+  return aliases[raw] || String(value || '').trim();
+}
+
 function ensureAttendanceSheets_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   Object.keys(HEADERS).forEach(function(name) {
@@ -164,7 +170,7 @@ function getAttendanceConfig_(jamaahSession) {
   rows.slice(1).forEach(function(row) {
     const item = {};
     headers.forEach(function(h,i){ if(h) item[h] = row[i]; });
-    const activity = String(item.activity || '');
+    const activity = normalizeAttendanceActivity_(item.activity);
     if (!ATTENDANCE_ACTIVITY_NAMES[activity]) return;
     const rawDays = String(item.days || '').trim();
     const days = /^(setiap hari|semua hari)$/i.test(rawDays) ? [0,1,2,3,4,5,6] : rawDays.split(',').map(function(v){return Number(v);}).filter(function(v){return !isNaN(v) && v>=0 && v<=6;});
@@ -185,7 +191,7 @@ function getAttendanceConfig_(jamaahSession) {
 }
 
 function saveAttendanceConfig_(data) {
-  const activity = String(data.activity || '').trim();
+  const activity = normalizeAttendanceActivity_(data.activity);
   const session = activity === 'jamaah' ? String(data.session || 'Subuh').trim() : 'Utama';
   const startTime = String(data.startTime || '').trim();
   const onTimeUntil = String(data.onTimeUntil || '').trim();
@@ -236,6 +242,7 @@ function attendanceScheduleRows_() {
   const h = rows[0].map(function(v){return String(v).trim();});
   return rows.slice(1).map(function(row) {
     const o={}; h.forEach(function(k,i){if(k)o[k]=row[i];});
+    o.activity = normalizeAttendanceActivity_(o.activity);
     const rawDays=String(o.days||'').trim();
     o.days=/^(setiap hari|semua hari)$/i.test(rawDays)?[0,1,2,3,4,5,6]:rawDays.split(',').map(Number).filter(function(v){return !isNaN(v)&&v>=0&&v<=6;});
     return o;
@@ -269,6 +276,7 @@ function processAttendanceDeadlines_(targetDate) {
     if (s.days.indexOf(weekday)<0) return false;
     // Jumat: Ashar tidak menggunakan absensi jamaah.
     if (weekday === 5 && s.activity === 'jamaah' && String(s.session) === 'Ashar') return false;
+    if (weekday === 5 && s.activity === 'jamaah' && String(s.session) === 'Dzuhur') return false;
     return true;
   });
   const students = attendanceStudentRoster_();
@@ -306,7 +314,7 @@ function installAttendanceTrigger() {
 }
 
 function recordAttendanceScan_(data) {
-  const activity = String(data.activity || '').trim();
+  const activity = normalizeAttendanceActivity_(data.activity);
   const session = activity === 'jamaah' ? String(data.session || 'Subuh').trim() : 'Utama';
   const nis = String(data.nis || '').trim().replace(/\D/g,'');
   if (!ATTENDANCE_ACTIVITY_NAMES[activity] || !nis) return {ok:false,error:'Kegiatan atau NIS tidak valid.'};
@@ -314,10 +322,13 @@ function recordAttendanceScan_(data) {
   const date = Utilities.formatDate(now, ATTENDANCE_TZ, 'yyyy-MM-dd');
   const time = Utilities.formatDate(now, ATTENDANCE_TZ, 'HH:mm');
   const weekday = new Date(date + 'T12:00:00+07:00').getDay();
-  // Jumat: Dzuhur dipakai untuk Sholat Jumat (cukup satu scan, saat berangkat ATAU kembali).
-  // Jumat: Ashar tidak dicatat sebagai absensi jamaah.
+  // Jumat memakai sesi khusus Sholat Jumat, bukan sesi Dzuhur musholla.
+  if (weekday === 5 && activity === 'jamaah' && session === 'Dzuhur')
+    return {ok:false,error:'Hari Jumat gunakan sesi Sholat Jumat, bukan Dzuhur musholla.'};
   if (weekday === 5 && activity === 'jamaah' && session === 'Ashar')
     return {ok:false,error:'Absensi jamaah Ashar ditiadakan khusus hari Jumat.'};
+  if (session === 'Jumat' && weekday !== 5)
+    return {ok:false,error:'Sesi Sholat Jumat hanya aktif pada hari Jumat.'};
   const schedules = attendanceScheduleRows_();
   const schedule = schedules.find(function(s){return s.activity===activity && String(s.session)===session;});
   if (!schedule) return {ok:false,error:'Jadwal '+ATTENDANCE_ACTIVITY_NAMES[activity]+' sesi '+session+' belum diatur.'};
@@ -327,7 +338,7 @@ function recordAttendanceScan_(data) {
   const students = attendanceStudentRoster_();
   const student = students.find(function(x){return x.nis===nis;});
   if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif.'};
-  const status = time <= String(schedule.onTimeUntil) ? 'Hadir' : 'Terlambat';
+  const status = session === 'Jumat' ? 'Hadir' : (time <= String(schedule.onTimeUntil) ? 'Hadir' : 'Terlambat');
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
