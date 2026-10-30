@@ -359,11 +359,38 @@ $('#formAlbab').addEventListener('submit',async e=>{
 /* HAFALAN KITAB & NADZOM */
 let hafalanLookupToken=0;
 async function lookupHafalanStudent(){
- const input=$('#hafalanNis'),nama=$('#hafalanNama'),kelas=$('#hafalanKelas');const nis=String(input&&input.value||'').trim().replace(/\D/g,'');
- if(!nis){toast('Masukkan NIS santri terlebih dahulu.');return}
- const token=++hafalanLookupToken;nama.value='';kelas.value='';nama.placeholder='Mencari biodata…';
- try{const url=API_URL+'?action=student&nis='+encodeURIComponent(nis)+'&_='+Date.now();const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Server biodata merespons HTTP '+r.status);const j=await r.json();if(token!==hafalanLookupToken)return;if(!j.ok||!j.data)throw new Error(j.error||'Santri tidak ditemukan');if(!j.data.nama)throw new Error('NIS ditemukan tetapi kolom nama kosong. Periksa header database santri.');input.value=j.data.nis||nis;nama.value=j.data.nama;nama.placeholder='Terisi otomatis';kelas.value=j.data.kelas||'';toast('Biodata ditemukan: '+j.data.nama);loadHafalanHistory(nis).catch(()=>{})}
- catch(err){if(token!==hafalanLookupToken)return;nama.value='';kelas.value='';nama.placeholder='Terisi otomatis';toast('Pencarian NIS gagal: '+(err.message||err))}
+ const input=$('#hafalanNis'),nama=$('#hafalanNama'),kelas=$('#hafalanKelas');
+ if(!input||!nama||!kelas){toast('Kolom pencarian hafalan tidak ditemukan.');return}
+ // Terima NIS ketikan maupun isi QR kartu, misalnya PPFHA|KTS|NIS:20260001.
+ const raw=String(input.value||'').trim();
+ const labeled=raw.match(/NIS\s*[:=：-]\s*(\d+)/i);
+ const tail=raw.split(/[|;]/).pop()||raw;
+ const nis=(labeled&&labeled[1])||(tail.match(/\d+/g)||[]).join('');
+ if(!nis){toast('Masukkan NIS santri yang benar.');input.focus();return}
+ input.value=nis;
+ const token=++hafalanLookupToken;
+ nama.value='';kelas.value='';nama.placeholder='Sedang mencari biodata…';
+ const btn=$('#findHafalan');if(btn){btn.disabled=true;btn.textContent='Mencari…'}
+ try{
+  const url=API_URL+'?action=student&nis='+encodeURIComponent(nis)+'&_='+Date.now();
+  const r=await fetch(url,{method:'GET',cache:'no-store'});
+  if(!r.ok)throw new Error('Server biodata merespons HTTP '+r.status);
+  const j=await r.json();
+  if(token!==hafalanLookupToken)return;
+  if(!j||j.ok!==true||!j.data)throw new Error((j&&j.error)||'NIS tidak ditemukan di database Uang Jajan Santri.');
+  if(!j.data.nama)throw new Error('NIS ditemukan, tetapi nama santri kosong pada database.');
+  input.value=String(j.data.nis||nis).replace(/\D/g,'');
+  nama.value=j.data.nama||'';kelas.value=j.data.kelas||'';
+  nama.placeholder='Terisi otomatis';
+  toast('Biodata ditemukan: '+j.data.nama);
+  loadHafalanHistory(nis).catch(()=>{});
+ }catch(err){
+  if(token!==hafalanLookupToken)return;
+  nama.value='';kelas.value='';nama.placeholder='Terisi otomatis';
+  toast('Pencarian gagal: '+(err.message||'Periksa koneksi dan database.'));
+ }finally{
+  if(btn){btn.disabled=false;btn.textContent='Cari'}
+ }
 }
 async function loadHafalanHistory(nis){
  const body=$('#hafalanHistory');if(!body)return;
@@ -374,9 +401,8 @@ async function loadHafalanHistory(nis){
  }catch(err){body.innerHTML='<tr><td colspan="9" class="empty">'+esc(err.message)+'</td></tr>'}
 }
 $('#scanHafalan').addEventListener('click',()=>openQr('hafalan'));
-$('#findHafalan').addEventListener('click',lookupHafalanStudent);
-$('#hafalanNis').addEventListener('change',lookupHafalanStudent);
-$('#hafalanNis').addEventListener('blur',lookupHafalanStudent);
+$('#findHafalan').addEventListener('click',e=>{e.preventDefault();lookupHafalanStudent()});
+$('#hafalanNis').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupHafalanStudent()}});
 $('#refreshHafalan').onclick=()=>{const n=$('#hafalanNis').value.trim();if(n)loadHafalanHistory(n);else toast('Masukkan NIS santri terlebih dahulu.')};
 $('#formHafalan').addEventListener('reset',()=>setTimeout(()=>{$('#hafalanNama').value='';$('#hafalanKelas').value=''},0));
 $('#formHafalan').addEventListener('submit',async e=>{
