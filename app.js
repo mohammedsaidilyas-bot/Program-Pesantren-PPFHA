@@ -290,6 +290,7 @@ async function loadRaportHistory(nis){
 $('#scanRaport').addEventListener('click',()=>openQr('raport'));
 $('#findRaport').addEventListener('click',lookupRaportStudent);
 $('#raportNis').addEventListener('change',lookupRaportStudent);
+$('#raportNis').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupRaportStudent()}});
 $('#raportNis').addEventListener('blur',lookupRaportStudent);
 $('#refreshRaport').onclick=()=>{const n=$('#raportNis').value.trim();if(n)loadRaportHistory(n);else toast('Masukkan NIS santri terlebih dahulu.')};
 $('#formRaport').addEventListener('reset',()=>setTimeout(()=>{ $('#raportNama').value='';$('#raportKelas').value='';updateRaportTotals();},0));
