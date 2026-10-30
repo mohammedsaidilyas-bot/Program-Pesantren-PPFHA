@@ -175,8 +175,15 @@ const ATTENDANCE_ACTIVITY_NAMES = {
 const ATTENDANCE_TZ = 'Asia/Jakarta';
 
 function normalizeAttendanceActivity_(value) {
-  const raw = String(value || '').trim().toLowerCase().replace(/[’‘]/g, "'");
-  const aliases = {'jamaah':'jamaah','sholat jamaah':'jamaah','sholat berjamaah':'jamaah','shalat berjamaah':'jamaah','kitab-pagi':'kitab-pagi','ngaji kitab pagi':'kitab-pagi','albab':'albab','ngaji kitab albab':'albab','ngaji kitab metode albab':'albab','alquran':'alquran',"ngaji al-qur'an":'alquran','madrasiyah':'madrasiyah'};
+  const raw = String(value || '').normalize('NFKC').trim().toLowerCase()
+    .replace(/[’‘]/g, "'").replace(/[\\s_-]+/g, ' ');
+  const aliases = {
+    'jamaah':'jamaah','sholat jamaah':'jamaah','sholat berjamaah':'jamaah','shalat berjamaah':'jamaah',
+    'kitab pagi':'kitab-pagi','ngaji kitab pagi':'kitab-pagi','ngaji pagi':'kitab-pagi','kitab-pagi':'kitab-pagi',
+    'albab':'albab','ngaji kitab albab':'albab','ngaji kitab metode albab':'albab',
+    'alquran':'alquran',"ngaji al-qur'an":'alquran',"ngaji al qur'an":'alquran','ngaji alquran':'alquran',
+    'madrasiyah':'madrasiyah'
+  };
   return aliases[raw] || String(value || '').trim();
 }
 
