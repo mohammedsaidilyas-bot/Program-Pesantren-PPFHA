@@ -76,7 +76,7 @@ function testDatabase() {
 function doGet(e) {
   try {
     const action = String((e && e.parameter && e.parameter.action) || 'health').toLowerCase();
-    if (action === 'health') return output_({ok:true,app:'Program Pesantren PPFHA',message:'Endpoint aktif',actions:['izin','pengumuman','kegiatan','student']});
+    if (action === 'health') return output_({ok:true,app:'Program Pesantren PPFHA',message:'Endpoint aktif',actions:['izin','pengumuman','kegiatan','student','educationrecords','saveeducationraport','saveeducationalbab','saveeducationhafalan']});
     if (action === 'student') {
       const nis = String((e && e.parameter && e.parameter.nis) || '').trim().replace(/\D/g, '');
       if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
@@ -116,14 +116,14 @@ function doGet(e) {
       const suppliedKey = String((e.parameter && e.parameter.key) || '');
       if (!savedKey || !constantTimeEquals_(suppliedKey, savedKey)) return output_({ok:false,error:'Akses data pendidikan ditolak. Masukkan kunci pengurus.'});
       const nis = String((e.parameter && e.parameter.nis) || '').trim().replace(/\D/g, '');
-      const type = String((e.parameter && e.parameter.type) || 'raport');
+      const type = String((e.parameter && e.parameter.type) || 'raport').toLowerCase();
       if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
       if (!['raport','albab','hafalan','evaluasi'].includes(type)) return output_({ok:false,error:'Jenis data belum tersedia.'});
       const sheetName = type === 'raport' ? 'RaportMadrasah' : type === 'albab' ? 'UjianAlbab' : type === 'hafalan' ? 'HafalanKitab' : 'EvaluasiUstaz';
       const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
       if (!sh || sh.getLastRow() < 2) return output_({ok:true,data:[]});
       const rows = sh.getDataRange().getDisplayValues(), headers = rows[0].map(function(v){return String(v).trim();});
-      const data = rows.slice(1).map(function(row){const o={};headers.forEach(function(k,i){if(k)o[k]=row[i];});return o;}).filter(function(o){return String(o.nis||'').replace(/\\D/g,'')===nis;});
+      const data = rows.slice(1).map(function(row){const o={};headers.forEach(function(k,i){if(k)o[k]=row[i];});return o;}).filter(function(o){return String(o.nis||'').replace(/\D/g,'')===nis;});
       return output_({ok:true,data:data});
     }
     const name = ACTION_TO_SHEET[action];
@@ -160,7 +160,7 @@ function doPost(e) {
       if (sh.getLastRow() === 0) { sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); }
       const now = new Date(), rows = [];
       records.forEach(function(x) {
-        const nis = String(x.nis||'').trim().replace(/\\D/g,'');
+        const nis = String(x.nis||'').trim().replace(/\D/g,'');
         const semester = String(x.semester||'');
         const mapel = String(x.mataPelajaran||'').trim();
         if (!nis || !mapel || !['1','2'].includes(semester)) throw new Error('Data NIS, mata pelajaran, atau semester tidak valid.');
@@ -177,7 +177,7 @@ function doPost(e) {
     }
     if (action === 'saveeducationalbab') {
       const x = body.data || {};
-      const nis = String(x.nis || '').trim().replace(/\\D/g,'');
+      const nis = String(x.nis || '').trim().replace(/\D/g,'');
       const periode = String(x.periodeUjian || '').trim();
       const nilaiTulis = Number(x.nilaiTulis), nilaiBaca = Number(x.nilaiBaca);
       if (!nis || !periode) return output_({ok:false,error:'NIS dan periode ujian wajib diisi.'});
@@ -197,7 +197,7 @@ function doPost(e) {
 
     if (action === 'saveeducationhafalan') {
       const x = body.data || {};
-      const nis = String(x.nis || '').trim().replace(/\\D/g,'');
+      const nis = String(x.nis || '').trim().replace(/\D/g,'');
       const namaKitabNadzom = String(x.namaKitabNadzom || '').trim();
       const jenis = String(x.jenis || '').trim();
       const targetBait = Number(x.targetBait), capaianBait = Number(x.capaianBait);
@@ -218,7 +218,7 @@ function doPost(e) {
     }
 
     if (action === 'saveeducationevaluasi') {
-      const x=body.data||{}, nis=String(x.nis||'').trim().replace(/\\D/g,''), kategori=String(x.kategori||'').trim(), catatan=String(x.catatanEvaluasi||'').trim(), ustaz=String(x.ustaz||'').trim();
+      const x=body.data||{}, nis=String(x.nis||'').trim().replace(/\D/g,''), kategori=String(x.kategori||'').trim(), catatan=String(x.catatanEvaluasi||'').trim(), ustaz=String(x.ustaz||'').trim();
       const allowed=['Akademik','Kedisiplinan','Ibadah','Akhlak dan Sikap','Kebersihan','Lainnya'];
       if(!nis||!catatan||!ustaz||allowed.indexOf(kategori)<0)return output_({ok:false,error:'NIS, kategori, catatan evaluasi, dan nama ustaz wajib diisi.'});
       const ss=SpreadsheetApp.openById(SPREADSHEET_ID), headers=['id','tanggalInput','nis','nama','kelas','kategori','catatanEvaluasi','saranTindakLanjut','ustaz'];let sh=ss.getSheetByName('EvaluasiUstaz');
