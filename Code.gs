@@ -176,9 +176,10 @@ const ATTENDANCE_TZ = 'Asia/Jakarta';
 
 function normalizeAttendanceActivity_(value) {
   const raw = String(value || '').normalize('NFKC').trim().toLowerCase()
-    .replace(/[’‘]/g, "'").replace(/[\\s_-]+/g, ' ');
+    .replace(/[’‘]/g, "'").replace(/[\\s_-]+/g, ' ').replace(/\\s+/g, ' ');
   const aliases = {
     'jamaah':'jamaah','sholat jamaah':'jamaah','sholat berjamaah':'jamaah','shalat berjamaah':'jamaah',
+    'shalat jamaah':'jamaah','sholat berjama ah':'jamaah','jamaah sholat':'jamaah',
     'kitab pagi':'kitab-pagi','ngaji kitab pagi':'kitab-pagi','ngaji pagi':'kitab-pagi','kitab-pagi':'kitab-pagi',
     'albab':'albab','ngaji kitab albab':'albab','ngaji kitab metode albab':'albab',
     'alquran':'alquran',"ngaji al-qur'an":'alquran',"ngaji al qur'an":'alquran','ngaji alquran':'alquran',
@@ -217,16 +218,18 @@ function getAttendanceConfig_(jamaahSession) {
     const days = activity === 'jamaah'
       ? (String(item.session) === 'Jumat' ? [5] : (String(item.session) === 'Dzuhur' || String(item.session) === 'Ashar' ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
       : (activity === 'kitab-pagi' ? [1,2,3,4] : (String(item.days || '').trim() ? String(item.days).split(',').map(Number) : [0,1,2,3,4,5,6]));
+    const sessionName = String(item.session || (activity === 'jamaah' ? 'Subuh' : 'Utama')).trim();
     const config = {
-      session: String(item.session || (activity === 'jamaah' ? 'Subuh' : 'Utama')),
-      startTime: String(item.startTime || ''),
-      onTimeUntil: String(item.onTimeUntil || ''),
-      endTime: String(item.endTime || ''),
+      session: sessionName,
+      startTime: String(item.startTime || '').trim(),
+      onTimeUntil: String(item.onTimeUntil || '').trim(),
+      endTime: String(item.endTime || '').trim(),
       days: days,
-      holidayToday: isAttendanceHoliday_(Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd'), activity, String(item.session || (activity === 'jamaah' ? 'Subuh' : 'Utama')))
+      holidayToday: isAttendanceHoliday_(Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd'), activity, sessionName)
     };
     if (activity === 'jamaah') {
-      if (config.session === jamaahSession) result[activity] = config;
+      if (String(jamaahSession || '').trim().toLowerCase() === 'all') result[activity][sessionName] = config;
+      else if (sessionName.toLowerCase() === String(jamaahSession || '').trim().toLowerCase()) result[activity] = config;
     } else {
       result[activity] = config;
     }
@@ -290,9 +293,13 @@ function attendanceScheduleRows_() {
   return rows.slice(1).map(function(row) {
     const o={}; h.forEach(function(k,i){if(k)o[k]=row[i];});
     o.activity = normalizeAttendanceActivity_(o.activity);
+    o.session = String(o.session || 'Utama').trim();
+    o.startTime = String(o.startTime || '').trim();
+    o.onTimeUntil = String(o.onTimeUntil || '').trim();
+    o.endTime = String(o.endTime || '').trim();
     const rawDays=String(o.days||'').trim();
     o.days = o.activity === 'jamaah'
-      ? (String(o.session) === 'Jumat' ? [5] : (String(o.session) === 'Dzuhur' || String(o.session) === 'Ashar' ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
+      ? (o.session.toLowerCase() === 'jumat' ? [5] : (['dzuhur','ashar'].includes(o.session.toLowerCase()) ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
       : (o.activity === 'kitab-pagi' ? [1,2,3,4] : (rawDays ? rawDays.split(',').map(Number) : [0,1,2,3,4,5,6]));
     return o;
   }).filter(function(x){return ATTENDANCE_ACTIVITY_NAMES[x.activity] && x.startTime && x.endTime;});
@@ -442,11 +449,14 @@ function recordAttendanceScan_(data) {
     .sort(function(a,b){return String(a.endTime).localeCompare(String(b.endTime));});
   const nextSchedules = allSchedules.filter(function(s){return String(s.startTime) > time;})
     .sort(function(a,b){return String(a.startTime).localeCompare(String(b.startTime));});
-  let schedule = activeSchedules[0] || nextSchedules[0] || null;
+  let schedule = activeSchedules[0] || null;
   // Mode uji coba Ngaji Kitab Pagi dan Madrasiyah: izinkan pencatatan tanpa jadwal resmi.
   // Jadwal/status final akan dikunci kembali setelah pengujian dinyatakan selesai.
   if (!schedule && testMode) schedule = {activity:requestedActivity,session:'Utama',startTime:'00:00',onTimeUntil:'23:59',endTime:'23:59',days:[0,1,2,3,4,5,6]};
-  if (!schedule) return {ok:false,error:'Tidak ada jadwal kegiatan berikutnya yang aktif/tersedia hari ini. Periksa pengaturan jadwal.'};
+  if (!schedule) {
+    const upcoming = allSchedules.some(function(s){return String(s.startTime) > time;});
+    return {ok:false,error:upcoming?'Jadwal kegiatan belum dimulai. Scan akan terbuka otomatis saat waktu mulai tiba.':'Jadwal kegiatan hari ini sudah selesai. Scan ditutup otomatis.'};
+  }
   const activity = schedule.activity;
   const session = activity === 'jamaah' ? String(schedule.session) : 'Utama';
   // Jumat memakai sesi khusus Sholat Jumat, bukan sesi Dzuhur musholla.
