@@ -26,7 +26,8 @@ function setupDatabase() {
         sh.setFrozenRows(1); hasil.push('Header '+name+' ditambahkan');
       } else hasil.push('Tab '+name+' sudah berisi; tidak diubah');
     });
-    const msg = 'Selesai. '+hasil.join('. ')+'.'; Logger.log(msg); return msg;
+    installAttendanceTrigger();
+    const msg = 'Selesai. '+hasil.join('. ')+'. Pemicu otomatis absensi diperiksa setiap 5 menit.'; Logger.log(msg); return msg;
   } catch(err) { const msg = explainError_(err); Logger.log(msg); throw new Error(msg); }
 }
 
@@ -57,6 +58,9 @@ function doGet(e) {
     }
     if (action === 'attendanceconfig') return output_(getAttendanceConfig_(String((e.parameter && e.parameter.session) || 'Subuh')));
     if (action === 'attendancerecords') {
+      const savedKey = PropertiesService.getScriptProperties().getProperty('ADMIN_API_KEY');
+      const suppliedKey = String((e.parameter && e.parameter.key) || '');
+      if (!savedKey || !constantTimeEquals_(suppliedKey, savedKey)) return output_({ok:false,error:'Akses rekap absensi ditolak. Masukkan kunci pengurus.'});
       const date = String((e.parameter && e.parameter.date) || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd'));
       const activity = String((e.parameter && e.parameter.activity) || 'all');
       const result = getAttendanceRecords_(date, activity);
@@ -268,7 +272,7 @@ function processAttendanceDeadlines_(targetDate) {
     const additions=[];
     schedules.forEach(function(s) {
       const end = String(s.endTime || '');
-      if (date === today && nowTime < end) return;
+      if (date === today && nowTime <= end) return;
       students.forEach(function(st) {
         const key=[date,s.activity,s.session,st.nis].join('|');
         if (!existing[key]) {
@@ -301,7 +305,7 @@ function recordAttendanceScan_(data) {
   const now = new Date();
   const date = Utilities.formatDate(now, ATTENDANCE_TZ, 'yyyy-MM-dd');
   const time = Utilities.formatDate(now, ATTENDANCE_TZ, 'HH:mm');
-  const weekday = now.getDay();
+  const weekday = new Date(date + 'T12:00:00+07:00').getDay();
   const schedules = attendanceScheduleRows_();
   const schedule = schedules.find(function(s){return s.activity===activity && String(s.session)===session;});
   if (!schedule) return {ok:false,error:'Jadwal '+ATTENDANCE_ACTIVITY_NAMES[activity]+' sesi '+session+' belum diatur.'};
@@ -319,7 +323,7 @@ function recordAttendanceScan_(data) {
     const key=[date,activity,session,nis].join('|');
     const existing=attendanceExistingKeys_(sh,date);
     if (existing[key]) return {ok:false,error:'Santri ini sudah tercatat pada sesi '+session+' hari ini.'};
-    sh.appendRow([date,activity,session,nis,student.nama,status,now,new Date(),'Scan QR KTS']);
+    sh.appendRow([date,activity,session,nis,student.nama,status,time,new Date(),'Scan QR KTS']);
     return {ok:true,data:{nis:nis,nama:student.nama,status:status,time:time,activity:activity,session:session}};
   } finally { lock.releaseLock(); }
 }
