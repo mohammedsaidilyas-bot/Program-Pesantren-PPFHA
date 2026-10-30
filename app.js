@@ -40,6 +40,7 @@ async function openQr(target){
    if(!nis){$('#qrMessage').textContent='QR terbaca, tetapi tidak berisi NIS. Gunakan QR yang berisi nomor induk santri.';return}
    qrLocked=true;$('#qrMessage').textContent='QR terbaca. Memproses barcode santri…';
    if(qrTarget==='attendance'){if(!currentAttendanceActivity){qrLocked=true;await closeQr();toast('Portal kegiatan belum dipilih.');return}await closeQr();await recordAttendanceScan(nis);return}
+   if(qrTarget==='raport'){ $('#raportNis').value=nis; await closeQr(); await lookupRaportStudent(); return; }
    $('#nisInput').value=nis;$('#formIzin').classList.remove('hidden');
    if(qrTarget==='search'){$('#search').value=nis;renderIzin()}
    await closeQr();
@@ -245,6 +246,8 @@ async function loadRaportHistory(nis){
  const rows=j.data||[];body.innerHTML=rows.length?rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.mataPelajaran||'—')+'</td><td>'+esc(x.semester||'—')+'</td><td>'+esc(x.prestasi||'—')+'</td><td>'+esc(x.rataRataKelas||'—')+'</td><td>'+esc(x.tahunAjaran||'—')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">Belum ada nilai tersimpan untuk NIS ini.</td></tr>';
  }catch(err){body.innerHTML='<tr><td colspan="6" class="empty">'+esc(err.message)+'</td></tr>'}
 }
+$('#scanRaport').addEventListener('click',()=>openQr('raport'));
+$('#findRaport').addEventListener('click',lookupRaportStudent);
 $('#raportNis').addEventListener('change',lookupRaportStudent);
 $('#raportNis').addEventListener('blur',lookupRaportStudent);
 $('#refreshRaport').onclick=()=>{const n=$('#raportNis').value.trim();if(n)loadRaportHistory(n);else toast('Masukkan NIS santri terlebih dahulu.')};
