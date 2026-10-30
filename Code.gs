@@ -107,8 +107,8 @@ function doGet(e) {
       const nis = String((e.parameter && e.parameter.nis) || '').trim().replace(/\\D/g, '');
       const type = String((e.parameter && e.parameter.type) || 'raport');
       if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
-      if (!['raport','albab'].includes(type)) return output_({ok:false,error:'Jenis data belum tersedia.'});
-      const sheetName = type === 'raport' ? 'RaportMadrasah' : 'UjianAlbab';
+      if (!['raport','albab','hafalan'].includes(type)) return output_({ok:false,error:'Jenis data belum tersedia.'});
+      const sheetName = type === 'raport' ? 'RaportMadrasah' : type === 'albab' ? 'UjianAlbab' : 'HafalanKitab';
       const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
       if (!sh || sh.getLastRow() < 2) return output_({ok:true,data:[]});
       const rows = sh.getDataRange().getDisplayValues(), headers = rows[0].map(function(v){return String(v).trim();});
@@ -182,6 +182,28 @@ function doPost(e) {
       try { sh.getRange(sh.getLastRow()+1,1,1,headers.length).setValues([row]); }
       finally { lock.releaseLock(); }
       return output_({ok:true,saved:1,nilaiAkhir:nilaiAkhir,message:'Nilai ujian Albab berhasil disimpan.'});
+    }
+
+    if (action === 'saveeducationhafalan') {
+      const x = body.data || {};
+      const nis = String(x.nis || '').trim().replace(/\\D/g,'');
+      const namaKitabNadzom = String(x.namaKitabNadzom || '').trim();
+      const jenis = String(x.jenis || '').trim();
+      const targetBait = Number(x.targetBait), capaianBait = Number(x.capaianBait);
+      const status = String(x.status || '').trim();
+      if (!nis || !namaKitabNadzom || !['Nadzom','Matan'].includes(jenis)) return output_({ok:false,error:'NIS, nama kitab/nadzom, dan jenis hafalan wajib diisi.'});
+      if (!Number.isInteger(targetBait) || targetBait < 1 || !Number.isInteger(capaianBait) || capaianBait < 0 || capaianBait > targetBait) return output_({ok:false,error:'Capaian bait harus bilangan bulat dan tidak boleh melebihi target.'});
+      if (!['Lancar','Cukup','Perlu Mengulang'].includes(status)) return output_({ok:false,error:'Status hafalan tidak valid.'});
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      let sh = ss.getSheetByName('HafalanKitab');
+      const headers = ['id','tanggalInput','nis','nama','kelas','namaKitabNadzom','jenis','targetBait','capaianBait','status','catatan','ustaz'];
+      if (!sh) { sh=ss.insertSheet('HafalanKitab'); sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); }
+      if (sh.getLastRow()===0) { sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); }
+      const row = [Utilities.getUuid(),new Date(),nis,String(x.nama||''),String(x.kelas||''),namaKitabNadzom,jenis,targetBait,capaianBait,status,String(x.catatan||''),String(x.ustaz||'')];
+      const lock=LockService.getScriptLock();lock.waitLock(15000);
+      try { sh.getRange(sh.getLastRow()+1,1,1,headers.length).setValues([row]); }
+      finally { lock.releaseLock(); }
+      return output_({ok:true,saved:1,message:'Catatan hafalan berhasil disimpan.'});
     }
     if (action === 'saveattendanceconfig') return output_(saveAttendanceConfig_(body.data || {}));
     if (action === 'toggleattendanceholiday') return output_(toggleAttendanceHoliday_(body.data || {}));
