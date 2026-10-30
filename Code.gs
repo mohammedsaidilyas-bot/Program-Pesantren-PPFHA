@@ -11,7 +11,8 @@ const HEADERS = {
   Pengumuman: ['id','dibuatPada','judul','kategori','tanggal','target','nisTarget','isi','status'],
   Kegiatan: ['id','dibuatPada','judul','lokasi','tanggal','waktu','isi','status'],
   JadwalAbsensi: ['activity','session','startTime','onTimeUntil','endTime','days','updatedAt'],
-  Absensi: ['tanggal','activity','session','nis','nama','status','waktuScan','dicatatPada','sumber']
+  Absensi: ['tanggal','activity','session','nis','nama','status','waktuScan','dicatatPada','sumber'],
+  LiburAbsensi: ['tanggal','activity','session','status','catatan','updatedAt']
 };
 const ACTION_TO_SHEET = { izin:'Izin', pengumuman:'Pengumuman', kegiatan:'Kegiatan' };
 
@@ -90,6 +91,7 @@ function doPost(e) {
       return output_({ok:false,error:'Akses ditolak: kunci pengurus tidak valid.'});
     const action = String(body.action||'').toLowerCase();
     if (action === 'saveattendanceconfig') return output_(saveAttendanceConfig_(body.data || {}));
+    if (action === 'toggleattendanceholiday') return output_(toggleAttendanceHoliday_(body.data || {}));
     if (action === 'attendancescan') return output_(recordAttendanceScan_(body.data || {}));
     if (action === 'attendancerecords') return output_(getAttendanceRecords_(String(body.date || Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd')), String(body.activity || 'all')));
     if (action === 'updatestatus') {
@@ -174,13 +176,14 @@ function getAttendanceConfig_(jamaahSession) {
     if (!ATTENDANCE_ACTIVITY_NAMES[activity]) return;
     const days = activity === 'jamaah'
       ? (String(item.session) === 'Jumat' ? [5] : (String(item.session) === 'Dzuhur' || String(item.session) === 'Ashar' ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
-      : [0,1,2,3,4,5,6];
+      : (activity === 'kitab-pagi' ? [1,2,3,4] : (String(item.days || '').trim() ? String(item.days).split(',').map(Number) : [0,1,2,3,4,5,6]));
     const config = {
       session: String(item.session || (activity === 'jamaah' ? 'Subuh' : 'Utama')),
       startTime: String(item.startTime || ''),
       onTimeUntil: String(item.onTimeUntil || ''),
       endTime: String(item.endTime || ''),
-      days: days
+      days: days,
+      holidayToday: isAttendanceHoliday_(Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd'), activity, String(item.session || (activity === 'jamaah' ? 'Subuh' : 'Utama')))
     };
     if (activity === 'jamaah') {
       if (config.session === jamaahSession) result[activity] = config;
@@ -200,7 +203,7 @@ function saveAttendanceConfig_(data) {
   // Hari aktif ditentukan otomatis oleh kalender WIB sesuai jenis sesi.
   const days = activity === 'jamaah'
     ? (session === 'Jumat' ? [5] : (session === 'Dzuhur' || session === 'Ashar' ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
-    : [0,1,2,3,4,5,6];
+    : (activity === 'kitab-pagi' ? [1,2,3,4] : [0,1,2,3,4,5,6]);
   if (!ATTENDANCE_ACTIVITY_NAMES[activity]) return {ok:false,error:'Kegiatan tidak dikenal.'};
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(onTimeUntil) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime))
     return {ok:false,error:'Format jam tidak valid.'};
@@ -250,9 +253,40 @@ function attendanceScheduleRows_() {
     const rawDays=String(o.days||'').trim();
     o.days = o.activity === 'jamaah'
       ? (String(o.session) === 'Jumat' ? [5] : (String(o.session) === 'Dzuhur' || String(o.session) === 'Ashar' ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
-      : [0,1,2,3,4,5,6];
+      : (o.activity === 'kitab-pagi' ? [1,2,3,4] : (rawDays ? rawDays.split(',').map(Number) : [0,1,2,3,4,5,6]));
     return o;
   }).filter(function(x){return ATTENDANCE_ACTIVITY_NAMES[x.activity] && x.startTime && x.endTime;});
+}
+
+function isAttendanceHoliday_(date, activity, session) {
+  const ss = ensureAttendanceSheets_(), sh = ss.getSheetByName('LiburAbsensi');
+  if (!sh || sh.getLastRow() < 2) return false;
+  const rows = sh.getDataRange().getDisplayValues();
+  const headers = rows[0].map(function(v){return String(v).trim();});
+  for (let i=1;i<rows.length;i++) {
+    const item={}; headers.forEach(function(k,j){if(k)item[k]=rows[i][j];});
+    if (String(item.tanggal)===String(date) && normalizeAttendanceActivity_(item.activity)===activity &&
+        String(item.session || 'Utama')===String(session || 'Utama') && String(item.status).toLowerCase()==='libur') return true;
+  }
+  return false;
+}
+function toggleAttendanceHoliday_(data) {
+  const date = String(data.date || Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd'));
+  const activity = normalizeAttendanceActivity_(data.activity);
+  const session = activity === 'jamaah' ? String(data.session || 'Subuh') : 'Utama';
+  const holiday = data.isHoliday === true;
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) return {ok:false,error:'Tanggal libur tidak valid.'};
+  if (!ATTENDANCE_ACTIVITY_NAMES[activity]) return {ok:false,error:'Kegiatan tidak dikenal.'};
+  const lock=LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    const sh=ensureAttendanceSheets_().getSheetByName('LiburAbsensi');
+    const values=sh.getDataRange().getDisplayValues();
+    let rowNumber=0;
+    for(let i=1;i<values.length;i++) if(String(values[i][0])===date && normalizeAttendanceActivity_(values[i][1])===activity && String(values[i][2]||'Utama')===session){rowNumber=i+1;break;}
+    const row=[date,activity,session,holiday?'Libur':'Aktif',String(data.catatan||''),new Date()];
+    if(rowNumber) sh.getRange(rowNumber,1,1,row.length).setValues([row]); else sh.appendRow(row);
+    return {ok:true,isHoliday:holiday,message:holiday?'Kegiatan diliburkan untuk tanggal ini.':'Status libur dibatalkan.'};
+  } finally {lock.releaseLock();}
 }
 
 function attendanceDateString_(date) {
@@ -280,6 +314,7 @@ function processAttendanceDeadlines_(targetDate) {
   const weekday = new Date(date + 'T12:00:00+07:00').getDay();
   const schedules = attendanceScheduleRows_().filter(function(s){
     if (s.days.indexOf(weekday)<0) return false;
+    if (isAttendanceHoliday_(date, s.activity, s.session)) return false;
     // Jumat: Ashar tidak menggunakan absensi jamaah.
     if (weekday === 5 && s.activity === 'jamaah' && String(s.session) === 'Ashar') return false;
     if (weekday === 5 && s.activity === 'jamaah' && String(s.session) === 'Dzuhur') return false;
@@ -332,6 +367,7 @@ function recordAttendanceScan_(data) {
   if (!ATTENDANCE_ACTIVITY_NAMES[requestedActivity]) return {ok:false,error:'Portal kegiatan tidak valid.'};
   const allSchedules = attendanceScheduleRows_().filter(function(s) {
     if (s.activity !== requestedActivity) return false;
+    if (isAttendanceHoliday_(date, s.activity, s.session)) return false;
     if (s.days.indexOf(weekday) < 0) return false;
     if (weekday === 5 && s.activity === 'jamaah' && (String(s.session) === 'Dzuhur' || String(s.session) === 'Ashar')) return false;
     return true;
