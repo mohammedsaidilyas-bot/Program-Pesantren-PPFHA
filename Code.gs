@@ -35,8 +35,22 @@ function setupDatabase() {
 function testDatabase() {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const result = {ok:true,app:'Program Pesantren PPFHA',spreadsheet:ss.getName(),spreadsheetId:ss.getId(),
-      tabs:ss.getSheets().map(function(sh){return {name:sh.getName(),rows:sh.getLastRow(),columns:sh.getLastColumn()};})};
+    const absensi = ss.getSheetByName('Absensi');
+    const lastRow = absensi ? absensi.getLastRow() : 0;
+    const lastRecords = absensi && lastRow > 1
+      ? absensi.getRange(Math.max(2, lastRow - 4), 1, Math.min(5, lastRow - 1), Math.min(9, absensi.getLastColumn())).getDisplayValues()
+      : [];
+    const result = {
+      ok:true,
+      app:'Program Pesantren PPFHA',
+      spreadsheet:ss.getName(),
+      spreadsheetId:ss.getId(),
+      spreadsheetUrl:ss.getUrl(),
+      attendanceTabExists:!!absensi,
+      attendanceDataRows:Math.max(0,lastRow - 1),
+      attendanceLastRecords:lastRecords,
+      tabs:ss.getSheets().map(function(sh){return {name:sh.getName(),rows:sh.getLastRow(),columns:sh.getLastColumn()};})
+    };
     Logger.log(JSON.stringify(result)); return JSON.stringify(result);
   } catch(err) { const result={ok:false,error:explainError_(err)}; Logger.log(JSON.stringify(result)); return JSON.stringify(result); }
 }
