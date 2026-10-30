@@ -223,19 +223,19 @@ function saveAttendanceConfig_(data) {
 }
 
 function attendanceStudentRoster_() {
+  // Samakan persis dengan endpoint biodata santri yang sudah dipakai aplikasi:
+  // kolom A=NIS, B=Nama, H=Status. Hindari salah deteksi header yang
+  // menyebabkan NIS terbaca tetapi nama/status kosong.
   const ss = SpreadsheetApp.openById(STUDENT_DB_ID);
   const sh = ss.getSheetByName(STUDENT_SHEET_NAME);
   if (!sh || sh.getLastRow() < 2) throw new Error('Database santri uang jajan tidak ditemukan atau masih kosong.');
   const rows = sh.getDataRange().getDisplayValues();
-  const headers = rows[0].map(function(v){return String(v).toLowerCase().replace(/[\s_-]/g,'').trim();});
-  let nisCol = headers.findIndex(function(h){return ['nis','nissantri','nomorinduksantri','nomorinduk'].indexOf(h)>=0;});
-  let nameCol = headers.findIndex(function(h){return ['nama','namasantri','namalengkap'].indexOf(h)>=0;});
-  let statusCol = headers.findIndex(function(h){return ['status','statussantri','keaktifan'].indexOf(h)>=0;});
-  if (nisCol < 0) nisCol = 0;
-  if (nameCol < 0) nameCol = 1;
-  if (statusCol < 0) statusCol = 7;
   return rows.slice(1).map(function(row) {
-    return {nis:String(row[nisCol] || '').trim().replace(/\D/g,''),nama:String(row[nameCol] || '').trim(),status:String(row[statusCol] || '').trim().toLowerCase()};
+    return {
+      nis:String(row[0] || '').trim().replace(/\D/g,''),
+      nama:String(row[1] || '').trim(),
+      status:String(row[7] || '').trim().toLowerCase()
+    };
   }).filter(function(x){return x.nis && x.nama && x.status === 'aktif';});
 }
 
@@ -320,14 +320,27 @@ function installAttendanceTrigger() {
 }
 
 function recordAttendanceScan_(data) {
-  const activity = normalizeAttendanceActivity_(data.activity);
-  const session = activity === 'jamaah' ? String(data.session || 'Subuh').trim() : 'Utama';
   const nis = String(data.nis || '').trim().replace(/\D/g,'');
-  if (!ATTENDANCE_ACTIVITY_NAMES[activity] || !nis) return {ok:false,error:'Kegiatan atau NIS tidak valid.'};
+  if (!nis) return {ok:false,error:'QR tidak berisi NIS yang valid.'};
   const now = new Date();
   const date = Utilities.formatDate(now, ATTENDANCE_TZ, 'yyyy-MM-dd');
   const time = Utilities.formatDate(now, ATTENDANCE_TZ, 'HH:mm');
   const weekday = new Date(date + 'T12:00:00+07:00').getDay();
+  // Penentuan sesi dilakukan di server. Nilai activity/session dari browser
+  // sengaja diabaikan agar petugas tidak bisa mengganti sesi secara manual.
+  const allSchedules = attendanceScheduleRows_().filter(function(s) {
+    if (s.days.indexOf(weekday) < 0) return false;
+    if (weekday === 5 && s.activity === 'jamaah' && (String(s.session) === 'Dzuhur' || String(s.session) === 'Ashar')) return false;
+    return true;
+  });
+  const activeSchedules = allSchedules.filter(function(s){return time >= String(s.startTime) && time <= String(s.endTime);})
+    .sort(function(a,b){return String(a.endTime).localeCompare(String(b.endTime));});
+  const nextSchedules = allSchedules.filter(function(s){return String(s.startTime) > time;})
+    .sort(function(a,b){return String(a.startTime).localeCompare(String(b.startTime));});
+  const schedule = activeSchedules[0] || nextSchedules[0] || null;
+  if (!schedule) return {ok:false,error:'Tidak ada jadwal kegiatan berikutnya yang aktif/tersedia hari ini. Periksa pengaturan jadwal.'};
+  const activity = schedule.activity;
+  const session = activity === 'jamaah' ? String(schedule.session) : 'Utama';
   // Jumat memakai sesi khusus Sholat Jumat, bukan sesi Dzuhur musholla.
   if (weekday === 5 && activity === 'jamaah' && session === 'Dzuhur')
     return {ok:false,error:'Hari Jumat gunakan sesi Sholat Jumat, bukan Dzuhur musholla.'};
@@ -335,12 +348,8 @@ function recordAttendanceScan_(data) {
     return {ok:false,error:'Absensi jamaah Ashar ditiadakan khusus hari Jumat.'};
   if (session === 'Jumat' && weekday !== 5)
     return {ok:false,error:'Sesi Sholat Jumat hanya aktif pada hari Jumat.'};
-  const schedules = attendanceScheduleRows_();
-  const schedule = schedules.find(function(s){return s.activity===activity && String(s.session)===session;});
-  if (!schedule) return {ok:false,error:'Jadwal '+ATTENDANCE_ACTIVITY_NAMES[activity]+' sesi '+session+' belum diatur.'};
-  if (schedule.days.indexOf(weekday)<0) return {ok:false,error:'Kegiatan ini tidak dijadwalkan pada hari ini.'};
-  // MODE UJI COBA: batas waktu scan dinonaktifkan sementara. Aktifkan kembali setelah seluruh portal dan penyimpanan teruji.
-
+  // MODE UJI COBA: kamera tetap dapat digunakan kapan saja. Namun sesi
+  // yang dicatat selalu ditentukan otomatis oleh jadwal server, bukan pilihan petugas.
   const students = attendanceStudentRoster_();
   const student = students.find(function(x){return x.nis===nis;});
   if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif.'};
