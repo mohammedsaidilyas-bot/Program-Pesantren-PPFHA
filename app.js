@@ -1,9 +1,19 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const API_URL='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbKFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
 const data={izin:[],peng:[],keg:[]};const names={dashboard:'Dashboard',izin:'Izin Santri',pengumuman:'Pengumuman',kegiatan:'Kegiatan & Jadwal',kehadiran:'Kegiatan & Kehadiran',pendidikan:'Pendidikan Santri'};let adminKey=sessionStorage.getItem('ppfha_admin_key')||'';
-function go(p){$$('.page').forEach(x=>x.classList.toggle('active',x.id===p));$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===p));$('#title').textContent=names[p]||'Dashboard';window.scrollTo(0,0);if(p==='izin')loadIzin();if(p==='kehadiran')loadAttendanceConfig()}
-$('.nav').forEach(x=>x.addEventListener('click',e=>{e.preventDefault();go(x.dataset.page)}));
-document.addEventListener('click',e=>{const nav=e.target.closest('.nav[data-page]');if(nav){e.preventDefault();go(nav.dataset.page);}});
+function go(p){
+ const pages=$$('.page'),navs=$$('.nav');
+ pages.forEach(el=>{const active=el.id===p;el.classList.toggle('active',active);el.hidden=!active;});
+ navs.forEach(el=>{const active=el.dataset.page===p;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
+ const title=$('#title');if(title)title.textContent=names[p]||'Dashboard';
+ window.scrollTo({top:0,behavior:'instant'});
+ if(p==='izin')loadIzin();if(p==='kehadiran')loadAttendanceConfig();
+}
+document.addEventListener('click',e=>{
+ const nav=e.target.closest('button.nav[data-page]');
+ if(!nav)return;
+ e.preventDefault();e.stopPropagation();go(nav.dataset.page);
+},true);
 function openEducationModule(module){
  const menu=$('#educationMenu');if(menu)menu.classList.add('hidden');
  $$('.education-detail').forEach(x=>x.classList.add('hidden'));
