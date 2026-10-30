@@ -51,3 +51,15 @@
 @keyframes confirmFade{from{opacity:0}to{opacity:1}}
 @keyframes confirmRise{from{opacity:0;transform:translateY(9px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:480px){.confirm-dialog{padding:25px 19px 20px;border-radius:20px}.confirm-dialog h3{font-size:20px}.confirm-actions button{flex:1;min-width:0}}
+
+/* Pendidikan Santri / Raport Madrasah */
+.raport-table-wrap{margin-top:20px;max-width:100%;overflow-x:auto}
+.raport-table{min-width:760px;width:100%;border-collapse:collapse}
+.raport-table th,.raport-table td{border:1px solid #dbe4df;padding:9px 8px;text-align:center;vertical-align:middle}
+.raport-table thead th{background:#edf4f0;color:#174b39;font-weight:700}
+.raport-table td:nth-child(2){text-align:left;min-width:150px}
+.raport-table .raport-score{width:88px;min-width:70px;padding:9px 6px;text-align:center}
+.raport-table .raport-custom-name{min-width:130px;width:100%;padding:8px}
+.raport-table .raport-group td{background:#f6f8f6;color:#174b39;font-weight:700}
+.raport-table tfoot th{background:#edf4f0;color:#174b39}
+@media(max-width:700px){.raport-table-wrap{margin-left:-8px;margin-right:-8px}.raport-table th,.raport-table td{padding:7px 5px;font-size:12px}}
