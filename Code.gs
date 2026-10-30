@@ -365,8 +365,9 @@ function recordAttendanceScan_(data) {
   // ditentukan sepenuhnya di server dari jadwal WIB, tidak menerima pilihan sesi manual.
   const requestedActivity = normalizeAttendanceActivity_(data.activity);
   if (!ATTENDANCE_ACTIVITY_NAMES[requestedActivity]) return {ok:false,error:'Portal kegiatan tidak valid.'};
+  const testMode = data.testMode === true && requestedActivity === 'kitab-pagi';
   const activitySchedules = attendanceScheduleRows_().filter(function(s){return s.activity===requestedActivity && s.days.indexOf(weekday)>=0;});
-  if (activitySchedules.some(function(s){return isAttendanceHoliday_(date,s.activity,s.session);})) return {ok:false,error:'Kegiatan hari ini diliburkan oleh pengurus. Absensi tidak dicatat.'};
+  if (!testMode && activitySchedules.some(function(s){return isAttendanceHoliday_(date,s.activity,s.session);})) return {ok:false,error:'Kegiatan hari ini diliburkan oleh pengurus. Absensi tidak dicatat.'};
   const allSchedules = attendanceScheduleRows_().filter(function(s) {
     if (s.activity !== requestedActivity) return false;
     if (isAttendanceHoliday_(date, s.activity, s.session)) return false;
@@ -378,7 +379,10 @@ function recordAttendanceScan_(data) {
     .sort(function(a,b){return String(a.endTime).localeCompare(String(b.endTime));});
   const nextSchedules = allSchedules.filter(function(s){return String(s.startTime) > time;})
     .sort(function(a,b){return String(a.startTime).localeCompare(String(b.startTime));});
-  const schedule = activeSchedules[0] || nextSchedules[0] || null;
+  let schedule = activeSchedules[0] || nextSchedules[0] || null;
+  // Mode uji coba Ngaji Kitab Pagi: izinkan pencatatan tanpa jadwal resmi.
+  // Jadwal/status final akan dikunci kembali setelah pengujian dinyatakan selesai.
+  if (!schedule && testMode) schedule = {activity:'kitab-pagi',session:'Utama',startTime:'00:00',onTimeUntil:'23:59',endTime:'23:59',days:[0,1,2,3,4,5,6]};
   if (!schedule) return {ok:false,error:'Tidak ada jadwal kegiatan berikutnya yang aktif/tersedia hari ini. Periksa pengaturan jadwal.'};
   const activity = schedule.activity;
   const session = activity === 'jamaah' ? String(schedule.session) : 'Utama';
@@ -394,7 +398,7 @@ function recordAttendanceScan_(data) {
   const students = attendanceStudentRoster_();
   const student = students.find(function(x){return x.nis===nis;});
   if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif.'};
-  const status = session === 'Jumat' ? 'Hadir' : (time <= String(schedule.onTimeUntil) ? 'Hadir' : 'Terlambat');
+  const status = (testMode || session === 'Jumat') ? 'Hadir' : (time <= String(schedule.onTimeUntil) ? 'Hadir' : 'Terlambat');
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
