@@ -73,7 +73,7 @@
    <div class="form-title"><span class="form-icon">📖</span><div><h3>Input Hafalan Kitab & Nadzom</h3><p>Masukkan NIS atau scan kartu santri, lalu isi capaian hafalannya.</p></div></div>
    <form id="formHafalan">
     <div class="fields">
-     <label class="raport-search-label">Cari / Scan NIS Santri *<div class="raport-search-row"><button class="primary raport-scan-btn" id="scanHafalan" type="button">▦ Scan</button><input id="hafalanNis" name="nis" required inputmode="numeric" placeholder="Masukkan NIS atau scan kartu…"><button class="secondary" id="findHafalan" type="button">Cari</button></div><small class="raport-hint">Gunakan QR kartu santri atau ketik NIS secara manual.</small></label>
+     <label class="raport-search-label">Cari / Scan NIS Santri *<div class="raport-search-row"><button class="primary raport-scan-btn" id="scanHafalan" type="button">▦ Scan</button><input id="hafalanNis" name="nis" required inputmode="numeric" placeholder="Masukkan NIS atau scan kartu…"><button class="secondary" id="findHafalan" type="button" onclick="lookupHafalanStudent()">Cari</button></div><small class="raport-hint">Gunakan QR kartu santri atau ketik NIS secara manual.</small></label>
      <label>Nama Santri<input id="hafalanNama" name="nama" readonly placeholder="Terisi otomatis"></label>
      <label>Kelas<input id="hafalanKelas" name="kelas" readonly placeholder="Terisi otomatis"></label>
      <label>Nama Kitab / Nadzom *<input name="namaKitabNadzom" required placeholder="Contoh: Alfiyah, Aqidatul Awam"></label>
