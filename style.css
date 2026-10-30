@@ -26,3 +26,13 @@
 .attendance-workspace .last-scan{min-height:70px;border:1px solid #e0eee5}
 @media(max-width:700px){.attendance-workspace{padding:13px}.attendance-workspace-brand{align-items:flex-start;flex-direction:column;padding-bottom:16px}.workspace-live{align-self:flex-start}.attendance-workspace .attendance-scan-layout{grid-template-columns:1fr}.attendance-workspace .attendance-settings-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){.attendance-workspace .attendance-settings-grid{grid-template-columns:1fr}.attendance-workspace .schedule-days{grid-column:auto}}
+
+/* Kartu kegiatan: kerapian dan informasi jadwal seperti desain sebelumnya */
+.attendance-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
+.attendance-card{display:flex;flex-direction:column;align-items:flex-start;min-height:205px;padding:20px 22px;border-radius:17px}
+.attendance-card h3{margin:10px 0 5px;font-size:18px}
+.attendance-card p{min-height:0;margin:4px 0 12px;line-height:1.5;color:var(--muted)}
+.attendance-card .primary{margin-top:8px;min-height:42px}
+.attendance-card .activity-status{margin-top:10px;line-height:1.45;font-size:12px;color:#718278;min-height:18px}
+@media(max-width:800px){.attendance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.attendance-grid{grid-template-columns:1fr}.attendance-card{min-height:unset}}
