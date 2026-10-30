@@ -404,54 +404,46 @@ async function sendHafalanSave(payload,key){
  if(!result||result.ok!==true)throw new Error(result&&result.error?result.error:'Server menolak penyimpanan tanpa keterangan.');
  return result;
 }
-document.addEventListener('click',async e=>{
- const button=e.target.closest('#saveHafalanBtn');
- if(!button)return;
- e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+async function handleHafalanSave(){
+ const form=$('#formHafalan'),button=$('#saveHafalanBtn');
+ if(!form||!button){hafalanSaveStatus('Form atau tombol Simpan Hafalan tidak ditemukan. Muat ulang halaman.','error');return}
  if(button.dataset.busy==='1')return;
- button.dataset.busy='1';
- try{
-  const form=$('#formHafalan');
-  if(!form){hafalanSaveStatus('Form hafalan tidak ditemukan. Muat ulang halaman.','error');return}
-  if(!form.checkValidity()){form.reportValidity();return}
-  hafalanSaveStatus('Tombol diterima. Memulai penyimpanan…','loading');
-  if(typeof window.submitHafalanForm!=='function')throw new Error('Fungsi penyimpanan belum dimuat. Muat ulang halaman.');
-  await window.submitHafalanForm();
- }catch(err){hafalanSaveStatus('✕ PROSES SIMPAN TERHENTI: '+(err&&err.message?err.message:String(err)),'error')}
- finally{button.dataset.busy='0'}
-},true);
-$('#formHafalan').addEventListener('submit',e=>{e.preventDefault();e.stopPropagation();const b=$('#saveHafalanBtn');if(b)b.click()});
-window.submitHafalanForm=async function(){
- const e={preventDefault:()=>{},currentTarget:$('#formHafalan')};
- e.preventDefault();
- const form=e.currentTarget,nis=String($('#hafalanNis').value||'').replace(/\D/g,''),nama=$('#hafalanNama').value.trim(),kelas=$('#hafalanKelas').value.trim();
+ if(!form.checkValidity()){form.reportValidity();return}
+ const nis=String($('#hafalanNis').value||'').replace(/\D/g,'');
+ const nama=$('#hafalanNama').value.trim(),kelas=$('#hafalanKelas').value.trim();
  if(!nis||!nama){setHafalanLookupStatus('Cari NIS sampai biodata santri muncul sebelum menyimpan.','error');return}
  const target=Number(form.elements.targetBait.value),capaian=Number(form.elements.capaianBait.value);
- if(!Number.isInteger(target)||target<1||!Number.isInteger(capaian)||capaian<0||capaian>target){hafalanSaveStatus('Periksa Target Bait dan Capaian Bait. Capaian tidak boleh melebihi target.','error');return}
+ if(!Number.isInteger(target)||target<1||!Number.isInteger(capaian)||capaian<0||capaian>target){hafalanSaveStatus('Periksa Target Bait dan Capaian Bait. Capaian harus bilangan bulat dan tidak boleh melebihi target.','error');return}
  const payload={nis,nama,kelas,namaKitabNadzom:form.elements.namaKitabNadzom.value.trim(),jenis:form.elements.jenis.value,targetBait:target,capaianBait:capaian,status:form.elements.status.value,catatan:form.elements.catatan.value.trim(),ustaz:form.elements.ustaz.value.trim()};
  if(!payload.namaKitabNadzom){hafalanSaveStatus('Nama kitab atau nadzom wajib diisi.','error');return}
- const btn=$('#saveHafalanBtn');if(!btn){hafalanSaveStatus('Tombol Simpan tidak ditemukan. Muat ulang halaman.','error');return}btn.disabled=true;btn.textContent='Menyimpan…';hafalanSaveStatus('Mengirim catatan hafalan ke Google Sheets…','loading');
+ button.dataset.busy='1';button.disabled=true;button.textContent='Menyimpan…';
+ hafalanSaveStatus('Mengirim catatan hafalan ke Google Sheets…','loading');
  try{
-  if(!adminKey){adminKey=await requestAdminKey('Simpan catatan hafalan');if(!adminKey){hafalanSaveStatus('Penyimpanan dibatalkan. Kunci pengurus belum dimasukkan.','error');return}}
+  if(!adminKey){adminKey=await requestAdminKey('Simpan catatan hafalan');if(!adminKey)throw new Error('Penyimpanan dibatalkan: kunci pengurus belum dimasukkan.')}
   let result;
   try{result=await sendHafalanSave(payload,adminKey)}
-  catch(err){
-   if(!/kunci pengurus tidak valid|akses ditolak/i.test(err.message))throw err;
+  catch(error){
+   if(!/kunci pengurus tidak valid|akses ditolak/i.test(error.message))throw error;
    adminKey='';sessionStorage.removeItem('ppfha_admin_key');
-   hafalanSaveStatus('Kunci pengurus sebelumnya tidak valid. Masukkan kunci yang benar untuk mencoba lagi.','error');
-   adminKey=await requestAdminKey('Kunci pengurus lama ditolak — masukkan kunci yang benar');
+   adminKey=await requestAdminKey('Kunci pengurus lama ditolak. Masukkan kunci pengurus yang benar.');
    if(!adminKey)throw new Error('Penyimpanan dibatalkan karena kunci pengurus tidak dimasukkan.');
    result=await sendHafalanSave(payload,adminKey);
   }
   adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey);
-  hafalanSaveStatus('✓ BERHASIL DISIMPAN. '+(result.message||'Catatan hafalan telah masuk ke Google Sheets.'),'success');
+  hafalanSaveStatus('✓ BERHASIL DISIMPAN. '+(result.message||'Catatan hafalan sudah diterima server.'),'success');
   toast('Catatan hafalan berhasil disimpan.');
   await loadHafalanHistory(nis);
- }catch(err){
-  hafalanSaveStatus('✕ GAGAL DISIMPAN: '+(err&&err.message?err.message:'Kesalahan tidak diketahui.'),'error');
-  toast('Gagal menyimpan: '+(err.message||'Periksa koneksi.'));
- }finally{if(btn){btn.disabled=false;btn.textContent='➤ Simpan Catatan Hafalan'}}
-};
+ }catch(error){
+  hafalanSaveStatus('✕ GAGAL DISIMPAN: '+(error&&error.message?error.message:'Kesalahan tidak diketahui.'),'error');
+  toast('Gagal menyimpan hafalan: '+(error.message||'Periksa koneksi.'));
+ }finally{
+  button.dataset.busy='0';button.disabled=false;button.textContent='➤ Simpan Catatan Hafalan';
+ }
+}
+const hafalanSaveButton=$('#saveHafalanBtn');
+if(hafalanSaveButton)hafalanSaveButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();handleHafalanSave()});
+$('#formHafalan').addEventListener('submit',event=>{event.preventDefault();event.stopPropagation()});
+
 
 async function loadHafalanHistory(nis){
  const body=$('#hafalanHistory');if(!body)return;
