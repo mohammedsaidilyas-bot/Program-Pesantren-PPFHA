@@ -13,9 +13,9 @@ function go(p){
 function openEducationModule(module){
  const menu=$('#educationMenu');if(menu)menu.classList.add('hidden');
  $$('.education-detail').forEach(x=>x.classList.add('hidden'));
- const target=module==='raport'?'#educationRaportPage':module==='albab'?'#educationAlbabPage':'';
+ const target=module==='raport'?'#educationRaportPage':module==='albab'?'#educationAlbabPage':module==='hafalan'?'#educationHafalanPage':'';
  if(target&&$(target))$(target).classList.remove('hidden');
- const title=module==='raport'?'Nilai Raport Madrasah':'Nilai Ujian Kitab Metode Albab';
+ const title=module==='raport'?'Nilai Raport Madrasah':module==='albab'?'Nilai Ujian Kitab Metode Albab':'Hafalan Kitab & Nadzom';
  $('#title').textContent=title;window.scrollTo(0,0);
 }
 function showEducationMenu(){
@@ -72,6 +72,7 @@ async function openQr(target){
    if(qrTarget==='attendance'){if(!currentAttendanceActivity){qrLocked=true;await closeQr();toast('Portal kegiatan belum dipilih.');return}await closeQr();await recordAttendanceScan(nis);return}
    if(qrTarget==='raport'){ $('#raportNis').value=nis; await closeQr(); await lookupRaportStudent(); return; }
    if(qrTarget==='albab'){ $('#albabNis').value=nis; await closeQr(); await lookupAlbabStudent(); return; }
+   if(qrTarget==='hafalan'){ $('#hafalanNis').value=nis; await closeQr(); await lookupHafalanStudent(); return; }
    $('#nisInput').value=nis;$('#formIzin').classList.remove('hidden');
    if(qrTarget==='search'){$('#search').value=nis;renderIzin()}
    await closeQr();
@@ -345,3 +346,35 @@ $('#formAlbab').addEventListener('submit',async e=>{
 });
 
 
+
+/* HAFALAN KITAB & NADZOM */
+async function lookupHafalanStudent(){
+ const nis=$('#hafalanNis').value.trim().replace(/\D/g,'');if(!nis)return;
+ try{const r=await fetch(API_URL+'?action=student&nis='+encodeURIComponent(nis),{cache:'no-store'});const j=await r.json();if(!j.ok)throw new Error(j.error||'Santri tidak ditemukan');$('#hafalanNis').value=j.data.nis;$('#hafalanNama').value=j.data.nama;$('#hafalanKelas').value=j.data.kelas||'';await loadHafalanHistory(nis)}
+ catch(err){$('#hafalanNama').value='';$('#hafalanKelas').value='';toast('Data santri: '+err.message)}
+}
+async function loadHafalanHistory(nis){
+ const body=$('#hafalanHistory');if(!body)return;
+ if(!adminKey){adminKey=await requestAdminKey('Lihat riwayat hafalan kitab dan nadzom');if(!adminKey){body.innerHTML='<tr><td colspan="9" class="empty">Masukkan kunci pengurus untuk melihat riwayat.</td></tr>';return}adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey)}
+ body.innerHTML='<tr><td colspan="9" class="empty">Memuat riwayat hafalan…</td></tr>';
+ try{const r=await fetch(API_URL+'?action=educationrecords&type=hafalan&nis='+encodeURIComponent(nis)+'&key='+encodeURIComponent(adminKey),{cache:'no-store'});const j=await r.json();if(!j.ok)throw new Error(j.error||'Gagal membaca riwayat');
+ const rows=j.data||[];body.innerHTML=rows.length?rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.tanggalInput||'—')+'</td><td>'+esc(x.namaKitabNadzom||'—')+'</td><td>'+esc(x.jenis||'—')+'</td><td>'+esc(x.targetBait||'—')+'</td><td>'+esc(x.capaianBait||'—')+'</td><td>'+esc(x.status||'—')+'</td><td>'+esc(x.catatan||'—')+'</td><td>'+esc(x.ustaz||'—')+'</td></tr>').join(''):'<tr><td colspan="9" class="empty">Belum ada catatan hafalan untuk NIS ini.</td></tr>';
+ }catch(err){body.innerHTML='<tr><td colspan="9" class="empty">'+esc(err.message)+'</td></tr>'}
+}
+$('#scanHafalan').addEventListener('click',()=>openQr('hafalan'));
+$('#findHafalan').addEventListener('click',lookupHafalanStudent);
+$('#hafalanNis').addEventListener('change',lookupHafalanStudent);
+$('#hafalanNis').addEventListener('blur',lookupHafalanStudent);
+$('#refreshHafalan').onclick=()=>{const n=$('#hafalanNis').value.trim();if(n)loadHafalanHistory(n);else toast('Masukkan NIS santri terlebih dahulu.')};
+$('#formHafalan').addEventListener('reset',()=>setTimeout(()=>{$('#hafalanNama').value='';$('#hafalanKelas').value=''},0));
+$('#formHafalan').addEventListener('submit',async e=>{
+ e.preventDefault();const form=e.currentTarget,nis=$('#hafalanNis').value.trim(),nama=$('#hafalanNama').value.trim(),kelas=$('#hafalanKelas').value.trim();
+ if(!nis||!nama){toast('Masukkan NIS santri yang valid terlebih dahulu.');return}
+ const target=Number(form.elements.targetBait.value),capaian=Number(form.elements.capaianBait.value);
+ if(!Number.isInteger(target)||target<1||!Number.isInteger(capaian)||capaian<0||capaian>target){toast('Capaian bait harus berupa bilangan bulat dan tidak boleh melebihi target.');return}
+ if(!adminKey){adminKey=await requestAdminKey('Simpan catatan hafalan');if(!adminKey)return;sessionStorage.setItem('ppfha_admin_key',adminKey)}
+ const btn=form.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Menyimpan…';
+ try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'saveeducationhafalan',apiKey:adminKey,data:{nis,nama,kelas,namaKitabNadzom:form.elements.namaKitabNadzom.value.trim(),jenis:form.elements.jenis.value,targetBait:target,capaianBait:capaian,status:form.elements.status.value,catatan:form.elements.catatan.value.trim(),ustaz:form.elements.ustaz.value.trim()}})});const j=await r.json();if(!j.ok)throw new Error(j.error||'Catatan hafalan gagal disimpan');toast('Catatan hafalan berhasil disimpan.');await loadHafalanHistory(nis)}
+ catch(err){toast('Gagal menyimpan catatan hafalan: '+err.message)}
+ finally{btn.disabled=false;btn.textContent='➤ Simpan Catatan Hafalan'}
+});
