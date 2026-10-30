@@ -415,7 +415,7 @@ window.submitHafalanForm=async function(){
  if(!Number.isInteger(target)||target<1||!Number.isInteger(capaian)||capaian<0||capaian>target){hafalanSaveStatus('Periksa Target Bait dan Capaian Bait. Capaian tidak boleh melebihi target.','error');return}
  const payload={nis,nama,kelas,namaKitabNadzom:form.elements.namaKitabNadzom.value.trim(),jenis:form.elements.jenis.value,targetBait:target,capaianBait:capaian,status:form.elements.status.value,catatan:form.elements.catatan.value.trim(),ustaz:form.elements.ustaz.value.trim()};
  if(!payload.namaKitabNadzom){hafalanSaveStatus('Nama kitab atau nadzom wajib diisi.','error');return}
- const btn=form.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Menyimpan…';hafalanSaveStatus('Mengirim catatan hafalan ke Google Sheets…','loading');
+ const btn=$('#saveHafalanBtn');if(!btn){hafalanSaveStatus('Tombol Simpan tidak ditemukan. Muat ulang halaman.','error');return}btn.disabled=true;btn.textContent='Menyimpan…';hafalanSaveStatus('Mengirim catatan hafalan ke Google Sheets…','loading');
  try{
   if(!adminKey){adminKey=await requestAdminKey('Simpan catatan hafalan');if(!adminKey){hafalanSaveStatus('Penyimpanan dibatalkan. Kunci pengurus belum dimasukkan.','error');return}}
   let result;
@@ -435,7 +435,7 @@ window.submitHafalanForm=async function(){
  }catch(err){
   hafalanSaveStatus('✕ GAGAL DISIMPAN: '+(err&&err.message?err.message:'Kesalahan tidak diketahui.'),'error');
   toast('Gagal menyimpan: '+(err.message||'Periksa koneksi.'));
- }finally{btn.disabled=false;btn.textContent='➤ Simpan Catatan Hafalan'}
+ }finally{if(btn){btn.disabled=false;btn.textContent='➤ Simpan Catatan Hafalan'}}
 };
 $('#formHafalan').addEventListener('submit',e=>{e.preventDefault();window.submitHafalanForm()});
 async function loadHafalanHistory(nis){
