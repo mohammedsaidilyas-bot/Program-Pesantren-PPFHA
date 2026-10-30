@@ -39,4 +39,24 @@
   </form>
  </div>
  <div class="card table-wrap"><div class="table-toolbar"><div><h3>Riwayat Input Raport</h3><p>Nilai yang sudah disimpan untuk santri yang dipilih.</p></div></div><div class="table-scroll"><table><thead><tr><th>No</th><th>Mata Pelajaran</th><th>Semester</th><th>Prestasi</th><th>Rata-rata Kelas</th><th>Tahun Ajaran</th></tr></thead><tbody id="raportHistory"><tr><td colspan="6" class="empty">Masukkan NIS untuk melihat riwayat.</td></tr></tbody></table></div></div>
+
+ <div class="card" id="albabCard">
+  <div class="form-title"><span class="form-icon">📚</span><div><h3>Input Nilai Ujian Kitab Metode Albab</h3><p>Masukkan NIS atau scan kartu santri, lalu isi nilai ujian tulis dan ujian baca.</p></div></div>
+  <form id="formAlbab">
+   <div class="fields">
+    <label class="raport-search-label">Cari / Scan NIS Santri *<div class="raport-search-row"><button class="primary raport-scan-btn" id="scanAlbab" type="button">▦ Scan</button><input id="albabNis" name="nis" required inputmode="numeric" placeholder="Masukkan NIS atau scan kartu…"><button class="secondary" id="findAlbab" type="button">Cari</button></div><small class="raport-hint">Gunakan QR kartu santri atau ketik NIS secara manual.</small></label>
+    <label>Nama Santri<input id="albabNama" name="nama" readonly placeholder="Terisi otomatis"></label>
+    <label>Kelas<input id="albabKelas" name="kelas" readonly placeholder="Terisi otomatis"></label>
+    <label>Periode Ujian *<input name="periodeUjian" required placeholder="Contoh: Ujian Semester Ganjil 2026/2027"></label>
+    <label>Nama Ustaz<input name="ustaz" placeholder="Nama penguji"></label>
+    <label>Nilai Ujian Tulis *<input id="nilaiTulis" name="nilaiTulis" type="number" min="0" max="100" step="0.01" inputmode="decimal" required placeholder="0–100"></label>
+    <label>Nilai Ujian Baca *<input id="nilaiBaca" name="nilaiBaca" type="number" min="0" max="100" step="0.01" inputmode="decimal" required placeholder="0–100"></label>
+    <label>Nilai Akhir (otomatis)<input id="nilaiAkhir" name="nilaiAkhir" readonly value="0"></label>
+    <label class="full">Catatan Ujian<textarea name="catatan" rows="2" placeholder="Catatan penguji (opsional)"></textarea></label>
+   </div>
+   <p class="raport-hint">Nilai akhir dihitung otomatis: (Nilai Tulis + Nilai Baca) ÷ 2.</p>
+   <div class="actions"><button type="reset" class="secondary">Kosongkan</button><button type="submit" class="primary">➤ Simpan Nilai Ujian Albab</button></div>
+  </form>
+ </div>
+ <div class="card table-wrap"><div class="table-toolbar"><div><h3>Riwayat Nilai Ujian Albab</h3><p>Riwayat ujian santri yang dipilih.</p></div></div><div class="table-scroll"><table><thead><tr><th>No</th><th>Periode Ujian</th><th>Nilai Tulis</th><th>Nilai Baca</th><th>Nilai Akhir</th><th>Ustaz</th></tr></thead><tbody id="albabHistory"><tr><td colspan="6" class="empty">Masukkan NIS untuk melihat riwayat.</td></tr></tbody></table></div></div>
 </section><footer>© Pondok Pesantren Fathul Huda Al-Qorrobiyah · Program Pesantren PPFHA</footer></main><div id="toast" role="status" aria-live="polite"></div><div id="adminKeyModal" class="qr-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminKeyTitle"><div class="qr-box admin-key-box"><div class="qr-head"><div><h3 id="adminKeyTitle">Verifikasi Pengurus</h3><p id="adminKeyDescription">Masukkan kunci pengurus untuk melanjutkan.</p></div></div><form id="adminKeyForm"><label>Kunci pengurus<input id="adminKeyInput" type="password" autocomplete="current-password" placeholder="Masukkan kunci pengurus" required></label><p class="key-note">Kunci disimpan hanya selama sesi browser ini.</p><div class="actions"><button type="button" class="secondary" id="cancelAdminKey">Batal</button><button type="submit" class="primary">Lanjutkan</button></div></form></div></div><div id="qrModal" class="qr-modal hidden" role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="qr-box"><div class="qr-head"><div><h3 id="qrTitle">Pindai QR Santri</h3><p>Arahkan kamera ke QR pada kartu santri.</p></div><button id="closeQr" class="secondary" type="button">Tutup</button></div><div id="qrReader"></div><p id="qrMessage" class="qr-message">Izinkan akses kamera jika diminta.</p></div></div><script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script><script src="app.js?v=pendidikan-scan-1"></script></body></html>
