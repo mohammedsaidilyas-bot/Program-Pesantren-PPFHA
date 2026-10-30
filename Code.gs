@@ -365,6 +365,8 @@ function recordAttendanceScan_(data) {
   // ditentukan sepenuhnya di server dari jadwal WIB, tidak menerima pilihan sesi manual.
   const requestedActivity = normalizeAttendanceActivity_(data.activity);
   if (!ATTENDANCE_ACTIVITY_NAMES[requestedActivity]) return {ok:false,error:'Portal kegiatan tidak valid.'};
+  const activitySchedules = attendanceScheduleRows_().filter(function(s){return s.activity===requestedActivity && s.days.indexOf(weekday)>=0;});
+  if (activitySchedules.some(function(s){return isAttendanceHoliday_(date,s.activity,s.session);})) return {ok:false,error:'Kegiatan hari ini diliburkan oleh pengurus. Absensi tidak dicatat.'};
   const allSchedules = attendanceScheduleRows_().filter(function(s) {
     if (s.activity !== requestedActivity) return false;
     if (isAttendanceHoliday_(date, s.activity, s.session)) return false;
