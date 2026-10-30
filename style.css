@@ -89,3 +89,5 @@ button.education-tile:hover{transform:translateY(-2px);border-color:#b8d8c5;box-
 .education-detail-head p{width:100%;margin:-8px 0 0 2px}
 .education-detail .card{margin-top:14px}
 @media(max-width:700px){.education-menu{grid-template-columns:1fr;gap:11px}.education-tile{min-height:94px;padding:15px}.education-tile-icon{width:46px;height:46px;flex-basis:46px}}
+
+.friday-auto-note{margin:12px 0 0;padding:12px 15px;border:1px solid #d7e9dd;border-radius:11px;background:#f0f7f2;color:#426451;font-size:12px;line-height:1.65}.friday-auto-note b{display:block;margin-bottom:3px;color:#24543d;font-size:12px}
