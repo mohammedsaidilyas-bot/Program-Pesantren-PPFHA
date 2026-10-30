@@ -166,7 +166,8 @@ function getAttendanceConfig_(jamaahSession) {
     headers.forEach(function(h,i){ if(h) item[h] = row[i]; });
     const activity = String(item.activity || '');
     if (!ATTENDANCE_ACTIVITY_NAMES[activity]) return;
-    const days = String(item.days || '').split(',').map(function(v){return Number(v);}).filter(function(v){return !isNaN(v);});
+    const rawDays = String(item.days || '').trim();
+    const days = /^(setiap hari|semua hari)$/i.test(rawDays) ? [0,1,2,3,4,5,6] : rawDays.split(',').map(function(v){return Number(v);}).filter(function(v){return !isNaN(v) && v>=0 && v<=6;});
     const config = {
       session: String(item.session || (activity === 'jamaah' ? 'Subuh' : 'Utama')),
       startTime: String(item.startTime || ''),
@@ -235,7 +236,8 @@ function attendanceScheduleRows_() {
   const h = rows[0].map(function(v){return String(v).trim();});
   return rows.slice(1).map(function(row) {
     const o={}; h.forEach(function(k,i){if(k)o[k]=row[i];});
-    o.days=String(o.days||'').split(',').map(Number).filter(function(v){return !isNaN(v);});
+    const rawDays=String(o.days||'').trim();
+    o.days=/^(setiap hari|semua hari)$/i.test(rawDays)?[0,1,2,3,4,5,6]:rawDays.split(',').map(Number).filter(function(v){return !isNaN(v)&&v>=0&&v<=6;});
     return o;
   }).filter(function(x){return ATTENDANCE_ACTIVITY_NAMES[x.activity] && x.startTime && x.endTime;});
 }
@@ -263,7 +265,12 @@ function processAttendanceDeadlines_(targetDate) {
   const nowTime = Utilities.formatDate(now, ATTENDANCE_TZ, 'HH:mm');
   if (date > today) return {ok:true,created:0};
   const weekday = new Date(date + 'T12:00:00+07:00').getDay();
-  const schedules = attendanceScheduleRows_().filter(function(s){return s.days.indexOf(weekday)>=0;});
+  const schedules = attendanceScheduleRows_().filter(function(s){
+    if (s.days.indexOf(weekday)<0) return false;
+    // Jumat: Ashar tidak menggunakan absensi jamaah.
+    if (weekday === 5 && s.activity === 'jamaah' && String(s.session) === 'Ashar') return false;
+    return true;
+  });
   const students = attendanceStudentRoster_();
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -307,6 +314,10 @@ function recordAttendanceScan_(data) {
   const date = Utilities.formatDate(now, ATTENDANCE_TZ, 'yyyy-MM-dd');
   const time = Utilities.formatDate(now, ATTENDANCE_TZ, 'HH:mm');
   const weekday = new Date(date + 'T12:00:00+07:00').getDay();
+  // Jumat: Dzuhur dipakai untuk Sholat Jumat (cukup satu scan, saat berangkat ATAU kembali).
+  // Jumat: Ashar tidak dicatat sebagai absensi jamaah.
+  if (weekday === 5 && activity === 'jamaah' && session === 'Ashar')
+    return {ok:false,error:'Absensi jamaah Ashar ditiadakan khusus hari Jumat.'};
   const schedules = attendanceScheduleRows_();
   const schedule = schedules.find(function(s){return s.activity===activity && String(s.session)===session;});
   if (!schedule) return {ok:false,error:'Jadwal '+ATTENDANCE_ACTIVITY_NAMES[activity]+' sesi '+session+' belum diatur.'};
