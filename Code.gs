@@ -265,7 +265,7 @@ function attendanceExistingKeys_(sh, date) {
   if (sh.getLastRow() < 2) return set;
   const rows = sh.getDataRange().getDisplayValues();
   for (let i=1;i<rows.length;i++) {
-    if (String(rows[i][0]) === date) set[[rows[i][0],rows[i][1],rows[i][2],rows[i][3]].join('|')] = true;
+    if (String(rows[i][0]) === date) set[[rows[i][0],rows[i][1],rows[i][2],rows[i][3]].join('|')] = {date:String(rows[i][0]),activity:String(rows[i][1]),session:String(rows[i][2]),nis:String(rows[i][3]),nama:String(rows[i][4]),status:String(rows[i][5]),time:String(rows[i][6]||'').slice(0,5)};
   }
   return set;
 }
@@ -363,7 +363,7 @@ function recordAttendanceScan_(data) {
     const sh = ensureAttendanceSheets_().getSheetByName('Absensi');
     const key=[date,activity,session,nis].join('|');
     const existing=attendanceExistingKeys_(sh,date);
-    if (existing[key]) return {ok:false,error:'Santri ini sudah tercatat pada sesi '+session+' hari ini.'};
+    if (existing[key]) return {ok:true,duplicate:true,data:existing[key],message:'Santri sudah tercatat pada sesi '+session+' hari ini.'};
     sh.appendRow([date,activity,session,nis,student.nama,status,time,new Date(),'Scan QR KTS']);
     return {ok:true,data:{nis:nis,nama:student.nama,status:status,time:time,activity:activity,session:session}};
   } finally { lock.releaseLock(); }
