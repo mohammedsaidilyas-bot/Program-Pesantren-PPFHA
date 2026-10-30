@@ -308,12 +308,33 @@ function attendanceDateString_(date) {
   return Utilities.formatDate(new Date(date), ATTENDANCE_TZ, 'yyyy-MM-dd');
 }
 
+function attendanceCellDate_(value) {
+  if (value instanceof Date && !isNaN(value.getTime()))
+    return Utilities.formatDate(value, ATTENDANCE_TZ, 'yyyy-MM-dd');
+  const text = String(value == null ? '' : value).trim();
+  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) return text;
+  let m = text.match(/^(\\d{1,2})[\\/.-](\\d{1,2})[\\/.-](\\d{4})$/);
+  if (m) return m[3] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[1]).padStart(2,'0');
+  const parsed = new Date(value);
+  return value && !isNaN(parsed.getTime()) ? Utilities.formatDate(parsed, ATTENDANCE_TZ, 'yyyy-MM-dd') : text;
+}
+function attendanceCellTime_(value) {
+  if (value instanceof Date && !isNaN(value.getTime()))
+    return Utilities.formatDate(value, ATTENDANCE_TZ, 'HH:mm');
+  const text = String(value == null ? '' : value).trim();
+  const match = text.match(/(\\d{1,2}):(\\d{2})/);
+  return match ? String(match[1]).padStart(2,'0') + ':' + match[2] : text;
+}
 function attendanceExistingKeys_(sh, date) {
   const set = {};
   if (sh.getLastRow() < 2) return set;
-  const rows = sh.getDataRange().getDisplayValues();
+  const rows = sh.getDataRange().getValues();
   for (let i=1;i<rows.length;i++) {
-    if (String(rows[i][0]) === date) set[[rows[i][0],rows[i][1],rows[i][2],rows[i][3]].join('|')] = {date:String(rows[i][0]),activity:String(rows[i][1]),session:String(rows[i][2]),nis:String(rows[i][3]),nama:String(rows[i][4]),status:String(rows[i][5]),time:String(rows[i][6]||'').slice(0,5)};
+    const rowDate = attendanceCellDate_(rows[i][0]);
+    if (rowDate === date) {
+      const activity=String(rows[i][1]||''), session=String(rows[i][2]||''), nis=String(rows[i][3]||'');
+      set[[date,activity,session,nis].join('|')] = {date:date,activity:activity,session:session,nis:nis,nama:String(rows[i][4]||''),status:String(rows[i][5]||''),time:attendanceCellTime_(rows[i][6])};
+    }
   }
   return set;
 }
@@ -429,14 +450,26 @@ function getAttendanceRecords_(date, activity) {
   const safeDate = attendanceDateString_(date);
   const process = processAttendanceDeadlines_(safeDate);
   const sh = ensureAttendanceSheets_().getSheetByName('Absensi');
-  const rows = sh.getLastRow() < 2 ? [] : sh.getDataRange().getDisplayValues().slice(1);
-  const data = rows.filter(function(row) {
-    return String(row[0]) === safeDate && (activity === 'all' || !activity || String(row[1]) === activity);
-  }).map(function(row) {
-    return {date:row[0],activity:row[1],session:row[2],nis:row[3],nama:row[4],status:row[5],time:row[6] ? String(row[6]).slice(0,5) : '',source:row[8]};
+  // Gunakan nilai asli sel, bukan displayValues: format tampilan tanggal di
+  // Google Sheets bisa berbeda (yyyy-MM-dd, dd/MM/yyyy, atau objek Date).
+  const rows = sh.getLastRow() < 2 ? [] : sh.getDataRange().getValues().slice(1);
+  const wantedActivity = String(activity || 'all').trim().toLowerCase();
+  const data = rows.map(function(row) {
+    return {
+      date:attendanceCellDate_(row[0]),
+      activity:String(row[1]||'').trim(),
+      session:String(row[2]||'').trim(),
+      nis:String(row[3]||'').trim(),
+      nama:String(row[4]||'').trim(),
+      status:String(row[5]||'').trim(),
+      time:attendanceCellTime_(row[6]),
+      source:String(row[8]||'')
+    };
+  }).filter(function(row) {
+    return row.date === safeDate && (wantedActivity === 'all' || !wantedActivity || row.activity.toLowerCase() === wantedActivity);
   }).sort(function(a,b){return String(b.time).localeCompare(String(a.time)) || a.nama.localeCompare(b.nama);});
   const summary={hadir:0,terlambat:0,tidakHadir:0};
-  data.forEach(function(x){if(x.status==='Hadir')summary.hadir++;else if(x.status==='Terlambat')summary.terlambat++;else if(x.status==='Tidak Hadir')summary.tidakHadir++;});
+  data.forEach(function(x){if(x.status.toLowerCase()==='hadir')summary.hadir++;else if(x.status.toLowerCase()==='terlambat')summary.terlambat++;else if(x.status.toLowerCase()==='tidak hadir')summary.tidakHadir++;});
   return {ok:true,data:data,summary:summary,generated:process.created||0};
 }
 
