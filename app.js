@@ -392,6 +392,8 @@ async function lookupHafalanStudent(){
   if(btn){btn.disabled=false;btn.textContent='Cari'}
  }
 }
+window.lookupHafalanStudent=lookupHafalanStudent;
+
 async function loadHafalanHistory(nis){
  const body=$('#hafalanHistory');if(!body)return;
  if(!adminKey){adminKey=await requestAdminKey('Lihat riwayat hafalan kitab dan nadzom');if(!adminKey){body.innerHTML='<tr><td colspan="9" class="empty">Masukkan kunci pengurus untuk melihat riwayat.</td></tr>';return}adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey)}
