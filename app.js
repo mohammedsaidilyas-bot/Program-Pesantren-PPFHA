@@ -62,8 +62,8 @@ async function handleQrDecoded(decoded){
  try{const obj=JSON.parse(raw);value=obj.nis||obj.NIS||obj.nomorInduk||obj.nomor_induk||obj.id||obj.value||raw}catch(e){}
  const payload=String(value||raw).trim();
  // Kartu KTS memakai format seperti PPFHA|KTS|NIS:20260001; ambil angka setelah label NIS.
- const labeled=payload.match(/(?:^|[|;,:\\s])NIS\\s*[:=：-]\\s*([0-9]+)/i);
- const nis=labeled?labeled[1]:(payload.match(/\\d+/g)||[]).join('');
+ const labeled=payload.match(/(?:^|[|;,: \s])NIS\s*[:=：-]\s*([0-9]+)/i);
+ const nis=labeled?labeled[1]:(payload.match(/\d+/g)||[]).join('');
  if(!nis){$('#qrMessage').textContent='QR terbaca, tetapi isi QR tidak memuat NIS.';return}
  qrLocked=true;$('#qrMessage').textContent='QR terbaca. Memuat biodata santri…';
  if(qrTarget==='attendance'){if(!currentAttendanceActivity){await closeQr();toast('Pilih kegiatan terlebih dahulu.');return}await closeQr();await recordAttendanceScan(nis);return}
