@@ -369,7 +369,8 @@ async function lookupHafalanStudent(){
  if(!nis){toast('Masukkan NIS santri yang benar.');input.focus();return}
  input.value=nis;
  const token=++hafalanLookupToken;
- nama.value='';kelas.value='';nama.placeholder='Sedang mencari biodata…';
+ nama.value='';kelas.value='';nama.placeholder='Memeriksa data santri…';kelas.placeholder='Memeriksa data santri…';
+ toast('Memeriksa data santri…');
  const btn=$('#findHafalan');if(btn){btn.disabled=true;btn.textContent='Mencari…'}
  try{
   const url=API_URL+'?action=student&nis='+encodeURIComponent(nis)+'&_='+Date.now();
@@ -381,12 +382,12 @@ async function lookupHafalanStudent(){
   if(!j.data.nama)throw new Error('NIS ditemukan, tetapi nama santri kosong pada database.');
   input.value=String(j.data.nis||nis).replace(/\D/g,'');
   nama.value=j.data.nama||'';kelas.value=j.data.kelas||'';
-  nama.placeholder='Terisi otomatis';
-  toast('Biodata ditemukan: '+j.data.nama);
+  nama.placeholder='Terisi otomatis';kelas.placeholder='Terisi otomatis';
+ toast('Biodata ditemukan: '+j.data.nama);
   loadHafalanHistory(nis).catch(()=>{});
  }catch(err){
   if(token!==hafalanLookupToken)return;
-  nama.value='';kelas.value='';nama.placeholder='Terisi otomatis';
+  nama.value='';kelas.value='';nama.placeholder='Terisi otomatis';kelas.placeholder='Terisi otomatis';
   toast('Pencarian gagal: '+(err.message||'Periksa koneksi dan database.'));
  }finally{
   if(btn){btn.disabled=false;btn.textContent='Cari'}
