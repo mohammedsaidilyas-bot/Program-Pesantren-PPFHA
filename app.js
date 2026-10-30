@@ -112,21 +112,14 @@ function loadScheduleForm(){const a=$('#scheduleActivity').value,session=$('#sch
 $('#scheduleActivity').addEventListener('change',()=>{$('#scheduleSession').value=$('#scheduleActivity').value==='jamaah'?'Subuh':'Utama';loadAttendanceConfig()});$('#scheduleSession').addEventListener('change',()=>{if($('#scheduleActivity').value==='jamaah'){loadScheduleForm();updateAttendancePortalSession()}});
 $('#loadSchedule').onclick=loadAttendanceConfig;
 $('#toggleAttendanceHoliday').onclick=async()=>{const a=$('#scheduleActivity').value,session=$('#scheduleSession').value,cfg=attendanceConfig[a]||{},s=a==='jamaah'?(cfg[session]||{}):cfg;if(!s.startTime||!s.endTime){toast('Jadwal belum tersimpan. Libur belum dapat diatur.');return}const next=!s.holidayToday;if(!await askConfirmation(next?'Liburkan Kegiatan Hari Ini?':'Batalkan Libur Kegiatan?',next?'Kegiatan '+ATTENDANCE_ACTIVITIES[a]+' akan dinonaktifkan untuk hari ini. Scan ditolak dan santri tidak dihitung Tidak Hadir.':'Kegiatan '+ATTENDANCE_ACTIVITIES[a]+' akan diaktifkan kembali untuk hari ini.',next?'Ya, Liburkan':'Ya, Aktifkan'))return;const j=await attendancePayload('toggleAttendanceHoliday',{data:{date:todayLocal(),activity:a,session:session||'Utama',isHoliday:next}});if(!j.ok){toast(j.error||'Status libur gagal disimpan.');return}await loadAttendanceConfig();toast(j.message||'Status kegiatan diperbarui.');};
-$$('.attendance-open').forEach(button=>button.onclick=async()=>{
+$('.attendance-open').forEach(button=>button.onclick=()=>{
   const requestedActivity=button.dataset.activity;
-  $('#attendanceSessionMessage').textContent='Mencari jadwal kegiatan berdasarkan WIB…';
-  await loadAttendanceConfig();
+  // Buka portal lebih dahulu agar tidak menunggu enam permintaan jadwal.
   let selected=findActiveAttendanceScheduleForActivity(requestedActivity);
-  // Ngaji Kitab Pagi masih dalam MODE UJI COBA: portal tetap bisa dibuka
-  // di luar jam/hari jadwal agar petugas dapat menguji scan QR kapan saja.
-  if(!selected&&requestedActivity==='kitab-pagi'){
-    const testSchedule=attendanceConfig['kitab-pagi']||{};
-    selected={activity:'kitab-pagi',session:'Utama',...testSchedule};
-  }
-  if(!selected){toast('Belum ada jadwal untuk kegiatan ini hari ini. Periksa pengaturan jadwal.');return}
-  currentAttendanceActivity=selected.activity;
-  $('#scheduleActivity').value=selected.activity;
-  $('#scheduleSession').value=selected.session;
+  if(!selected) selected={activity:requestedActivity,session:requestedActivity==='jamaah'?'Subuh':'Utama',...(attendanceConfig[requestedActivity]||{})};
+  currentAttendanceActivity=requestedActivity;
+  $('#scheduleActivity').value=requestedActivity;
+  $('#scheduleSession').value=selected.session||'Utama';
   $('#attendancePortalList').classList.add('hidden');
   $('#attendanceWorkspace').classList.remove('hidden');
   $('#attendanceScannerPanel').classList.remove('hidden');
@@ -135,14 +128,30 @@ $$('.attendance-open').forEach(button=>button.onclick=async()=>{
   $('#scheduleSession').disabled=true;
   loadScheduleForm();
   updateAttendancePortalSession();
-  $('#attendanceScannerTitle').textContent='Portal Absensi Otomatis · '+ATTENDANCE_ACTIVITIES[selected.activity]+(selected.activity==='jamaah'?' · '+(selected.session==='Jumat'?'Sholat Jumat':selected.session):'');
-  $('#attendanceScannerHint').textContent='Sesi dikunci otomatis dari jadwal WIB. Petugas cukup scan QR KTS; tidak dapat mengganti kegiatan atau nama sholat.';
+  $('#attendanceScannerTitle').textContent='Portal Absensi Otomatis · '+ATTENDANCE_ACTIVITIES[requestedActivity]+(requestedActivity==='jamaah'?' · '+(selected.session==='Jumat'?'Sholat Jumat':selected.session):'');
+  $('#attendanceScannerHint').textContent='Memuat jadwal… Portal sudah siap. Petugas dapat menyiapkan barcode KTS.';
   refreshAttendanceScanGate();
   $('#attendanceScannerPanel').scrollIntoView({behavior:'smooth',block:'start'});
-  loadAttendanceRecords();
+  // Jangan tampilkan dialog kunci saat membuka portal; rekap dimuat bila kunci sudah tersimpan.
+  if(adminKey) loadAttendanceRecords();
+  loadAttendanceConfig().then(()=>{
+    const latest=findActiveAttendanceScheduleForActivity(requestedActivity);
+    const chosen=latest||(requestedActivity==='kitab-pagi'?{activity:'kitab-pagi',session:'Utama',...(attendanceConfig['kitab-pagi']||{})}:null);
+    if(chosen){
+      $('#scheduleSession').value=chosen.session||'Utama';
+      loadScheduleForm();
+      updateAttendancePortalSession();
+      $('#attendanceScannerHint').textContent='Jadwal WIB berhasil dimuat. Petugas cukup scan QR KTS; kegiatan ditentukan otomatis.';
+    }else{
+      const label=ATTENDANCE_ACTIVITIES[requestedActivity]||'Kegiatan';
+      $('#attendanceScannerHint').textContent='Portal '+label+' sudah terbuka, tetapi jadwal kegiatan belum tersimpan. Simpan jadwal resmi terlebih dahulu sebelum scan.';
+      toast('Jadwal '+label+' belum tersedia. Portal tetap dapat dibuka.');
+    }
+    if(adminKey) loadAttendanceRecords();
+  });
 });
 $('#closeAttendancePanel').onclick=()=>{$('#attendanceWorkspace').classList.add('hidden');$('#attendanceScannerPanel').classList.add('hidden');$('#attendancePortalList').classList.remove('hidden');$('#attendanceSettingsPanel').classList.add('hidden');$('#scheduleActivity').disabled=false;$('#scheduleSession').disabled=false;currentAttendanceActivity=''};
-async function recordAttendanceScan(nis){if(attendanceScanBusy)return;if(!currentAttendanceActivity){toast('Portal scan otomatis belum dibuka.');return}attendanceScanBusy=true;try{const j=await attendancePayload('attendanceScan',{data:{nis,activity:currentAttendanceActivity,testMode:currentAttendanceActivity==='kitab-pagi',scannedAt:new Date().toISOString()}});if(!j.ok)throw new Error(j.error||'Scan belum tercatat');const d=j.data||{};const activity=ATTENDANCE_ACTIVITIES[d.activity]||'Kegiatan';const session=d.session?(d.session==='Jumat'?'Sholat Jumat':d.session):'';const duplicate=!!j.duplicate;const title=duplicate?'Sudah tercatat sebelumnya':'Berhasil dicatat';const color=duplicate?'#a16207':'#176b50';$('#attendanceLastScan').innerHTML='<div class="last-scan-success"><b style="font-size:16px;color:'+color+'">'+title+'</b><br><b style="font-size:20px;color:#176b50">'+esc(d.nama||'Nama santri tidak terbaca')+'</b><br><span>NIS '+esc(d.nis||nis)+'</span><br><span>'+esc(activity)+(session?' · '+esc(session):'')+'</span><br><span>Waktu '+(duplicate?'tercatat':'scan')+': '+esc(d.time||new Date().toLocaleTimeString('id-ID'))+'</span><br><span class="status-pill '+(d.status==='Terlambat'?'status-pending':d.status==='Tidak Hadir'?'status-rejected':'status-done')+'">'+esc(d.status||'Hadir')+'</span></div>';const label=session?' · '+session:'';$('#attendanceScannerTitle').textContent='Portal '+activity+label;$('#attendanceSessionMessage').textContent='Data absensi '+todayLocal()+' · '+activity+label;toast(duplicate?(d.nama||'Santri')+' sudah tercatat pada sesi '+(session||'ini')+'.':(d.nama||'Santri')+' berhasil tercatat '+(d.status||'Hadir')+'.');await loadAttendanceRecords()}catch(e){$('#attendanceLastScan').innerHTML='<div class="last-scan-error"><b style="color:#b45309">Scan belum tercatat</b><br>'+esc(e.message||'Periksa QR dan koneksi database.')+'</div>';toast('Absensi belum tersimpan: '+e.message)}finally{attendanceScanBusy=false}}
+async function recordAttendanceScan(nis){if(attendanceScanBusy)return;if(!currentAttendanceActivity){toast('Portal scan otomatis belum dibuka.');return}attendanceScanBusy=true;try{const j=await attendancePayload('attendanceScan',{data:{nis,activity:currentAttendanceActivity,testMode:currentAttendanceActivity==='kitab-pagi',scannedAt:new Date().toISOString()}});if(!j.ok)throw new Error(j.error||'Scan belum tercatat');const d=j.data||{};const activity=ATTENDANCE_ACTIVITIES[d.activity]||'Kegiatan';const session=d.session?(d.session==='Jumat'?'Sholat Jumat':d.session):'';const duplicate=!!j.duplicate;const title=duplicate?'Sudah tercatat sebelumnya':'Berhasil dicatat';const color=duplicate?'#a16207':'#176b50';$('#attendanceLastScan').innerHTML='<div class="last-scan-success"><b style="font-size:16px;color:'+color+'">'+title+'</b><br><b style="font-size:20px;color:#176b50">'+esc(d.nama||'Nama santri tidak terbaca')+'</b><br><span>NIS '+esc(d.nis||nis)+'</span><br><span>'+esc(activity)+(session?' · '+esc(session):'')+'</span><br><span>Waktu '+(duplicate?'tercatat':'scan')+': '+esc(d.time||new Date().toLocaleTimeString('id-ID'))+'</span><br><span class="status-pill '+(d.status==='Terlambat'?'status-pending':d.status==='Tidak Hadir'?'status-rejected':'status-done')+'">'+esc(d.status||'Hadir')+'</span></div>';const label=session?' · '+session:'';$('#attendanceScannerTitle').textContent='Portal '+activity+label;$('#attendanceSessionMessage').textContent='Data absensi '+todayLocal()+' · '+activity+label;toast(duplicate?(d.nama||'Santri')+' sudah tercatat pada sesi '+(session||'ini')+'.':(d.nama||'Santri')+' berhasil tercatat '+(d.status||'Hadir')+'.');const countId=d.status==='Terlambat'?'countTerlambat':d.status==='Tidak Hadir'?'countTidakHadir':'countHadir';const countEl=$('#'+countId);if(countEl&&!duplicate)countEl.textContent=String((Number(countEl.textContent)||0)+1);if(adminKey)loadAttendanceRecords()}catch(e){$('#attendanceLastScan').innerHTML='<div class="last-scan-error"><b style="color:#b45309">Scan belum tercatat</b><br>'+esc(e.message||'Periksa QR dan koneksi database.')+'</div>';toast('Absensi belum tersimpan: '+e.message)}finally{attendanceScanBusy=false}}
 $('#startAttendanceScan').onclick=async()=>{if(!currentAttendanceActivity){toast('Pilih folder kegiatan terlebih dahulu.');return}if(!adminKey){adminKey=await requestAdminKey('Mulai absensi '+ATTENDANCE_ACTIVITIES[currentAttendanceActivity]);if(!adminKey)return;adminKey=adminKey.trim();if(!adminKey)return;sessionStorage.setItem('ppfha_admin_key',adminKey)}openQr('attendance')};
 async function loadAttendanceRecords(){if(!adminKey){adminKey=await requestAdminKey('Lihat rekap kehadiran santri');if(!adminKey)return;adminKey=adminKey.trim();if(!adminKey)return;sessionStorage.setItem('ppfha_admin_key',adminKey)}const date=$('#attendanceDate').value||todayLocal(),activity=$('#attendanceFilter').value==='all'?currentAttendanceActivity:$('#attendanceFilter').value;try{const j=await attendancePayload('attendanceRecords',{date,activity:activity||'all'});if(!j.ok)throw new Error(j.error||'Rekap belum tersedia');const rows=Array.isArray(j.data)?j.data:[];$('#attendanceRows').innerHTML=rows.length?rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.time||'—')+'</td><td>'+esc(x.nis||'—')+'</td><td><b>'+esc(x.nama||'—')+'</b></td><td>'+esc(ATTENDANCE_ACTIVITIES[x.activity]||x.activity||'—')+(x.session?' · '+esc(x.session):'')+'</td><td><span class="status-pill '+(x.status==='Hadir'?'status-done':x.status==='Terlambat'?'status-pending':'status-rejected')+'">'+esc(x.status||'—')+'</span></td></tr>').join(''):'<tr><td colspan="6" class="empty">Belum ada catatan untuk tanggal ini.</td></tr>';const c=j.summary||{};$('#countHadir').textContent=c.hadir||0;$('#countTerlambat').textContent=c.terlambat||0;$('#countTidakHadir').textContent=c.tidakHadir||0;$('#attendanceSessionMessage').textContent='Data absensi '+date+' · '+(ATTENDANCE_ACTIVITIES[activity]||'Semua kegiatan')+(activity==='jamaah'?' · '+($('#scheduleSession').value==='Jumat'?'Sholat Jumat':$('#scheduleSession').value):'')}catch(e){$('#attendanceRows').innerHTML='<tr><td colspan="6" class="empty">Backend absensi belum tersambung. Data belum dapat ditampilkan.</td></tr>';$('#attendanceSessionMessage').textContent='Layanan penyimpanan absensi belum terhubung.'}}
 $('#refreshAttendance').onclick=loadAttendanceConfig;$('#loadAttendanceRecords').onclick=loadAttendanceRecords;
