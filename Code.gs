@@ -339,11 +339,15 @@ function getAttendanceConfig_(jamaahSession) {
   });
   // Sesi khusus Jumat otomatis tersedia dari kalender WIB meskipun belum ada baris
   // tersendiri di sheet. Rentang absensi Sholat Jumat: 10.30–13.00.
-  if (String(jamaahSession || '').trim().toLowerCase() === 'jumat' && !result.jamaah.startTime) {
-    result.jamaah = {
-      session:'Jumat', startTime:'10:30', onTimeUntil:'13:00', endTime:'13:00',
-      days:[5], holidayToday:isAttendanceHoliday_(Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd'), 'jamaah', 'Jumat')
-    };
+  const requestedSession = String(jamaahSession || '').trim().toLowerCase();
+  const fridayConfig = {
+    session:'Jumat', startTime:'10:30', onTimeUntil:'13:00', endTime:'13:00',
+    days:[5], holidayToday:isAttendanceHoliday_(Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd'), 'jamaah', 'Jumat')
+  };
+  if (requestedSession === 'all' && !result.jamaah.Jumat) {
+    result.jamaah.Jumat = fridayConfig;
+  } else if (requestedSession === 'jumat' && !result.jamaah.startTime) {
+    result.jamaah = fridayConfig;
   }
   return {ok:true,data:result};
 }
