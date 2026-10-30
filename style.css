@@ -72,3 +72,20 @@
 .raport-scan-btn{background:#176b50;color:#fff;border:1px solid #176b50}
 .raport-hint{display:block;margin-top:7px;color:#74847b;font-size:12px;font-weight:400}
 @media(max-width:560px){.raport-search-row{flex-wrap:wrap}.raport-scan-btn{min-width:88px}.raport-search-row input{flex:1 1 180px}.raport-search-row #findRaport{min-width:68px}}
+
+/* Menu Pendidikan Santri berbentuk kartu */
+.education-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px}
+.education-tile{display:flex;align-items:center;gap:15px;width:100%;min-height:112px;padding:20px;background:#fff;border:1px solid var(--line);border-radius:16px;text-align:left;color:var(--ink);cursor:pointer;box-shadow:0 5px 18px #173f3008;transition:transform .18s,border-color .18s,box-shadow .18s}
+button.education-tile:hover{transform:translateY(-2px);border-color:#b8d8c5;box-shadow:0 10px 24px #173f3012}
+.education-tile-icon{width:52px;height:52px;flex:0 0 52px;border-radius:15px;background:#e8f5ed;display:grid;place-items:center;font-size:27px}
+.education-tile b,.education-tile small{display:block}
+.education-tile b{font:700 15px Manrope;line-height:1.35}
+.education-tile small{font-size:12px;color:var(--muted);line-height:1.5;margin-top:5px}
+.tile-arrow{margin-left:auto;font-size:30px;color:#6c9b80}
+.education-tile-soon{cursor:default;background:#f9fbf9}
+.tile-soon{margin-left:auto;padding:6px 9px;border-radius:20px;background:#edf2ef;color:#718077;font-size:10px;font-weight:700;white-space:nowrap}
+.education-detail-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin:0 0 14px}
+.education-detail-head h2{width:100%;margin:2px 0 0}
+.education-detail-head p{width:100%;margin:-8px 0 0 2px}
+.education-detail .card{margin-top:14px}
+@media(max-width:700px){.education-menu{grid-template-columns:1fr;gap:11px}.education-tile{min-height:94px;padding:15px}.education-tile-icon{width:46px;height:46px;flex-basis:46px}}
