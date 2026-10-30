@@ -339,7 +339,7 @@ function getAttendanceConfig_(jamaahSession) {
   });
   // Sesi khusus Jumat otomatis tersedia dari kalender WIB meskipun belum ada baris
   // tersendiri di sheet. Rentang absensi Sholat Jumat: 10.30–13.00.
-  if (String(jamaahSession || '').trim().toLowerCase() === 'jumat' && !result.jamaah) {
+  if (String(jamaahSession || '').trim().toLowerCase() === 'jumat' && !result.jamaah.startTime) {
     result.jamaah = {
       session:'Jumat', startTime:'10:30', onTimeUntil:'13:00', endTime:'13:00',
       days:[5], holidayToday:isAttendanceHoliday_(Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd'), 'jamaah', 'Jumat')
@@ -401,7 +401,7 @@ function attendanceScheduleRows_() {
   if (sh.getLastRow() < 2) return [];
   const rows = sh.getDataRange().getDisplayValues();
   const h = rows[0].map(function(v){return String(v).trim();});
-  return rows.slice(1).map(function(row) {
+  const scheduleRows = rows.slice(1).map(function(row) {
     const o={}; h.forEach(function(k,i){if(k)o[k]=row[i];});
     o.activity = normalizeAttendanceActivity_(o.activity);
     o.session = String(o.session || 'Utama').trim();
@@ -415,9 +415,9 @@ function attendanceScheduleRows_() {
     return o;
   }).filter(function(x){return ATTENDANCE_ACTIVITY_NAMES[x.activity] && x.startTime && x.endTime;});
   // Tambahkan sesi Jumat otomatis bila belum ada baris manual di JadwalAbsensi.
-  const hasFriday = rows.some(function(s){return s.activity === 'jamaah' && String(s.session).toLowerCase() === 'jumat';});
-  if (!hasFriday) rows.push({activity:'jamaah',session:'Jumat',startTime:'10:30',onTimeUntil:'13:00',endTime:'13:00',days:[5]});
-  return rows;
+  const hasFriday = scheduleRows.some(function(s){return s.activity === 'jamaah' && String(s.session).toLowerCase() === 'jumat';});
+  if (!hasFriday) scheduleRows.push({activity:'jamaah',session:'Jumat',startTime:'10:30',onTimeUntil:'13:00',endTime:'13:00',days:[5]});
+  return scheduleRows;
 }
 
 function isAttendanceHoliday_(date, activity, session) {
