@@ -304,7 +304,7 @@ function ensureAttendanceSheets_() {
   return ss;
 }
 
-function getAttendanceConfig_(jamaahSession) {
+function normalizeAttendanceTime_(value) { var raw=String(value==null?'':value).trim(); var m=raw.match(/^(\\d{1,2})[:.](\\d{2})(?::\\d{2})?$/); if(m) return ('0'+m[1]).slice(-2)+':'+m[2]; if(/^\\d+(?:\\.\\d+)?$/.test(raw)){var n=Number(raw);if(n>=0&&n<1){var mins=Math.round(n*1440);return ('0'+Math.floor(mins/60)%24).slice(-2)+':'+('0'+mins%60).slice(-2);}} return raw; }\n\nfunction getAttendanceConfig_(jamaahSession) {
   const ss = ensureAttendanceSheets_();
   const sh = ss.getSheetByName('JadwalAbsensi');
   const rows = sh.getDataRange().getDisplayValues();
@@ -324,9 +324,9 @@ function getAttendanceConfig_(jamaahSession) {
     const sessionName = String(item.session || (activity === 'jamaah' ? 'Subuh' : 'Utama')).trim();
     const config = {
       session: sessionName,
-      startTime: String(item.startTime || '').trim(),
-      onTimeUntil: String(item.onTimeUntil || '').trim(),
-      endTime: String(item.endTime || '').trim(),
+      startTime: normalizeAttendanceTime_(item.startTime),
+      onTimeUntil: normalizeAttendanceTime_(item.onTimeUntil),
+      endTime: normalizeAttendanceTime_(item.endTime),
       days: days,
       holidayToday: isAttendanceHoliday_(Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd'), activity, sessionName)
     };
@@ -409,9 +409,9 @@ function attendanceScheduleRows_() {
     const o={}; h.forEach(function(k,i){if(k)o[k]=row[i];});
     o.activity = normalizeAttendanceActivity_(o.activity);
     o.session = String(o.session || 'Utama').trim();
-    o.startTime = String(o.startTime || '').trim();
-    o.onTimeUntil = String(o.onTimeUntil || '').trim();
-    o.endTime = String(o.endTime || '').trim();
+    o.startTime = normalizeAttendanceTime_(o.startTime);
+    o.onTimeUntil = normalizeAttendanceTime_(o.onTimeUntil);
+    o.endTime = normalizeAttendanceTime_(o.endTime);
     const rawDays=String(o.days||'').trim();
     o.days = o.activity === 'jamaah'
       ? (o.session.toLowerCase() === 'jumat' ? [5] : (['dzuhur','ashar'].includes(o.session.toLowerCase()) ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
