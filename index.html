@@ -2,7 +2,11 @@
  <div class="head"><div><h2>Kegiatan & Kehadiran Santri</h2><p>Absensi menggunakan barcode KTS yang berisi NIS santri.</p></div><button class="secondary" id="refreshAttendance" type="button">↻ Muat ulang</button></div>
  <div class="attendance-note"><b>Satu barcode untuk semua kegiatan.</b> Petugas cukup memindai QR pada Kartu Tanda Santri. Nama, NIS, dan waktu scan akan dicatat otomatis.</div>
  <div class="attendance-grid" id="attendancePortalList">
-  <article class="attendance-card"><div class="activity-icon">▦</div><h3>Absensi Otomatis</h3><p>Sistem menentukan kegiatan dan sesi sholat berdasarkan jadwal WIB yang sedang berlangsung. Petugas cukup memindai QR KTS.</p><button class="primary" id="openAutoAttendance">Buka Portal Scan Otomatis →</button><small class="activity-status">Kegiatan dan nama sholat dikunci otomatis oleh sistem.</small></article>
+  <article class="attendance-card"><div class="activity-icon">☪</div><h3>Sholat Berjamaah</h3><p>Absensi Subuh, Dzuhur, Ashar, Maghrib, Isya, dan Sholat Jumat mengikuti jadwal WIB secara otomatis.</p><button class="primary attendance-open" data-activity="jamaah">Buka Portal Sholat →</button><small class="activity-status">Nama sholat dikunci otomatis sesuai jadwal.</small></article>
+  <article class="attendance-card"><div class="activity-icon">📖</div><h3>Ngaji Kitab Pagi</h3><p>Catat kehadiran santri pada kegiatan pengajian kitab pagi.</p><button class="primary attendance-open" data-activity="kitab-pagi">Buka Portal Ngaji Kitab →</button></article>
+  <article class="attendance-card"><div class="activity-icon">✦</div><h3>Ngaji Kitab Metode Albab</h3><p>Catat kehadiran santri pada program unggulan metode Albab.</p><button class="primary attendance-open" data-activity="albab">Buka Portal Albab →</button></article>
+  <article class="attendance-card"><div class="activity-icon">۞</div><h3>Ngaji Al-Qur'an</h3><p>Catat kehadiran santri pada kegiatan membaca dan mengaji Al-Qur'an.</p><button class="primary attendance-open" data-activity="alquran">Buka Portal Al-Qur'an →</button></article>
+  <article class="attendance-card"><div class="activity-icon">✎</div><h3>Madrasiyah</h3><p>Catat kehadiran santri pada kegiatan madrasah.</p><button class="primary attendance-open" data-activity="madrasiyah">Buka Portal Madrasiyah →</button></article>
  </div>
  <div id="attendanceWorkspace" class="attendance-workspace hidden">
   <div class="attendance-workspace-inner">
