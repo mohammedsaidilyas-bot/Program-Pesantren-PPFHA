@@ -435,7 +435,7 @@ function recordAttendanceScan_(data) {
   // ditentukan sepenuhnya di server dari jadwal WIB, tidak menerima pilihan sesi manual.
   const requestedActivity = normalizeAttendanceActivity_(data.activity);
   if (!ATTENDANCE_ACTIVITY_NAMES[requestedActivity]) return {ok:false,error:'Portal kegiatan tidak valid.'};
-  const testMode = data.testMode === true && (requestedActivity === 'kitab-pagi' || requestedActivity === 'madrasiyah');
+  const testMode = data.testMode === true && requestedActivity === 'madrasiyah';
   const activitySchedules = attendanceScheduleRows_().filter(function(s){return s.activity===requestedActivity && s.days.indexOf(weekday)>=0;});
   if (!testMode && activitySchedules.some(function(s){return isAttendanceHoliday_(date,s.activity,s.session);})) return {ok:false,error:'Kegiatan hari ini diliburkan oleh pengurus. Absensi tidak dicatat.'};
   const allSchedules = attendanceScheduleRows_().filter(function(s) {
@@ -450,7 +450,7 @@ function recordAttendanceScan_(data) {
   const nextSchedules = allSchedules.filter(function(s){return String(s.startTime) > time;})
     .sort(function(a,b){return String(a.startTime).localeCompare(String(b.startTime));});
   let schedule = activeSchedules[0] || null;
-  // Mode uji coba Ngaji Kitab Pagi dan Madrasiyah: izinkan pencatatan tanpa jadwal resmi.
+  // Mode uji coba hanya untuk Madrasiyah; Ngaji Kitab Pagi wajib mengikuti jadwal resmi.
   // Jadwal/status final akan dikunci kembali setelah pengujian dinyatakan selesai.
   if (!schedule && testMode) schedule = {activity:requestedActivity,session:'Utama',startTime:'00:00',onTimeUntil:'23:59',endTime:'23:59',days:[0,1,2,3,4,5,6]};
   if (!schedule) {
