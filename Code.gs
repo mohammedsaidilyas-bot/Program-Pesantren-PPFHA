@@ -22,6 +22,18 @@ function output_(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// Membandingkan kunci tanpa berhenti pada karakter pertama yang berbeda.
+function constantTimeEquals_(a, b) {
+  a = String(a == null ? '' : a);
+  b = String(b == null ? '' : b);
+  var diff = a.length ^ b.length;
+  var maxLength = Math.max(a.length, b.length);
+  for (var i = 0; i < maxLength; i++) {
+    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
+
 function setupDatabase() {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID), hasil = [];
