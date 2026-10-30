@@ -169,8 +169,20 @@ async function loadAttendanceConfig(){
     let other={};
     responses.forEach(j=>{
       const d=j.data||{};
-      if(d.jamaah&&d.jamaah.startTime)jamaah[d.jamaah.session||'Subuh']=d.jamaah;
-      Object.keys(d).forEach(k=>{if(k!=='jamaah'&&d[k]&&d[k].startTime)other[k]=d[k]});
+      // Normalisasi jam dari Google Sheets (mis. 3:46) menjadi HH:mm
+      // sebelum dibandingkan secara kronologis dengan jam WIB.
+      const normalizeScheduleTimes=x=>x?({...x,
+        startTime:normalizeTimeInput(x.startTime),
+        onTimeUntil:normalizeTimeInput(x.onTimeUntil),
+        endTime:normalizeTimeInput(x.endTime)
+      }):x;
+      if(d.jamaah&&d.jamaah.startTime){
+        const item=normalizeScheduleTimes(d.jamaah);
+        jamaah[item.session||'Subuh']=item;
+      }
+      Object.keys(d).forEach(k=>{
+        if(k!=='jamaah'&&d[k]&&d[k].startTime)other[k]=normalizeScheduleTimes(d[k]);
+      });
     });
     attendanceConfig={...other,jamaah};
     Object.keys(ATTENDANCE_ACTIVITIES).forEach(k=>{
