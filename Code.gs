@@ -172,8 +172,9 @@ function getAttendanceConfig_(jamaahSession) {
     headers.forEach(function(h,i){ if(h) item[h] = row[i]; });
     const activity = normalizeAttendanceActivity_(item.activity);
     if (!ATTENDANCE_ACTIVITY_NAMES[activity]) return;
-    const rawDays = String(item.days || '').trim();
-    const days = /^(setiap hari|semua hari)$/i.test(rawDays) ? [0,1,2,3,4,5,6] : rawDays.split(',').map(function(v){return Number(v);}).filter(function(v){return !isNaN(v) && v>=0 && v<=6;});
+    const days = activity === 'jamaah'
+      ? (String(item.session) === 'Jumat' ? [5] : (String(item.session) === 'Dzuhur' || String(item.session) === 'Ashar' ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
+      : [0,1,2,3,4,5,6];
     const config = {
       session: String(item.session || (activity === 'jamaah' ? 'Subuh' : 'Utama')),
       startTime: String(item.startTime || ''),
@@ -196,12 +197,15 @@ function saveAttendanceConfig_(data) {
   const startTime = String(data.startTime || '').trim();
   const onTimeUntil = String(data.onTimeUntil || '').trim();
   const endTime = String(data.endTime || '').trim();
-  const days = Array.isArray(data.days) ? data.days.map(Number).filter(function(v){return v >= 0 && v <= 6;}) : [];
+  // Hari aktif ditentukan otomatis oleh kalender WIB sesuai jenis sesi.
+  const days = activity === 'jamaah'
+    ? (session === 'Jumat' ? [5] : (session === 'Dzuhur' || session === 'Ashar' ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
+    : [0,1,2,3,4,5,6];
   if (!ATTENDANCE_ACTIVITY_NAMES[activity]) return {ok:false,error:'Kegiatan tidak dikenal.'};
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(onTimeUntil) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime))
     return {ok:false,error:'Format jam tidak valid.'};
   if (!(startTime <= onTimeUntil && onTimeUntil <= endTime)) return {ok:false,error:'Urutan jam tidak valid.'};
-  if (!days.length) return {ok:false,error:'Pilih minimal satu hari aktif.'};
+  // Hari aktif otomatis; tidak perlu dipilih manual.
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
@@ -244,7 +248,9 @@ function attendanceScheduleRows_() {
     const o={}; h.forEach(function(k,i){if(k)o[k]=row[i];});
     o.activity = normalizeAttendanceActivity_(o.activity);
     const rawDays=String(o.days||'').trim();
-    o.days=/^(setiap hari|semua hari)$/i.test(rawDays)?[0,1,2,3,4,5,6]:rawDays.split(',').map(Number).filter(function(v){return !isNaN(v)&&v>=0&&v<=6;});
+    o.days = o.activity === 'jamaah'
+      ? (String(o.session) === 'Jumat' ? [5] : (String(o.session) === 'Dzuhur' || String(o.session) === 'Ashar' ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
+      : [0,1,2,3,4,5,6];
     return o;
   }).filter(function(x){return ATTENDANCE_ACTIVITY_NAMES[x.activity] && x.startTime && x.endTime;});
 }
