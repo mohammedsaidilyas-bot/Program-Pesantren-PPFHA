@@ -107,8 +107,9 @@ function doGet(e) {
       const nis = String((e.parameter && e.parameter.nis) || '').trim().replace(/\\D/g, '');
       const type = String((e.parameter && e.parameter.type) || 'raport');
       if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
-      if (type !== 'raport') return output_({ok:false,error:'Jenis data belum tersedia.'});
-      const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('RaportMadrasah');
+      if (!['raport','albab'].includes(type)) return output_({ok:false,error:'Jenis data belum tersedia.'});
+      const sheetName = type === 'raport' ? 'RaportMadrasah' : 'UjianAlbab';
+      const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
       if (!sh || sh.getLastRow() < 2) return output_({ok:true,data:[]});
       const rows = sh.getDataRange().getDisplayValues(), headers = rows[0].map(function(v){return String(v).trim();});
       const data = rows.slice(1).map(function(row){const o={};headers.forEach(function(k,i){if(k)o[k]=row[i];});return o;}).filter(function(o){return String(o.nis||'').replace(/\\D/g,'')===nis;});
@@ -162,6 +163,25 @@ function doPost(e) {
       try { sh.getRange(sh.getLastRow()+1,1,rows.length,headers.length).setValues(rows); }
       finally { lock.releaseLock(); }
       return output_({ok:true,saved:rows.length,message:'Nilai raport berhasil disimpan.'});
+    }
+    if (action === 'saveeducationalbab') {
+      const x = body.data || {};
+      const nis = String(x.nis || '').trim().replace(/\\D/g,'');
+      const periode = String(x.periodeUjian || '').trim();
+      const nilaiTulis = Number(x.nilaiTulis), nilaiBaca = Number(x.nilaiBaca);
+      if (!nis || !periode) return output_({ok:false,error:'NIS dan periode ujian wajib diisi.'});
+      if (!isFinite(nilaiTulis) || !isFinite(nilaiBaca) || nilaiTulis<0 || nilaiTulis>100 || nilaiBaca<0 || nilaiBaca>100) return output_({ok:false,error:'Nilai tulis dan baca harus 0 sampai 100.'});
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      let sh = ss.getSheetByName('UjianAlbab');
+      const headers = ['id','tanggalInput','nis','nama','kelas','periodeUjian','nilaiTulis','nilaiBaca','nilaiAkhir','catatan','ustaz'];
+      if (!sh) { sh=ss.insertSheet('UjianAlbab'); sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); }
+      if (sh.getLastRow()===0) { sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); }
+      const nilaiAkhir = (nilaiTulis + nilaiBaca) / 2;
+      const row = [Utilities.getUuid(),new Date(),nis,String(x.nama||''),String(x.kelas||''),periode,nilaiTulis,nilaiBaca,nilaiAkhir,String(x.catatan||''),String(x.ustaz||'')];
+      const lock=LockService.getScriptLock();lock.waitLock(15000);
+      try { sh.getRange(sh.getLastRow()+1,1,1,headers.length).setValues([row]); }
+      finally { lock.releaseLock(); }
+      return output_({ok:true,saved:1,nilaiAkhir:nilaiAkhir,message:'Nilai ujian Albab berhasil disimpan.'});
     }
     if (action === 'saveattendanceconfig') return output_(saveAttendanceConfig_(body.data || {}));
     if (action === 'toggleattendanceholiday') return output_(toggleAttendanceHoliday_(body.data || {}));
