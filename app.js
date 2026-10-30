@@ -48,87 +48,59 @@ function statusClass(s){s=String(s||'').toLowerCase();if(s.includes('kembali')||
 function renderIzin(){const q=($('#search').value||'').toLowerCase(),jenis=$('#filterJenis').value,status=$('#filterStatus').value;const a=data.izin.filter(x=>{const hay=[x.nama,x.nis,x.catatan,x.wali].join(' ').toLowerCase();return hay.includes(q)&&(!jenis||x.jenis===jenis)&&(!status||x.status===status)});$('#nIzin').textContent=data.izin.length;$('#rows').innerHTML=a.length?a.slice().reverse().map((x,i)=>{const isExit=String(x.jenis||'').toLowerCase().includes('izin keluar'),deadline=x.rencanaKembali?new Date(x.rencanaKembali):null,actual=x.kembali?new Date(x.kembali):null,validDeadline=deadline&&!isNaN(deadline.getTime()),lateWhenReturned=isExit&&validDeadline&&actual&&!isNaN(actual.getTime())&&actual.getTime()>deadline.getTime(),lateNow=isExit&&validDeadline&&!actual&&deadline.getTime()<Date.now()&&['diizinkan','sudah keluar'].includes(String(x.status||'').toLowerCase()),late=lateWhenReturned||lateNow,lateMinutes=lateWhenReturned?Math.ceil((actual-deadline)/60000):lateNow?Math.ceil((Date.now()-deadline)/60000):0,shownStatus=lateNow?'Terlambat kembali':(x.status||'Menunggu persetujuan'),rawNote=String(x.catatan||'').replace(/\s*\|?\s*TERLAMBAT KEMBALI\s+\d+\s+menit(?:\s*\(batas\s+[^)]*\))?/ig,'').trim(),deadlineLabel=validDeadline?String(deadline.getHours()).padStart(2,'0')+'.'+String(deadline.getMinutes()).padStart(2,'0'):'',lateNote=late?'Terlambat '+lateMinutes+' menit'+(deadlineLabel?' (batas '+deadlineLabel+')':''):'',note=[rawNote&&rawNote!=='—'?rawNote:'',lateNote].filter(Boolean).join(' · ')||'—';return '<tr><td>'+(i+1)+'</td><td>'+dateTime(x.keluar)+'</td><td><b>'+esc(x.nama)+'</b><br><small>NIS '+esc(x.nis)+'</small></td><td>'+esc(x.jenis)+'</td><td>'+dateOnly(x.keluar)+'<br><small>s/d '+dateOnly(x.rencanaKembali)+'</small></td><td>'+esc(x.wali||'—')+'</td><td>'+esc(note)+''+'</td><td><span class="status-pill '+statusClass(shownStatus)+'">'+esc(shownStatus)+'</span></td><td>'+((!['sudah kembali','ditolak'].includes(String(x.status||'').trim().toLowerCase())&&x.id)?'<button type="button" class="primary return-now" data-id="'+esc(x.id)+'" style="margin-bottom:6px;padding:9px 10px;font-size:12px;white-space:nowrap">✓ Sudah kembali</button><br>':'')+'<button type="button" class="secondary edit-status" data-id="'+esc(x.id||'')+'" data-status="'+esc(x.status||'Menunggu persetujuan')+'" '+(!x.id?'disabled title="Data lama belum memiliki ID"':'')+'>Ubah Status</button></td></tr>';}).join(''):'<tr><td colspan="9" class="empty">Tidak ada data izin yang cocok.</td></tr>'}
 function render(){renderIzin();const aktif=data.izin.filter(x=>!['sudah kembali','ditolak'].includes(String(x.status||'').trim().toLowerCase())).length;$('#nIzin').textContent=aktif;$('#nPeng').textContent=data.peng.length;$('#nKeg').textContent=data.keg.length}
 async function loadIzin(){const body=$('#rows');if(body)body.innerHTML='<tr><td colspan="8" class="empty">Memuat data izin dari database…</td></tr>';try{const r=await fetch(API_URL+'?action=izin',{cache:'no-store'});const j=await r.json();if(!j.ok)throw new Error(j.error||'Gagal membaca database');data.izin=Array.isArray(j.data)?j.data:[];render()}catch(err){if(body)body.innerHTML='<tr><td colspan="8" class="empty">Data belum berhasil dimuat. Periksa koneksi lalu tekan Muat ulang.</td></tr>';toast('Koneksi data izin gagal: '+err.message)}}
-let qrScanner=null,qrTarget=null,qrStarting=false,qrLocked=false;
+let qrScanner=null,qrTarget=null,qrStarting=false,qrLocked=false,qrStream=null,qrVideo=null,qrDetectTimer=null;
 async function closeQr(){
- const scanner=qrScanner;qrScanner=null;qrLocked=false;
- $('#qrModal').classList.add('hidden');
- if(scanner){try{if(scanner.isScanning)await scanner.stop()}catch(e){}try{await scanner.clear()}catch(e){}}
+ qrLocked=true;
+ if(qrDetectTimer){clearTimeout(qrDetectTimer);qrDetectTimer=null}
+ if(qrStream){qrStream.getTracks().forEach(t=>t.stop());qrStream=null}
+ if(qrScanner){try{if(qrScanner.isScanning)await qrScanner.stop()}catch(e){}try{await qrScanner.clear()}catch(e){}qrScanner=null}
+ const video=$('#qrReader video');if(video){try{video.pause()}catch(e){}video.srcObject=null}
  const reader=$('#qrReader');if(reader)reader.innerHTML='';
+ $('#qrModal').classList.add('hidden');qrVideo=null;qrStarting=false;qrLocked=false;
 }
-async function ensureQrLibrary(){
- if(typeof Html5Qrcode!=='undefined')return true;
- const sources=[
-  'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js',
-  'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
- ];
- let lastError=null;
- for(const src of sources){
-  try{
-   await new Promise((resolve,reject)=>{
-    const script=document.createElement('script');
-    script.src=src;script.async=true;
-    script.onload=()=>typeof Html5Qrcode!=='undefined'?resolve():reject(new Error('Pustaka pemindai tidak tersedia'));
-    script.onerror=()=>reject(new Error('Sumber pemindai gagal dimuat'));
-    document.head.appendChild(script);
-   });
-   if(typeof Html5Qrcode!=='undefined')return true;
-  }catch(err){lastError=err}
- }
- throw lastError||new Error('Pustaka pemindai QR gagal dimuat');
+async function handleQrDecoded(decoded){
+ if(qrLocked)return;
+ const raw=String(decoded||'').trim();let nis=raw;
+ try{const obj=JSON.parse(raw);nis=obj.nis||obj.NIS||obj.id||obj.value||raw}catch(e){}
+ nis=String(nis).trim().replace(/\D/g,'');
+ if(!nis){$('#qrMessage').textContent='QR terbaca, tetapi tidak berisi NIS.';return}
+ qrLocked=true;$('#qrMessage').textContent='QR terbaca. Mencari biodata santri…';
+ if(qrTarget==='attendance'){if(!currentAttendanceActivity){await closeQr();toast('Pilih kegiatan terlebih dahulu.');return}await closeQr();await recordAttendanceScan(nis);return}
+ const targets={raport:['#raportNis',lookupRaportStudent],albab:['#albabNis',lookupAlbabStudent],hafalan:['#hafalanNis',lookupHafalanStudent],evaluasi:['#evaluasiNis',lookupEvaluasiStudent]};
+ if(targets[qrTarget]){ $(targets[qrTarget][0]).value=nis;await closeQr();await targets[qrTarget][1]();return; }
+ $('#nisInput').value=nis;$('#formIzin').classList.remove('hidden');if(qrTarget==='search'){$('#search').value=nis;renderIzin()}
+ await closeQr();$('#formIzin').scrollIntoView({behavior:'smooth',block:'start'});await lookupStudent(nis);
 }
 async function openQr(target){
  if(qrStarting)return;
- qrTarget=target;qrLocked=false;$('#qrMessage').textContent='Memuat pemindai QR…';$('#qrModal').classList.remove('hidden');qrStarting=true;
+ qrStarting=true;qrTarget=target;qrLocked=false;
+ const modal=$('#qrModal'),reader=$('#qrReader'),message=$('#qrMessage');
+ modal.classList.remove('hidden');reader.innerHTML='<video id="qrCameraVideo" autoplay playsinline muted style="display:block;width:100%;max-height:58vh;object-fit:cover;background:#111;border-radius:12px"></video>';
+ message.textContent='Meminta izin kamera…';
  try{
-  await ensureQrLibrary();
-  $('#qrMessage').textContent='Menyiapkan kamera…';
-  if(qrScanner)await closeQr();
-  $('#qrModal').classList.remove('hidden');
-  const reader=$('#qrReader');reader.innerHTML='';
-  const config={fps:18,qrbox:(viewWidth,viewHeight)=>{const side=Math.max(180,Math.min(300,Math.floor(Math.min(viewWidth,viewHeight)*0.78)));return {width:side,height:side}},aspectRatio:1,disableFlip:false,videoConstraints:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}};
-  const onDecoded=async decoded=>{
-   if(qrLocked)return;
-   const raw=String(decoded||'').trim();let nis=raw;
-   try{const obj=JSON.parse(raw);nis=obj.nis||obj.NIS||obj.id||obj.value||raw}catch(e){}
-   nis=String(nis).trim().replace(/\D/g,'');
-   if(!nis){$('#qrMessage').textContent='QR terbaca, tetapi tidak berisi NIS. Gunakan QR yang berisi nomor induk santri.';return}
-   qrLocked=true;$('#qrMessage').textContent='QR terbaca. Memproses barcode santri…';
-   if(qrTarget==='attendance'){if(!currentAttendanceActivity){qrLocked=true;await closeQr();toast('Portal kegiatan belum dipilih.');return}await closeQr();await recordAttendanceScan(nis);return}
-   if(qrTarget==='raport'){ $('#raportNis').value=nis; await closeQr(); await lookupRaportStudent(); return; }
-   if(qrTarget==='albab'){ $('#albabNis').value=nis; await closeQr(); await lookupAlbabStudent(); return; }
-   if(qrTarget==='hafalan'){ $('#hafalanNis').value=nis; await closeQr(); await lookupHafalanStudent(); return; }
-  if(qrTarget==='evaluasi'){ $('#evaluasiNis').value=nis; await closeQr(); await lookupEvaluasiStudent(); return; }
-   $('#nisInput').value=nis;$('#formIzin').classList.remove('hidden');
-   if(qrTarget==='search'){$('#search').value=nis;renderIzin()}
-   await closeQr();
-   $('#formIzin').scrollIntoView({behavior:'smooth',block:'start'});
-   await lookupStudent(nis);
+  if(!window.isSecureContext)throw new Error('Situs harus dibuka melalui HTTPS.');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Browser tidak menyediakan akses kamera. Buka melalui Chrome HTTPS.');
+  const video=$('#qrCameraVideo');qrVideo=video;
+  qrStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}});
+  video.srcObject=qrStream;await video.play();
+  if(!('BarcodeDetector' in window))throw new Error('Pemindai QR bawaan tidak didukung browser ini. Perbarui Chrome.');
+  const detector=new BarcodeDetector({formats:['qr_code']});
+  message.textContent='Kamera aktif. Arahkan QR kartu santri ke kamera.';
+  const scan=async()=>{
+   if(qrLocked||!qrStream||!qrVideo)return;
+   try{const codes=await detector.detect(video);if(codes&&codes.length){await handleQrDecoded(codes[0].rawValue);return}}catch(e){}
+   if(!qrLocked)qrDetectTimer=setTimeout(scan,220);
   };
-  qrScanner=new Html5Qrcode('qrReader',{formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],verbose:false});
-  try{
-   await qrScanner.start({facingMode:'environment'},config,onDecoded,()=>{});
-  }catch(firstError){
-   // Some Android browsers reject facingMode; retry using the actual rear-camera device ID.
-   try{
-    const cameras=await Html5Qrcode.getCameras();
-    if(!cameras||!cameras.length)throw firstError;
-    const rear=cameras.find(c=>/back|rear|environment|belakang|utama/i.test(c.label||''))||cameras[cameras.length-1];
-    await qrScanner.start(rear.id,config,onDecoded,()=>{});
-   }catch(secondError){throw secondError||firstError}
-  }
-  $('#qrMessage').textContent='Kamera aktif. Dekatkan QR ke kotak pemindai dan tahan sebentar agar fokus.';
+  qrDetectTimer=setTimeout(scan,250);
  }catch(err){
-  const msg=String(err&&err.message||err||'');
-  let help='Kamera tidak bisa dibuka.';
-  if(/pustaka|sumber pemindai/i.test(msg))help='Pemindai QR gagal dimuat. Periksa koneksi internet, lalu coba lagi.';
-  else if(/permission|denied|notallowed|not allowed/i.test(msg))help='Izin kamera ditolak. Buka setelan situs di browser, izinkan Kamera, lalu coba lagi.';
-  else if(/notfound|no camera|device not found/i.test(msg))help='Kamera tidak ditemukan. Pastikan kamera tidak sedang dipakai aplikasi lain.';
-  else if(/secure|https/i.test(msg))help='Kamera memerlukan situs HTTPS. Buka alamat aplikasi yang diawali https://.';
-  else help+=' Tutup aplikasi lain yang memakai kamera, izinkan akses kamera, lalu coba lagi.';
-  $('#qrMessage').textContent=help;toast(help);
-  if(qrScanner){try{if(qrScanner.isScanning)await qrScanner.stop()}catch(e){}try{await qrScanner.clear()}catch(e){}qrScanner=null}
- }finally{qrStarting=false}
+  const msg=String(err&&err.message||err);
+  let help=msg;
+  if(/NotAllowed|Permission|denied/i.test(msg))help='Izin kamera ditolak. Tekan ikon pengaturan di alamat Chrome, izinkan Kamera, lalu muat ulang.';
+  else if(/NotFound|Requested device/i.test(msg))help='Kamera tidak ditemukan atau sedang dipakai aplikasi lain.';
+  message.textContent=help;toast(help);
+  if(qrStream){qrStream.getTracks().forEach(t=>t.stop());qrStream=null}
+  qrStarting=false;
+ }
 }
 const jenisSelect=$('#formIzin [name="jenis"]');
 const keluarInput=$('#formIzin [name="keluar"]');
@@ -388,7 +360,7 @@ async function loadHafalanHistory(nis){
  const rows=j.data||[];body.innerHTML=rows.length?rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.tanggalInput||'—')+'</td><td>'+esc(x.namaKitabNadzom||'—')+'</td><td>'+esc(x.jenis||'—')+'</td><td>'+esc(x.targetBait||'—')+'</td><td>'+esc(x.capaianBait||'—')+'</td><td>'+esc(x.status||'—')+'</td><td>'+esc(x.catatan||'—')+'</td><td>'+esc(x.ustaz||'—')+'</td></tr>').join(''):'<tr><td colspan="9" class="empty">Belum ada catatan hafalan untuk NIS ini.</td></tr>';
  }catch(err){body.innerHTML='<tr><td colspan="9" class="empty">'+esc(err.message)+'</td></tr>'}
 }
-// Tombol scan hafalan ditangani delegated click handler di awal file.
+$('#scanHafalan').addEventListener('click',()=>openQr('hafalan'));
 $('#findHafalan').addEventListener('click',lookupHafalanStudent);
 $('#hafalanNis').addEventListener('change',lookupHafalanStudent);
 $('#hafalanNis').addEventListener('blur',lookupHafalanStudent);
