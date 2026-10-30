@@ -63,3 +63,12 @@
 .raport-table .raport-group td{background:#f6f8f6;color:#174b39;font-weight:700}
 .raport-table tfoot th{background:#edf4f0;color:#174b39}
 @media(max-width:700px){.raport-table-wrap{margin-left:-8px;margin-right:-8px}.raport-table th,.raport-table td{padding:7px 5px;font-size:12px}}
+
+/* Input NIS raport: scan QR atau cari manual */
+.raport-search-label{grid-column:1/-1}
+.raport-search-row{display:flex;align-items:stretch;gap:9px;margin-top:7px}
+.raport-search-row input{flex:1;min-width:100px}
+.raport-search-row button{white-space:nowrap;min-width:82px}
+.raport-scan-btn{background:#176b50;color:#fff;border:1px solid #176b50}
+.raport-hint{display:block;margin-top:7px;color:#74847b;font-size:12px;font-weight:400}
+@media(max-width:560px){.raport-search-row{flex-wrap:wrap}.raport-scan-btn{min-width:88px}.raport-search-row input{flex:1 1 180px}.raport-search-row #findRaport{min-width:68px}}
