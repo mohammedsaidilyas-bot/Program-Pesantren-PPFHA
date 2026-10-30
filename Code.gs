@@ -421,7 +421,7 @@ function recordAttendanceScan_(data) {
   // ditentukan sepenuhnya di server dari jadwal WIB, tidak menerima pilihan sesi manual.
   const requestedActivity = normalizeAttendanceActivity_(data.activity);
   if (!ATTENDANCE_ACTIVITY_NAMES[requestedActivity]) return {ok:false,error:'Portal kegiatan tidak valid.'};
-  const testMode = data.testMode === true && requestedActivity === 'kitab-pagi';
+  const testMode = data.testMode === true && (requestedActivity === 'kitab-pagi' || requestedActivity === 'madrasiyah');
   const activitySchedules = attendanceScheduleRows_().filter(function(s){return s.activity===requestedActivity && s.days.indexOf(weekday)>=0;});
   if (!testMode && activitySchedules.some(function(s){return isAttendanceHoliday_(date,s.activity,s.session);})) return {ok:false,error:'Kegiatan hari ini diliburkan oleh pengurus. Absensi tidak dicatat.'};
   const allSchedules = attendanceScheduleRows_().filter(function(s) {
@@ -436,9 +436,9 @@ function recordAttendanceScan_(data) {
   const nextSchedules = allSchedules.filter(function(s){return String(s.startTime) > time;})
     .sort(function(a,b){return String(a.startTime).localeCompare(String(b.startTime));});
   let schedule = activeSchedules[0] || nextSchedules[0] || null;
-  // Mode uji coba Ngaji Kitab Pagi: izinkan pencatatan tanpa jadwal resmi.
+  // Mode uji coba Ngaji Kitab Pagi dan Madrasiyah: izinkan pencatatan tanpa jadwal resmi.
   // Jadwal/status final akan dikunci kembali setelah pengujian dinyatakan selesai.
-  if (!schedule && testMode) schedule = {activity:'kitab-pagi',session:'Utama',startTime:'00:00',onTimeUntil:'23:59',endTime:'23:59',days:[0,1,2,3,4,5,6]};
+  if (!schedule && testMode) schedule = {activity:requestedActivity,session:'Utama',startTime:'00:00',onTimeUntil:'23:59',endTime:'23:59',days:[0,1,2,3,4,5,6]};
   if (!schedule) return {ok:false,error:'Tidak ada jadwal kegiatan berikutnya yang aktif/tersedia hari ini. Periksa pengaturan jadwal.'};
   const activity = schedule.activity;
   const session = activity === 'jamaah' ? String(schedule.session) : 'Utama';
@@ -461,8 +461,20 @@ function recordAttendanceScan_(data) {
     const sh = ensureAttendanceSheets_().getSheetByName('Absensi');
     const key=[date,normalizeAttendanceActivity_(activity),String(session||'Utama').trim(),nis].join('|');
     const existing=attendanceExistingKeys_(sh,date);
-    if (existing[key]) return {ok:true,duplicate:true,data:existing[key],message:'Santri sudah tercatat pada sesi '+session+' hari ini.'};
-    sh.appendRow([date,activity,session,nis,student.nama,status,time,new Date(),'Scan QR KTS']);
+    if (existing[key]) {
+      if (testMode && existing[key].status === 'Tidak Hadir') {
+        const lastRow=sh.getLastRow();
+        for(let r=2;r<=lastRow;r++) {
+          const row=sh.getRange(r,1,1,6).getValues()[0];
+          if(attendanceCellDate_(row[0])===date && normalizeAttendanceActivity_(row[1])===activity && String(row[2]||'Utama')===session && String(row[3]||'').trim().replace(/\\D/g,'')===nis) {
+            sh.getRange(r,6,1,4).setValues([['Hadir',time,new Date(),'Scan QR KTS (Uji Coba)']]);
+            return {ok:true,data:{nis:nis,nama:student.nama,status:'Hadir',time:time,activity:activity,session:session},message:'Status uji coba diperbarui menjadi Hadir.'};
+          }
+        }
+      }
+      return {ok:true,duplicate:true,data:existing[key],message:'Santri sudah tercatat pada sesi '+session+' hari ini.'};
+    }
+    sh.appendRow([date,activity,session,nis,student.nama,status,time,new Date(),testMode?'Scan QR KTS (Uji Coba)':'Scan QR KTS']);
     return {ok:true,data:{nis:nis,nama:student.nama,status:status,time:time,activity:activity,session:session}};
   } finally { lock.releaseLock(); }
 }
