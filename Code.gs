@@ -108,7 +108,7 @@ function doGet(e) {
       const type = String((e.parameter && e.parameter.type) || 'raport');
       if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
       if (type !== 'raport') return output_({ok:false,error:'Jenis data belum tersedia.'});
-      const sh = SpreadsheetApp.openById(STUDENT_DB_ID).getSheetByName('RaportMadrasah');
+      const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('RaportMadrasah');
       if (!sh || sh.getLastRow() < 2) return output_({ok:true,data:[]});
       const rows = sh.getDataRange().getDisplayValues(), headers = rows[0].map(function(v){return String(v).trim();});
       const data = rows.slice(1).map(function(row){const o={};headers.forEach(function(k,i){if(k)o[k]=row[i];});return o;}).filter(function(o){return String(o.nis||'').replace(/\\D/g,'')===nis;});
@@ -141,7 +141,7 @@ function doPost(e) {
       const records = Array.isArray(body.records) ? body.records : [];
       if (!records.length) return output_({ok:false,error:'Tidak ada nilai raport untuk disimpan.'});
       if (records.length > 40) return output_({ok:false,error:'Jumlah entri terlalu banyak dalam satu penyimpanan.'});
-      const ss = SpreadsheetApp.openById(STUDENT_DB_ID);
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
       let sh = ss.getSheetByName('RaportMadrasah');
       const headers = ['id','tanggalInput','nis','nama','kelas','tahunAjaran','mataPelajaran','kelompok','semester','prestasi','rataRataKelas','ustaz','catatan'];
       if (!sh) { sh=ss.insertSheet('RaportMadrasah'); sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); }
@@ -582,7 +582,7 @@ function explainError_(err) {
 
 /* ==================== DATABASE PENDIDIKAN SANTRI ==================== */
 /**
- * Menyiapkan tiga tab pendidikan pada database Uang Jajan Santri PPFHA.
+ * Menyiapkan tiga tab pendidikan pada database Perizinan KTS PPFHA.
  * Aman: tidak menghapus, menimpa, atau mengubah tab/data yang sudah berisi.
  * Jalankan fungsi ini satu kali dari editor Apps Script.
  */
@@ -604,7 +604,7 @@ function setupEducationDatabase() {
   };
 
   try {
-    const ss = SpreadsheetApp.openById(STUDENT_DB_ID);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const hasil = [];
 
     Object.keys(educationHeaders).forEach(function(name) {
