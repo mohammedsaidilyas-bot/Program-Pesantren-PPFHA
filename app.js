@@ -1,11 +1,11 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const API_URL='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbKFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
 const data={izin:[],peng:[],keg:[]};const names={dashboard:'Dashboard',izin:'Izin Santri',pengumuman:'Pengumuman',kegiatan:'Kegiatan & Jadwal',kehadiran:'Kegiatan & Kehadiran',pendidikan:'Pendidikan Santri'};let adminKey=sessionStorage.getItem('ppfha_admin_key')||'';
-function go(p){$$('.page').forEach(x=>x.classList.toggle('active',x.id===p));$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===p));$('#title').textContent=names[p]||'Dashboard';window.scrollTo(0,0);if(p==='izin')loadIzin();if(p==='kehadiran')loadAttendanceConfig()}
-$('.nav').forEach(x=>x.onclick=()=>go(x.dataset.page));
+function go(p){$$('.page').forEach(x=>x.classList.toggle('active',x.id===p));$$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===p));$('#title').textContent=names[p]||'Dashboard';window.scrollTo(0,0);if(p==='izin')loadIzin();if(p==='kehadiran')loadAttendanceConfig()}
+$$('.nav').forEach(x=>x.onclick=()=>go(x.dataset.page));
 function openEducationModule(module){
  const menu=$('#educationMenu');if(menu)menu.classList.add('hidden');
- $('.education-detail').forEach(x=>x.classList.add('hidden'));
+ $$('.education-detail').forEach(x=>x.classList.add('hidden'));
  const target=module==='raport'?'#educationRaportPage':module==='albab'?'#educationAlbabPage':'';
  if(target&&$(target))$(target).classList.remove('hidden');
  const title=module==='raport'?'Nilai Raport Madrasah':'Nilai Ujian Kitab Metode Albab';
@@ -13,11 +13,11 @@ function openEducationModule(module){
 }
 function showEducationMenu(){
  $('#educationMenu').classList.remove('hidden');
- $('.education-detail').forEach(x=>x.classList.add('hidden'));
+ $$('.education-detail').forEach(x=>x.classList.add('hidden'));
  $('#title').textContent='Pendidikan Santri';window.scrollTo(0,0);
 }
-$('[data-education-open]').forEach(btn=>btn.addEventListener('click',()=>openEducationModule(btn.dataset.educationOpen)));
-$('.education-back').forEach(btn=>btn.addEventListener('click',showEducationMenu));
+$$('[data-education-open]').forEach(btn=>btn.addEventListener('click',()=>openEducationModule(btn.dataset.educationOpen)));
+$$('.education-back').forEach(btn=>btn.addEventListener('click',showEducationMenu));
 $$('[data-go]').forEach(x=>x.onclick=()=>go(x.dataset.go));
 function requestAdminKey(title){return new Promise(resolve=>{const modal=$('#adminKeyModal'),form=$('#adminKeyForm'),input=$('#adminKeyInput'),desc=$('#adminKeyDescription'),cancel=$('#cancelAdminKey');if(!modal||!form||!input){resolve('');return}desc.textContent=title+' — masukkan kunci pengurus untuk melanjutkan.';input.value='';modal.classList.remove('hidden');setTimeout(()=>input.focus(),80);let settled=false;const finish=value=>{if(settled)return;settled=true;modal.classList.add('hidden');form.removeEventListener('submit',submit);cancel.removeEventListener('click',cancelClick);modal.removeEventListener('click',outside);resolve(value)};const submit=e=>{e.preventDefault();const value=input.value.trim();if(!value){input.focus();return}adminKey=value;sessionStorage.setItem('ppfha_admin_key',value);finish(value)};const cancelClick=()=>finish('');const outside=e=>{if(e.target===modal)finish('')};form.addEventListener('submit',submit);cancel.addEventListener('click',cancelClick);modal.addEventListener('click',outside)})}
 let toastTimer;function toast(s){$('#toast').textContent=s;$('#toast').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').style.display='none',4000)}
