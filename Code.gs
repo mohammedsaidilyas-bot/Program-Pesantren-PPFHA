@@ -84,10 +84,21 @@ function doGet(e) {
       const studentSheet = studentSS.getSheetByName(STUDENT_SHEET_NAME);
       if (!studentSheet) return output_({ok:false,error:'Tab database Uang Jajan Santri PPFHA tidak ditemukan.'});
       const rows = studentSheet.getDataRange().getDisplayValues();
-      const row = rows.slice(1).find(function(r){ return String(r[0] || '').trim().replace(/\D/g, '') === nis; });
-      if (!row) return output_({ok:false,error:'NIS '+nis+' tidak ditemukan di database santri.'});
-      if (String(row[7] || '').trim().toLowerCase() !== 'aktif') return output_({ok:false,error:'Santri '+nis+' tidak berstatus aktif.'});
-      return output_({ok:true,data:{nis:String(row[0]||'').trim(),nama:String(row[1]||'').trim(),kelas:String(row[2]||'').trim(),asrama:String(row[3]||'').trim(),wali:String(row[4]||'').trim(),noWaWali:String(row[5]||'').trim(),status:String(row[7]||'').trim()}});
+      if (rows.length < 2) return output_({ok:false,error:'Database santri masih kosong.'});
+      const headers = rows[0].map(function(h){return String(h||'').toLowerCase().replace(/[^a-z0-9]/g,'');});
+      function col_(aliases, fallback){ for (var i=0;i<aliases.length;i++){var idx=headers.indexOf(aliases[i]);if(idx>=0)return idx;} return fallback; }
+      const iNis=col_(['nis','nomorinduksantri','nomorinduk'],0);
+      const iNama=col_(['nama','namasantri','namalengkap'],1);
+      const iKelas=col_(['kelas','tingkat'],2);
+      const iAsrama=col_(['asrama','kamar'],3);
+      const iWali=col_(['wali','namawali','orangtua'],4);
+      const iWa=col_(['nowawali','nowa','whatsappwali','nomorwawali'],5);
+      const iStatus=col_(['status','statussantri'],7);
+      const row = rows.slice(1).find(function(r){ return String(r[iNis] || '').trim().replace(/\D/g, '') === nis; });
+      if (!row) return output_({ok:false,error:'NIS '+nis+' tidak ditemukan. Pastikan NIS sesuai database Uang Jajan Santri.'});
+      const status = String(row[iStatus] || '').trim();
+      if (status && !['aktif','active'].includes(status.toLowerCase())) return output_({ok:false,error:'Santri '+nis+' tidak berstatus aktif ('+status+').'});
+      return output_({ok:true,data:{nis:String(row[iNis]||'').trim(),nama:String(row[iNama]||'').trim(),kelas:String(row[iKelas]||'').trim(),asrama:String(row[iAsrama]||'').trim(),wali:String(row[iWali]||'').trim(),noWaWali:String(row[iWa]||'').trim(),status:status||'Aktif'}});
     }
     if (action === 'attendanceconfig') return output_(getAttendanceConfig_(String((e.parameter && e.parameter.session) || 'Subuh')));
     if (action === 'attendancerecords') {
@@ -104,7 +115,7 @@ function doGet(e) {
       const savedKey = PropertiesService.getScriptProperties().getProperty('ADMIN_API_KEY');
       const suppliedKey = String((e.parameter && e.parameter.key) || '');
       if (!savedKey || !constantTimeEquals_(suppliedKey, savedKey)) return output_({ok:false,error:'Akses data pendidikan ditolak. Masukkan kunci pengurus.'});
-      const nis = String((e.parameter && e.parameter.nis) || '').trim().replace(/\\D/g, '');
+      const nis = String((e.parameter && e.parameter.nis) || '').trim().replace(/\D/g, '');
       const type = String((e.parameter && e.parameter.type) || 'raport');
       if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
       if (!['raport','albab','hafalan','evaluasi'].includes(type)) return output_({ok:false,error:'Jenis data belum tersedia.'});
