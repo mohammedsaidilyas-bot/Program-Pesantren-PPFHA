@@ -91,6 +91,7 @@ function doPost(e) {
     const action = String(body.action||'').toLowerCase();
     if (action === 'saveattendanceconfig') return output_(saveAttendanceConfig_(body.data || {}));
     if (action === 'attendancescan') return output_(recordAttendanceScan_(body.data || {}));
+    if (action === 'attendancerecords') return output_(getAttendanceRecords_(String(body.date || Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd')), String(body.activity || 'all')));
     if (action === 'updatestatus') {
       const id = String(body.id || '').trim();
       const status = String(body.status || '').trim();
