@@ -466,7 +466,7 @@ function recordAttendanceScan_(data) {
         const lastRow=sh.getLastRow();
         for(let r=2;r<=lastRow;r++) {
           const row=sh.getRange(r,1,1,6).getValues()[0];
-          if(attendanceCellDate_(row[0])===date && normalizeAttendanceActivity_(row[1])===activity && String(row[2]||'Utama')===session && String(row[3]||'').trim().replace(/\\D/g,'')===nis) {
+          if(attendanceCellDate_(row[0])===date && normalizeAttendanceActivity_(row[1])===activity && String(row[2]||'Utama')===session && String(row[3]||'').trim().replace(/\D/g,'')===nis) {
             sh.getRange(r,6,1,4).setValues([['Hadir',time,new Date(),'Scan QR KTS (Uji Coba)']]);
             return {ok:true,data:{nis:nis,nama:student.nama,status:'Hadir',time:time,activity:activity,session:session},message:'Status uji coba diperbarui menjadi Hadir.'};
           }
