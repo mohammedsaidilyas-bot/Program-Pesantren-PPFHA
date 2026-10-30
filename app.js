@@ -9,11 +9,7 @@ function go(p){
  window.scrollTo({top:0,behavior:'instant'});
  if(p==='izin')loadIzin();if(p==='kehadiran')loadAttendanceConfig();
 }
-document.addEventListener('click',e=>{
- const nav=e.target.closest('button.nav[data-page]');
- if(!nav)return;
- e.preventDefault();e.stopPropagation();go(nav.dataset.page);
-},true);
+
 function openEducationModule(module){
  const menu=$('#educationMenu');if(menu)menu.classList.add('hidden');
  $$('.education-detail').forEach(x=>x.classList.add('hidden'));
@@ -27,9 +23,16 @@ function showEducationMenu(){
  $$('.education-detail').forEach(x=>x.classList.add('hidden'));
  $('#title').textContent='Pendidikan Santri';window.scrollTo(0,0);
 }
-$$('[data-education-open]').forEach(btn=>btn.addEventListener('click',()=>openEducationModule(btn.dataset.educationOpen)));
-$$('.education-back').forEach(btn=>btn.addEventListener('click',showEducationMenu));
-$$('[data-go]').forEach(x=>x.onclick=()=>go(x.dataset.go));
+document.addEventListener('click',e=>{
+ const nav=e.target.closest('button.nav[data-page]');
+ if(nav){e.preventDefault();go(nav.dataset.page);return;}
+ const quick=e.target.closest('[data-go]');
+ if(quick){e.preventDefault();go(quick.dataset.go);return;}
+ const tile=e.target.closest('[data-education-open]');
+ if(tile){e.preventDefault();openEducationModule(tile.dataset.educationOpen);return;}
+ const back=e.target.closest('.education-back');
+ if(back){e.preventDefault();showEducationMenu();}
+},false);
 function requestAdminKey(title){return new Promise(resolve=>{const modal=$('#adminKeyModal'),form=$('#adminKeyForm'),input=$('#adminKeyInput'),desc=$('#adminKeyDescription'),cancel=$('#cancelAdminKey');if(!modal||!form||!input){resolve('');return}desc.textContent=title+' — masukkan kunci pengurus untuk melanjutkan.';input.value='';modal.classList.remove('hidden');setTimeout(()=>input.focus(),80);let settled=false;const finish=value=>{if(settled)return;settled=true;modal.classList.add('hidden');form.removeEventListener('submit',submit);cancel.removeEventListener('click',cancelClick);modal.removeEventListener('click',outside);resolve(value)};const submit=e=>{e.preventDefault();const value=input.value.trim();if(!value){input.focus();return}adminKey=value;sessionStorage.setItem('ppfha_admin_key',value);finish(value)};const cancelClick=()=>finish('');const outside=e=>{if(e.target===modal)finish('')};form.addEventListener('submit',submit);cancel.addEventListener('click',cancelClick);modal.addEventListener('click',outside)})}
 let toastTimer;function toast(s){$('#toast').textContent=s;$('#toast').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').style.display='none',4000)}
 function askConfirmation(title,message,confirmLabel){return new Promise(resolve=>{const overlay=document.createElement('div');overlay.className='confirm-overlay';overlay.innerHTML='<section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle"><div class="confirm-icon" aria-hidden="true">☾</div><h3 id="confirmTitle"></h3><p class="confirm-message"></p><div class="confirm-actions"><button type="button" class="secondary confirm-cancel">Batal</button><button type="button" class="primary confirm-accept"></button></div></section>';const heading=overlay.querySelector('#confirmTitle'),body=overlay.querySelector('.confirm-message'),cancel=overlay.querySelector('.confirm-cancel'),accept=overlay.querySelector('.confirm-accept');heading.textContent=title;body.textContent=message;accept.textContent=confirmLabel||'Ya, Lanjutkan';const finish=value=>{overlay.remove();document.removeEventListener('keydown',onKey);resolve(value)};const onKey=e=>{if(e.key==='Escape')finish(false)};cancel.onclick=()=>finish(false);accept.onclick=()=>finish(true);overlay.addEventListener('click',e=>{if(e.target===overlay)finish(false)});document.addEventListener('keydown',onKey);document.body.appendChild(overlay);cancel.focus()})}
