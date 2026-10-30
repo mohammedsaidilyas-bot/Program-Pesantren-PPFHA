@@ -23,8 +23,14 @@
  </div>
  <div class="card table-wrap"><div class="table-toolbar"><div><h3>Rekap Kehadiran</h3><p>Catatan kehadiran berdasarkan tanggal dan kegiatan.</p></div><div class="filters"><input id="attendanceDate" type="date"><select id="attendanceFilter"><option value="all">Semua Kegiatan</option><option value="jamaah">Sholat Berjamaah</option><option value="kitab-pagi">Ngaji Kitab Pagi</option><option value="albab">Ngaji Kitab Metode Albab</option><option value="alquran">Ngaji Al-Qur'an</option><option value="madrasiyah">Madrasiyah</option></select><button class="secondary" id="loadAttendanceRecords" type="button">Tampilkan</button></div></div><div class="table-scroll"><table><thead><tr><th>No</th><th>Waktu</th><th>NIS</th><th>Nama Santri</th><th>Kegiatan</th><th>Status</th></tr></thead><tbody id="attendanceRows"><tr><td colspan="6" class="empty">Pilih tanggal lalu tekan Tampilkan.</td></tr></tbody></table></div></div>
  </section><section id="pendidikan" class="page">
- <div class="head"><div><h2>Pendidikan Santri</h2><p>Kelola nilai raport madrasah sesuai format raport pesantren.</p></div><button class="secondary" id="refreshRaport" type="button">↻ Muat data</button></div>
- <div class="card">
+ <div class="head"><div><h2>Pendidikan Santri</h2><p>Kelola nilai raport madrasah sesuai format raport pesantren.</p></div>
+ <div id="educationMenu" class="education-menu">
+  <button type="button" class="education-tile" data-education-open="raport"><span class="education-tile-icon">📘</span><span><b>Nilai Raport Madrasah</b><small>Input dan riwayat nilai Semester I & II</small></span><span class="tile-arrow">›</span></button>
+  <button type="button" class="education-tile" data-education-open="albab"><span class="education-tile-icon">📚</span><span><b>Nilai Ujian Kitab Metode Albab</b><small>Nilai ujian tulis, baca, dan nilai akhir</small></span><span class="tile-arrow">›</span></button>
+  <div class="education-tile education-tile-soon"><span class="education-tile-icon">📖</span><span><b>Hafalan Kitab & Nadzom</b><small>Menu tahap berikutnya</small></span><span class="tile-soon">Segera</span></div>
+  <div class="education-tile education-tile-soon"><span class="education-tile-icon">📝</span><span><b>Catatan & Evaluasi Ustaz</b><small>Menu tahap berikutnya</small></span><span class="tile-soon">Segera</span></div>
+ </div>
+ <div id="educationRaportPage" class="education-detail hidden"><div class="education-detail-head"><button type="button" class="secondary education-back">← Kembali ke Pendidikan</button><h2>📘 Nilai Raport Madrasah</h2><p>Input dan lihat riwayat nilai raport santri.</p></div> <div class="card">
   <div class="form-title"><span class="form-icon">📘</span><div><h3>Input Raport Madrasah</h3><p>Masukkan NIS untuk memuat identitas santri, lalu isi nilai Semester I dan II.</p></div></div>
   <form id="formRaport">
    <div class="fields">
@@ -40,7 +46,8 @@
  </div>
  <div class="card table-wrap"><div class="table-toolbar"><div><h3>Riwayat Input Raport</h3><p>Nilai yang sudah disimpan untuk santri yang dipilih.</p></div></div><div class="table-scroll"><table><thead><tr><th>No</th><th>Mata Pelajaran</th><th>Semester</th><th>Prestasi</th><th>Rata-rata Kelas</th><th>Tahun Ajaran</th></tr></thead><tbody id="raportHistory"><tr><td colspan="6" class="empty">Masukkan NIS untuk melihat riwayat.</td></tr></tbody></table></div></div>
 
- <div class="card" id="albabCard">
+</div>
+ <div id="educationAlbabPage" class="education-detail hidden"><div class="education-detail-head"><button type="button" class="secondary education-back">← Kembali ke Pendidikan</button><h2>📚 Nilai Ujian Kitab Metode Albab</h2><p>Input dan lihat riwayat nilai ujian tulis dan baca.</p></div> <div class="card" id="albabCard">
   <div class="form-title"><span class="form-icon">📚</span><div><h3>Input Nilai Ujian Kitab Metode Albab</h3><p>Masukkan NIS atau scan kartu santri, lalu isi nilai ujian tulis dan ujian baca.</p></div></div>
   <form id="formAlbab">
    <div class="fields">
@@ -59,4 +66,5 @@
   </form>
  </div>
  <div class="card table-wrap"><div class="table-toolbar"><div><h3>Riwayat Nilai Ujian Albab</h3><p>Riwayat ujian santri yang dipilih.</p></div></div><div class="table-scroll"><table><thead><tr><th>No</th><th>Periode Ujian</th><th>Nilai Tulis</th><th>Nilai Baca</th><th>Nilai Akhir</th><th>Ustaz</th></tr></thead><tbody id="albabHistory"><tr><td colspan="6" class="empty">Masukkan NIS untuk melihat riwayat.</td></tr></tbody></table></div></div>
+</div>
 </section><footer>© Pondok Pesantren Fathul Huda Al-Qorrobiyah · Program Pesantren PPFHA</footer></main><div id="toast" role="status" aria-live="polite"></div><div id="adminKeyModal" class="qr-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminKeyTitle"><div class="qr-box admin-key-box"><div class="qr-head"><div><h3 id="adminKeyTitle">Verifikasi Pengurus</h3><p id="adminKeyDescription">Masukkan kunci pengurus untuk melanjutkan.</p></div></div><form id="adminKeyForm"><label>Kunci pengurus<input id="adminKeyInput" type="password" autocomplete="current-password" placeholder="Masukkan kunci pengurus" required></label><p class="key-note">Kunci disimpan hanya selama sesi browser ini.</p><div class="actions"><button type="button" class="secondary" id="cancelAdminKey">Batal</button><button type="submit" class="primary">Lanjutkan</button></div></form></div></div><div id="qrModal" class="qr-modal hidden" role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="qr-box"><div class="qr-head"><div><h3 id="qrTitle">Pindai QR Santri</h3><p>Arahkan kamera ke QR pada kartu santri.</p></div><button id="closeQr" class="secondary" type="button">Tutup</button></div><div id="qrReader"></div><p id="qrMessage" class="qr-message">Izinkan akses kamera jika diminta.</p></div></div><script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script><script src="app.js?v=pendidikan-albab-1"></script></body></html>
