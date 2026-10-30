@@ -38,7 +38,7 @@ async function openQr(target){
    nis=String(nis).trim().replace(/\D/g,'');
    if(!nis){$('#qrMessage').textContent='QR terbaca, tetapi tidak berisi NIS. Gunakan QR yang berisi nomor induk santri.';return}
    qrLocked=true;$('#qrMessage').textContent='QR terbaca. Memproses barcode santri…';
-   if(qrTarget==='attendance'){await closeQr();await recordAttendanceScan(nis);return}
+   if(qrTarget==='attendance'){if(!currentAttendanceActivity||!getActiveScheduleForActivity(currentAttendanceActivity)){qrLocked=true;await closeQr();refreshAttendanceScanGate();toast('Waktu absensi sudah berakhir atau belum dimulai. QR tidak dicatat.');return}await closeQr();await recordAttendanceScan(nis);return}
    $('#nisInput').value=nis;$('#formIzin').classList.remove('hidden');
    if(qrTarget==='search'){$('#search').value=nis;renderIzin()}
    await closeQr();
