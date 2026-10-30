@@ -404,8 +404,23 @@ async function sendHafalanSave(payload,key){
  if(!result||result.ok!==true)throw new Error(result&&result.error?result.error:'Server menolak penyimpanan tanpa keterangan.');
  return result;
 }
-$('#saveHafalanBtn').addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();const b=e.currentTarget;if(b.dataset.busy==='1')return;b.dataset.busy='1';try{if(!$('#formHafalan').checkValidity()){$('#formHafalan').reportValidity();return}await window.submitHafalanForm()}catch(err){hafalanSaveStatus('✕ PROSES SIMPAN TERHENTI: '+(err&&err.message?err.message:String(err)),'error')}finally{b.dataset.busy='0'}});
-$('#formHafalan').addEventListener('submit',e=>{e.preventDefault();e.stopPropagation();$('#saveHafalanBtn').click()});
+document.addEventListener('click',async e=>{
+ const button=e.target.closest('#saveHafalanBtn');
+ if(!button)return;
+ e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+ if(button.dataset.busy==='1')return;
+ button.dataset.busy='1';
+ try{
+  const form=$('#formHafalan');
+  if(!form){hafalanSaveStatus('Form hafalan tidak ditemukan. Muat ulang halaman.','error');return}
+  if(!form.checkValidity()){form.reportValidity();return}
+  hafalanSaveStatus('Tombol diterima. Memulai penyimpanan…','loading');
+  if(typeof window.submitHafalanForm!=='function')throw new Error('Fungsi penyimpanan belum dimuat. Muat ulang halaman.');
+  await window.submitHafalanForm();
+ }catch(err){hafalanSaveStatus('✕ PROSES SIMPAN TERHENTI: '+(err&&err.message?err.message:String(err)),'error')}
+ finally{button.dataset.busy='0'}
+},true);
+$('#formHafalan').addEventListener('submit',e=>{e.preventDefault();e.stopPropagation();const b=$('#saveHafalanBtn');if(b)b.click()});
 window.submitHafalanForm=async function(){
  const e={preventDefault:()=>{},currentTarget:$('#formHafalan')};
  e.preventDefault();
