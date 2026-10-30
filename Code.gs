@@ -539,3 +539,68 @@ function explainError_(err) {
     return 'Akun yang menjalankan Apps Script belum memiliki izin ke spreadsheet. Pastikan spreadsheet dapat diakses oleh akun tersebut. Detail: '+message;
   return message;
 }
+
+/* ==================== DATABASE PENDIDIKAN SANTRI ==================== */
+/**
+ * Menyiapkan tiga tab pendidikan pada database Uang Jajan Santri PPFHA.
+ * Aman: tidak menghapus, menimpa, atau mengubah tab/data yang sudah berisi.
+ * Jalankan fungsi ini satu kali dari editor Apps Script.
+ */
+function setupEducationDatabase() {
+  const educationHeaders = {
+    RaportMadrasah: [
+      'id','tanggalInput','nis','nama','kelas','tahunAjaran',
+      'mataPelajaran','kelompok','semester','prestasi','rataRataKelas',
+      'ustaz','catatan'
+    ],
+    UjianAlbab: [
+      'id','tanggalInput','nis','nama','kelas','periodeUjian',
+      'nilaiTulis','nilaiBaca','nilaiAkhir','catatan','ustaz'
+    ],
+    HafalanKitab: [
+      'id','tanggalInput','nis','nama','kelas','namaKitabNadzom',
+      'jenis','targetBait','capaianBait','status','catatan','ustaz'
+    ]
+  };
+
+  try {
+    const ss = SpreadsheetApp.openById(STUDENT_DB_ID);
+    const hasil = [];
+
+    Object.keys(educationHeaders).forEach(function(name) {
+      let sh = ss.getSheetByName(name);
+
+      if (!sh) {
+        sh = ss.insertSheet(name);
+        sh.getRange(1, 1, 1, educationHeaders[name].length)
+          .setValues([educationHeaders[name]]);
+        sh.setFrozenRows(1);
+        hasil.push('Tab ' + name + ' berhasil dibuat beserta header');
+        return;
+      }
+
+      if (sh.getLastRow() === 0) {
+        sh.getRange(1, 1, 1, educationHeaders[name].length)
+          .setValues([educationHeaders[name]]);
+        sh.setFrozenRows(1);
+        hasil.push('Header tab ' + name + ' berhasil ditambahkan');
+      } else {
+        hasil.push('Tab ' + name + ' sudah ada dan berisi data; tidak diubah');
+      }
+    });
+
+    const result = {
+      ok: true,
+      spreadsheet: ss.getName(),
+      spreadsheetUrl: ss.getUrl(),
+      tabs: hasil
+    };
+    Logger.log(JSON.stringify(result));
+    return JSON.stringify(result);
+  } catch (err) {
+    const message = explainError_(err);
+    Logger.log(message);
+    throw new Error(message);
+  }
+}
+
