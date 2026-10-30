@@ -28,6 +28,8 @@ document.addEventListener('click',e=>{
  if(nav){e.preventDefault();go(nav.dataset.page);return;}
  const quick=e.target.closest('[data-go]');
  if(quick){e.preventDefault();go(quick.dataset.go);return;}
+ const scanHafalan=e.target.closest('#scanHafalan');
+ if(scanHafalan){e.preventDefault();e.stopPropagation();openQr('hafalan');return;}
  const tile=e.target.closest('[data-education-open]');
  if(tile){e.preventDefault();openEducationModule(tile.dataset.educationOpen);return;}
  const back=e.target.closest('.education-back');
@@ -386,7 +388,7 @@ async function loadHafalanHistory(nis){
  const rows=j.data||[];body.innerHTML=rows.length?rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.tanggalInput||'—')+'</td><td>'+esc(x.namaKitabNadzom||'—')+'</td><td>'+esc(x.jenis||'—')+'</td><td>'+esc(x.targetBait||'—')+'</td><td>'+esc(x.capaianBait||'—')+'</td><td>'+esc(x.status||'—')+'</td><td>'+esc(x.catatan||'—')+'</td><td>'+esc(x.ustaz||'—')+'</td></tr>').join(''):'<tr><td colspan="9" class="empty">Belum ada catatan hafalan untuk NIS ini.</td></tr>';
  }catch(err){body.innerHTML='<tr><td colspan="9" class="empty">'+esc(err.message)+'</td></tr>'}
 }
-$('#scanHafalan').addEventListener('click',()=>openQr('hafalan'));
+// Tombol scan hafalan ditangani delegated click handler di awal file.
 $('#findHafalan').addEventListener('click',lookupHafalanStudent);
 $('#hafalanNis').addEventListener('change',lookupHafalanStudent);
 $('#hafalanNis').addEventListener('blur',lookupHafalanStudent);
