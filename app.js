@@ -148,6 +148,7 @@ $$('.attendance-open').forEach(button=>button.onclick=()=>{
       $('#scheduleSession').value=chosen.session||'Utama';
       loadScheduleForm();
       updateAttendancePortalSession();
+      refreshAttendanceScanGate();
       $('#attendanceScannerHint').textContent='Jadwal WIB berhasil dimuat. Petugas cukup scan QR KTS; kegiatan ditentukan otomatis.';
     }else{
       const label=ATTENDANCE_ACTIVITIES[requestedActivity]||'Kegiatan';
