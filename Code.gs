@@ -326,9 +326,12 @@ function recordAttendanceScan_(data) {
   const date = Utilities.formatDate(now, ATTENDANCE_TZ, 'yyyy-MM-dd');
   const time = Utilities.formatDate(now, ATTENDANCE_TZ, 'HH:mm');
   const weekday = new Date(date + 'T12:00:00+07:00').getDay();
-  // Penentuan sesi dilakukan di server. Nilai activity/session dari browser
-  // sengaja diabaikan agar petugas tidak bisa mengganti sesi secara manual.
+  // Kategori portal dipilih dari kartu kegiatan. Sesi/nama sholat tetap
+  // ditentukan sepenuhnya di server dari jadwal WIB, tidak menerima pilihan sesi manual.
+  const requestedActivity = normalizeAttendanceActivity_(data.activity);
+  if (!ATTENDANCE_ACTIVITY_NAMES[requestedActivity]) return {ok:false,error:'Portal kegiatan tidak valid.'};
   const allSchedules = attendanceScheduleRows_().filter(function(s) {
+    if (s.activity !== requestedActivity) return false;
     if (s.days.indexOf(weekday) < 0) return false;
     if (weekday === 5 && s.activity === 'jamaah' && (String(s.session) === 'Dzuhur' || String(s.session) === 'Ashar')) return false;
     return true;
