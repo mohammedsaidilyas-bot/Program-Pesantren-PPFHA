@@ -28,8 +28,6 @@ document.addEventListener('click',e=>{
  if(nav){e.preventDefault();go(nav.dataset.page);return;}
  const quick=e.target.closest('[data-go]');
  if(quick){e.preventDefault();go(quick.dataset.go);return;}
- const scanHafalan=e.target.closest('#scanHafalan');
- if(scanHafalan){e.preventDefault();e.stopPropagation();openQr('hafalan');return;}
  const tile=e.target.closest('[data-education-open]');
  if(tile){e.preventDefault();openEducationModule(tile.dataset.educationOpen);return;}
  const back=e.target.closest('.education-back');
@@ -343,9 +341,21 @@ renderRaportInputs();
 
 /* UJIAN KITAB METODE ALBAB */
 async function lookupAlbabStudent(){
- const nis=$('#albabNis').value.trim().replace(/\D/g,'');if(!nis)return;
- try{const r=await fetch(API_URL+'?action=student&nis='+encodeURIComponent(nis),{cache:'no-store'});const j=await r.json();if(!j.ok)throw new Error(j.error||'Santri tidak ditemukan');$('#albabNis').value=j.data.nis;$('#albabNama').value=j.data.nama;$('#albabKelas').value=j.data.kelas||'';await loadAlbabHistory(nis)}
- catch(err){$('#albabNama').value='';$('#albabKelas').value='';toast('Data santri: '+err.message)}
+ const input=$('#albabNis'),nama=$('#albabNama'),kelas=$('#albabKelas'),btn=$('#findAlbab');
+ const nis=String(input&&input.value||'').trim().replace(/\D/g,'');
+ if(!nis){toast('Masukkan NIS santri terlebih dahulu.');if(input)input.focus();return}
+ if(btn){btn.disabled=true;btn.textContent='Mencari…'}
+ try{
+  const response=await fetch(API_URL+'?action=student&nis='+encodeURIComponent(nis)+'&_='+Date.now(),{method:'GET',cache:'no-store'});
+  if(!response.ok)throw new Error('Server biodata merespons HTTP '+response.status);
+  const result=await response.json();
+  if(!result||result.ok!==true||!result.data)throw new Error(result&&result.error?result.error:'Biodata santri tidak ditemukan.');
+  input.value=String(result.data.nis||nis).replace(/\D/g,'');
+  nama.value=result.data.nama||'';kelas.value=result.data.kelas||'';
+  toast('Biodata ditemukan: '+nama.value);
+  loadAlbabHistory(nis).catch(err=>console.warn('Riwayat Albab:',err));
+ }catch(err){nama.value='';kelas.value='';toast('Pencarian NIS Albab gagal: '+(err.message||'Periksa koneksi.'))}
+ finally{if(btn){btn.disabled=false;btn.textContent='Cari'}}
 }
 async function loadAlbabHistory(nis){
  const body=$('#albabHistory');if(!body)return;
@@ -356,7 +366,7 @@ async function loadAlbabHistory(nis){
  }catch(err){body.innerHTML='<tr><td colspan="6" class="empty">'+esc(err.message)+'</td></tr>'}
 }
 function updateAlbabFinal(){const t=$('#nilaiTulis').value,b=$('#nilaiBaca').value;$('#nilaiAkhir').value=t!==''&&b!==''?((Number(t)+Number(b))/2).toLocaleString('id-ID',{maximumFractionDigits:2}):'0'}
-$('#scanAlbab').addEventListener('click',()=>openQr('albab'));
+$('#scanAlbab').onclick=e=>{e.preventDefault();e.stopPropagation();openQr('albab')};
 $('#findAlbab').addEventListener('click',lookupAlbabStudent);
 $('#albabNis').addEventListener('change',lookupAlbabStudent);
 $('#albabNis').addEventListener('blur',lookupAlbabStudent);
@@ -410,7 +420,7 @@ async function lookupHafalanStudent(){
 }
 window.lookupHafalanStudent=lookupHafalanStudent;
 $('#findHafalan').onclick=e=>{e.preventDefault();lookupHafalanStudent()};
-$('#scanHafalan').onclick=()=>openQr('hafalan');
+$('#scanHafalan').onclick=e=>{e.preventDefault();e.stopPropagation();openQr('hafalan')};
 $('#hafalanNis').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupHafalanStudent()}});
 $('#refreshHafalan').onclick=()=>{const n=$('#hafalanNis').value.trim();if(n)loadHafalanHistory(n);else setHafalanLookupStatus('Masukkan NIS santri terlebih dahulu.','error')};
 $('#formHafalan').addEventListener('reset',()=>setTimeout(()=>{$('#hafalanNama').value='';$('#hafalanKelas').value='';setHafalanLookupStatus('Form dikosongkan.','loading')},0));
