@@ -1,20 +1,17 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 /* Handler pendidikan dipasang sejak awal agar tetap aktif bila inisialisasi modul lain mengalami error. */
 document.addEventListener('click',function(e){
- const target=e.target&&e.target.closest?e.target.closest('#scanAlbab, #scanHafalan, #findAlbab, #findHafalan'):null;
+ const target=e.target&&e.target.closest?e.target.closest('#scanAlbab, #findAlbab'):null;
  if(!target)return;
  e.preventDefault();
  if(target.id==='scanAlbab'){openQr('albab');return;}
- if(target.id==='scanHafalan'){openQr('hafalan');return;}
  if(target.id==='findAlbab'){lookupAlbabStudent();return;}
- if(target.id==='findHafalan'){lookupHafalanStudent();return;}
 },true);
 document.addEventListener('keydown',function(e){
  if(e.key!=='Enter')return;
- const input=e.target&&e.target.closest?e.target.closest('#albabNis, #hafalanNis'):null;
+ const input=e.target&&e.target.closest?e.target.closest('#albabNis'):null;
  if(!input)return;
- e.preventDefault();
- if(input.id==='albabNis')lookupAlbabStudent();else lookupHafalanStudent();
+ e.preventDefault();lookupAlbabStudent();
 },true);
 const API_URL='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbKFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
 const data={izin:[],peng:[],keg:[]};const names={dashboard:'Dashboard',izin:'Izin Santri',pengumuman:'Pengumuman',kegiatan:'Kegiatan & Jadwal',kehadiran:'Kegiatan & Kehadiran',pendidikan:'Pendidikan Santri'};let adminKey=sessionStorage.getItem('ppfha_admin_key')||'';
@@ -433,7 +430,12 @@ async function lookupHafalanStudent(){
  }finally{if(token===hafalanLookupToken&&btn){btn.disabled=false;btn.textContent='Cari'}}
 }
 window.lookupHafalanStudent=lookupHafalanStudent;
-// Tombol Hafalan ditangani oleh delegated capture handler di bagian akhir file.
+/* Handler khusus Hafalan: dipasang langsung pada elemen form agar tidak bergantung
+   pada delegated listener bersama modul lain. Perubahan dibatasi ke modul ini. */
+const hafalanFindButton=$('#findHafalan'),hafalanScanButton=$('#scanHafalan'),hafalanNisInput=$('#hafalanNis');
+if(hafalanFindButton)hafalanFindButton.addEventListener('click',event=>{event.preventDefault();lookupHafalanStudent()});
+if(hafalanNisInput)hafalanNisInput.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();lookupHafalanStudent()}});
+if(hafalanScanButton)hafalanScanButton.addEventListener('click',event=>{event.preventDefault();openQr('hafalan')});
 $('#refreshHafalan').onclick=()=>{const n=$('#hafalanNis').value.trim();if(n)loadHafalanHistory(n);else setHafalanLookupStatus('Masukkan NIS santri terlebih dahulu.','error')};
 $('#formHafalan').addEventListener('reset',()=>setTimeout(()=>{$('#hafalanNama').value='';$('#hafalanKelas').value='';setHafalanLookupStatus('Form dikosongkan.','loading')},0));
 function hafalanSaveStatus(message,kind){
