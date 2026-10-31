@@ -422,7 +422,6 @@ $('#formAlbab').addEventListener('submit',async e=>{
 
 
 /* HAFALAN KITAB & NADZOM */
-let hafalanLookupToken=0;
 function setHafalanLookupStatus(message,kind){
  const el=$('#hafalanLookupStatus');if(!el)return;
  el.textContent=message;el.style.display='block';el.style.padding='9px 11px';el.style.marginTop='8px';el.style.borderRadius='8px';
@@ -431,26 +430,31 @@ function setHafalanLookupStatus(message,kind){
 }
 async function lookupHafalanStudent(){
  const input=$('#hafalanNis'),nama=$('#hafalanNama'),kelas=$('#hafalanKelas'),btn=$('#findHafalan');
- if(!input||!nama||!kelas){toast('Form hafalan tidak ditemukan. Muat ulang halaman.');return}
- const raw=String(input.value||'').trim(),labeled=raw.match(/NIS\s*[:=：-]\s*(\d+)/i),tail=raw.split(/[|;]/).pop()||raw;
- const nis=(labeled&&labeled[1])||(tail.match(/\d+/g)||[]).join('');
+ if(!input||!nama||!kelas){setHafalanLookupStatus('Form Hafalan tidak ditemukan. Muat ulang halaman.','error');return}
+ const raw=String(input.value||'').trim();
+ const label=raw.match(/NIS\\s*[:=：-]\\s*(\\d+)/i);
+ const tail=raw.split(/[|;]/).pop()||raw;
+ const nis=(label&&label[1])||(tail.match(/\\d+/g)||[]).join('');
  if(!nis){setHafalanLookupStatus('Masukkan NIS santri terlebih dahulu.','error');input.focus();return}
- const token=++hafalanLookupToken;input.value=nis;nama.value='';kelas.value='';
- setHafalanLookupStatus('Memeriksa data santri…','loading');
+ input.value=nis;nama.value='';kelas.value='';
+ setHafalanLookupStatus('Sedang mencari NIS '+nis+'…','loading');
  if(btn){btn.disabled=true;btn.textContent='Mencari…'}
  try{
   const response=await fetch(API_URL+'?action=student&nis='+encodeURIComponent(nis)+'&_='+Date.now(),{method:'GET',cache:'no-store'});
   if(!response.ok)throw new Error('Server biodata merespons HTTP '+response.status);
-  const result=await response.json();if(token!==hafalanLookupToken)return;
-  if(!result||result.ok!==true||!result.data)throw new Error(result&&result.error?result.error:'NIS tidak ditemukan di database Uang Jajan Santri.');
-  const student=result.data;if(!student.nama)throw new Error('NIS ditemukan, tetapi nama santri kosong pada database.');
-  input.value=String(student.nis||nis).replace(/\D/g,'');nama.value=student.nama||'';kelas.value=student.kelas||'';
-  setHafalanLookupStatus('✓ Biodata ditemukan: '+student.nama+(student.kelas?' — '+student.kelas:''),'success');
-  loadHafalanHistory(nis).catch(()=>{});
- }catch(error){
-  if(token!==hafalanLookupToken)return;nama.value='';kelas.value='';
-  setHafalanLookupStatus('Pencarian gagal: '+(error&&error.message?error.message:'Periksa koneksi internet.'),'error');
- }finally{if(token===hafalanLookupToken&&btn){btn.disabled=false;btn.textContent='Cari'}}
+  const result=await response.json();
+  if(!result||result.ok!==true||!result.data)throw new Error(result&&result.error?result.error:'Biodata santri tidak ditemukan.');
+  const student=result.data;
+  if(!student.nama)throw new Error('Data NIS ditemukan, tetapi nama santri kosong.');
+  input.value=String(student.nis||nis).replace(/\\D/g,'');
+  nama.value=student.nama||'';kelas.value=student.kelas||'';
+  setHafalanLookupStatus('✓ Biodata ditemukan: '+nama.value+(kelas.value?' — '+kelas.value:''),'success');
+ }catch(err){
+  nama.value='';kelas.value='';
+  setHafalanLookupStatus('Pencarian NIS gagal: '+(err&&err.message?err.message:'Periksa koneksi internet.'),'error');
+ }finally{
+  if(btn){btn.disabled=false;btn.textContent='Cari'}
+ }
 }
 window.lookupHafalanStudent=lookupHafalanStudent;
 /* Handler khusus Hafalan: dipasang langsung pada elemen form agar tidak bergantung
