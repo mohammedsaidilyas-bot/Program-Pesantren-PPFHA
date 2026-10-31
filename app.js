@@ -581,5 +581,39 @@ $('#refreshEvaluasi').onclick=()=>{const n=$('#evaluasiNis').value.trim();if(n)l
 $('#formEvaluasi').addEventListener('reset',()=>setTimeout(()=>{$('#evaluasiNama').value='';$('#evaluasiKelas').value=''},0));
 $('#formEvaluasi').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,nis=$('#evaluasiNis').value.trim(),nama=$('#evaluasiNama').value.trim(),kelas=$('#evaluasiKelas').value.trim();if(!nis||!nama){toast('Masukkan NIS santri yang valid terlebih dahulu.');return}if(!form.elements.catatanEvaluasi.value.trim()||!form.elements.ustaz.value.trim()){toast('Catatan evaluasi dan nama ustaz wajib diisi.');return}if(!adminKey){adminKey=await requestAdminKey('Simpan catatan evaluasi ustaz');if(!adminKey)return;sessionStorage.setItem('ppfha_admin_key',adminKey)}const btn=form.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Menyimpan…';try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'saveeducationevaluasi',apiKey:adminKey,data:{nis,nama,kelas,kategori:form.elements.kategori.value,catatanEvaluasi:form.elements.catatanEvaluasi.value.trim(),saranTindakLanjut:form.elements.saranTindakLanjut.value.trim(),ustaz:form.elements.ustaz.value.trim()}})});const x=await r.json();if(!x.ok)throw new Error(x.error||'Evaluasi gagal disimpan');toast('Catatan evaluasi berhasil disimpan.');await loadEvaluasiHistory(nis)}catch(err){toast('Gagal menyimpan evaluasi: '+err.message)}finally{btn.disabled=false;btn.textContent='➤ Simpan Evaluasi'}});
 
-
-
+/* HOTFIX 2026-11-01: pastikan tombol simpan Albab tertangkap dan status selalu terlihat. */
+(function(){
+ function ensureAlbabSaveStatus(){
+  const form=document.getElementById('formAlbab');
+  if(!form)return;
+  let status=document.getElementById('albabSaveStatus');
+  if(!status){
+   status=document.createElement('div');
+   status.id='albabSaveStatus';
+   status.setAttribute('role','status');
+   status.setAttribute('aria-live','polite');
+   status.style.display='none';
+   const actions=form.querySelector('.actions');
+   if(actions)form.insertBefore(status,actions);
+   else form.appendChild(status);
+  }
+ }
+ ensureAlbabSaveStatus();
+ document.addEventListener('input',function(event){
+  if(event.target&&['nilaiTulis','nilaiBaca'].includes(event.target.id)){
+   if(typeof updateAlbabFinal==='function')updateAlbabFinal();
+  }
+ },true);
+ document.addEventListener('click',function(event){
+  const button=event.target&&event.target.closest?event.target.closest('#formAlbab .albab-save-action'):null;
+  if(!button)return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  ensureAlbabSaveStatus();
+  if(typeof handleAlbabSave==='function')handleAlbabSave();
+  else {
+   const status=document.getElementById('albabSaveStatus');
+   if(status){status.textContent='Kesalahan aplikasi: fungsi simpan belum siap. Muat ulang halaman.';status.style.display='block';}
+  }
+ },true);
+})();
