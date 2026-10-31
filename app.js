@@ -349,15 +349,33 @@ $('#raportNis').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefa
 $('#raportNis').addEventListener('blur',lookupRaportStudent);
 $('#refreshRaport').onclick=()=>{const n=$('#raportNis').value.trim();if(n)loadRaportHistory(n);else toast('Masukkan NIS santri terlebih dahulu.')};
 $('#formRaport').addEventListener('reset',()=>setTimeout(()=>{ $('#raportNama').value='';$('#raportKelas').value='';updateRaportTotals();},0));
-$('#formRaport').addEventListener('submit',async e=>{
- e.preventDefault();
- const form=e.currentTarget,nis=$('#raportNis').value.trim(),nama=$('#raportNama').value.trim(),kelas=$('#raportKelas').value.trim();
- if(!nis||!nama){toast('Masukkan NIS santri yang valid terlebih dahulu.');return}
- const tahunAjaran=form.elements.tahunAjaran.value.trim(),ustaz=form.elements.ustaz.value.trim();
- const records=[];
+
+function raportSaveStatus(message,type){
+ let status=$('#raportSaveStatus');
+ if(!status){
+  status=document.createElement('div');status.id='raportSaveStatus';
+  status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+  status.className='notice';status.style.margin='12px 0';
+  const form=$('#formRaport'),actions=form&&form.querySelector('.actions');
+  if(actions)form.insertBefore(status,actions);else if(form)form.appendChild(status);
+ }
+ status.textContent=message;status.style.display='block';
+ status.dataset.state=type||'info';
+ status.style.background=type==='success'?'#e8f7ee':type==='error'?'#fdecec':'#eef5f2';
+ status.style.color=type==='success'?'#17633b':type==='error'?'#a12626':'#28594b';
+ return status;
+}
+async function handleRaportSave(){
+ const form=$('#formRaport'),btn=form&&form.querySelector('button[type="submit"]');
+ if(!form||!btn){raportSaveStatus('Form atau tombol Simpan Raport tidak ditemukan.','error');return}
+ if(btn.dataset.busy==='1')return;
+ if(!form.checkValidity()){form.reportValidity();return}
+ const nis=String($('#raportNis').value||'').trim(),nama=$('#raportNama').value.trim(),kelas=$('#raportKelas').value.trim();
+ if(!nis||!nama){raportSaveStatus('Cari NIS sampai biodata santri muncul sebelum menyimpan.','error');return}
+ const tahunAjaran=form.elements.tahunAjaran.value.trim(),ustaz=form.elements.ustaz.value.trim(),records=[];
  raportSubjects.forEach((s,i)=>{
   if(s[1]==='group')return;
-  const name=s[1]==='custom'?($('#raportSubjects [data-custom-name]').value.trim()):s[0];
+  const name=s[1]==='custom'?($('#raportSubjects [data-custom-name]')?.value.trim()):s[0];
   if(!name)return;
   [1,2].forEach(semester=>{
    const p=$('.raport-score[data-subject="'+i+'"][data-sem="'+semester+'"][data-kind="prestasi"]');
@@ -365,15 +383,46 @@ $('#formRaport').addEventListener('submit',async e=>{
    if((p&&p.value!=='')||(a&&a.value!==''))records.push({nis,nama,kelas,tahunAjaran,mataPelajaran:name,kelompok:s[1]==='lokal'?'Muatan Lokal':'Mata Pelajaran',semester,prestasi:p?p.value:'',rataRataKelas:a?a.value:'',ustaz});
   });
  });
- if(!records.length){toast('Isi minimal satu nilai sebelum menyimpan.');return}
- if(!adminKey){adminKey=await requestAdminKey('Simpan nilai raport madrasah');if(!adminKey)return;sessionStorage.setItem('ppfha_admin_key',adminKey)}
- const btn=form.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Menyimpan…';
+ if(!records.length){raportSaveStatus('Isi minimal satu nilai sebelum menyimpan.','error');return}
+ btn.dataset.busy='1';btn.disabled=true;btn.textContent='Menyimpan…';
+ raportSaveStatus('Mengirim nilai raport ke Google Sheets…','loading');
  try{
-  const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'saveeducationraport',apiKey:adminKey,records})});const j=await r.json();if(!j.ok)throw new Error(j.error||'Nilai gagal disimpan');
-  toast('Nilai raport berhasil disimpan ('+j.saved+' entri).');await loadRaportHistory(nis);
- }catch(err){toast('Gagal menyimpan nilai raport: '+err.message)}
- finally{btn.disabled=false;btn.textContent='➤ Simpan Nilai Raport'}
-});
+  if(!adminKey){adminKey=await requestAdminKey('Simpan nilai raport madrasah');if(!adminKey)throw new Error('Penyimpanan dibatalkan: kunci pengurus belum dimasukkan.')}
+  const send=async key=>{
+   const response=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'saveeducationraport',apiKey:key,records})});
+   const result=await response.json();
+   if(!result.ok)throw new Error(result.error||'Nilai gagal disimpan.');
+   return result;
+  };
+  let result;
+  try{result=await send(adminKey)}
+  catch(error){
+   if(!/kunci pengurus tidak valid|akses ditolak/i.test(error.message))throw error;
+   adminKey='';sessionStorage.removeItem('ppfha_admin_key');
+   adminKey=await requestAdminKey('Kunci pengurus lama ditolak. Masukkan kunci pengurus yang benar.');
+   if(!adminKey)throw new Error('Penyimpanan dibatalkan karena kunci pengurus tidak dimasukkan.');
+   result=await send(adminKey);
+  }
+  adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey);
+  raportSaveStatus('✓ BERHASIL DISIMPAN. '+(result.message||('Nilai raport berhasil disimpan ('+result.saved+' entri).')),'success');
+  toast('Nilai raport berhasil disimpan ('+result.saved+' entri).');
+  await loadRaportHistory(nis);
+ }catch(error){
+  raportSaveStatus('✕ GAGAL DISIMPAN: '+(error&&error.message?error.message:'Kesalahan tidak diketahui.'),'error');
+  toast('Gagal menyimpan nilai raport: '+(error.message||'Periksa koneksi.'));
+ }finally{
+  btn.dataset.busy='0';btn.disabled=false;btn.textContent='➤ Simpan Nilai Raport';
+ }
+}
+window.handleRaportSave=handleRaportSave;
+document.addEventListener('click',function(event){
+ const button=event.target&&event.target.closest?event.target.closest('#formRaport button[type="submit"]'):null;
+ if(!button)return;
+ event.preventDefault();event.stopImmediatePropagation();
+ handleRaportSave();
+},true);
+$('#formRaport').addEventListener('submit',event=>{event.preventDefault();event.stopPropagation();handleRaportSave()});
+
 renderRaportInputs();
 
 /* UJIAN KITAB METODE ALBAB */
