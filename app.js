@@ -366,10 +366,7 @@ async function loadAlbabHistory(nis){
  }catch(err){body.innerHTML='<tr><td colspan="6" class="empty">'+esc(err.message)+'</td></tr>'}
 }
 function updateAlbabFinal(){const t=$('#nilaiTulis').value,b=$('#nilaiBaca').value;$('#nilaiAkhir').value=t!==''&&b!==''?((Number(t)+Number(b))/2).toLocaleString('id-ID',{maximumFractionDigits:2}):'0'}
-$('#scanAlbab').onclick=e=>{e.preventDefault();e.stopPropagation();openQr('albab')};
-$('#findAlbab').addEventListener('click',lookupAlbabStudent);
-$('#albabNis').addEventListener('change',lookupAlbabStudent);
-$('#albabNis').addEventListener('blur',lookupAlbabStudent);
+// Tombol Albab ditangani oleh delegated capture handler di bagian akhir file.
 $('#nilaiTulis').addEventListener('input',updateAlbabFinal);
 $('#nilaiBaca').addEventListener('input',updateAlbabFinal);
 $('#formAlbab').addEventListener('reset',()=>setTimeout(()=>{$('#albabNama').value='';$('#albabKelas').value='';updateAlbabFinal()},0));
@@ -419,9 +416,7 @@ async function lookupHafalanStudent(){
  }finally{if(token===hafalanLookupToken&&btn){btn.disabled=false;btn.textContent='Cari'}}
 }
 window.lookupHafalanStudent=lookupHafalanStudent;
-$('#findHafalan').onclick=e=>{e.preventDefault();lookupHafalanStudent()};
-$('#scanHafalan').onclick=e=>{e.preventDefault();e.stopPropagation();openQr('hafalan')};
-$('#hafalanNis').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupHafalanStudent()}});
+// Tombol Hafalan ditangani oleh delegated capture handler di bagian akhir file.
 $('#refreshHafalan').onclick=()=>{const n=$('#hafalanNis').value.trim();if(n)loadHafalanHistory(n);else setHafalanLookupStatus('Masukkan NIS santri terlebih dahulu.','error')};
 $('#formHafalan').addEventListener('reset',()=>setTimeout(()=>{$('#hafalanNama').value='';$('#hafalanKelas').value='';setHafalanLookupStatus('Form dikosongkan.','loading')},0));
 function hafalanSaveStatus(message,kind){
@@ -491,3 +486,20 @@ $('#scanEvaluasi').addEventListener('click',()=>openQr('evaluasi'));$('#findEval
 $('#refreshEvaluasi').onclick=()=>{const n=$('#evaluasiNis').value.trim();if(n)loadEvaluasiHistory(n);else toast('Masukkan NIS santri terlebih dahulu.')};
 $('#formEvaluasi').addEventListener('reset',()=>setTimeout(()=>{$('#evaluasiNama').value='';$('#evaluasiKelas').value=''},0));
 $('#formEvaluasi').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,nis=$('#evaluasiNis').value.trim(),nama=$('#evaluasiNama').value.trim(),kelas=$('#evaluasiKelas').value.trim();if(!nis||!nama){toast('Masukkan NIS santri yang valid terlebih dahulu.');return}if(!form.elements.catatanEvaluasi.value.trim()||!form.elements.ustaz.value.trim()){toast('Catatan evaluasi dan nama ustaz wajib diisi.');return}if(!adminKey){adminKey=await requestAdminKey('Simpan catatan evaluasi ustaz');if(!adminKey)return;sessionStorage.setItem('ppfha_admin_key',adminKey)}const btn=form.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Menyimpan…';try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'saveeducationevaluasi',apiKey:adminKey,data:{nis,nama,kelas,kategori:form.elements.kategori.value,catatanEvaluasi:form.elements.catatanEvaluasi.value.trim(),saranTindakLanjut:form.elements.saranTindakLanjut.value.trim(),ustaz:form.elements.ustaz.value.trim()}})});const x=await r.json();if(!x.ok)throw new Error(x.error||'Evaluasi gagal disimpan');toast('Catatan evaluasi berhasil disimpan.');await loadEvaluasiHistory(nis)}catch(err){toast('Gagal menyimpan evaluasi: '+err.message)}finally{btn.disabled=false;btn.textContent='➤ Simpan Evaluasi'}});
+
+
+/* Handler terpusat untuk pencarian NIS dan kamera pada Albab/Hafalan.
+   Capture phase memastikan klik tetap tertangkap meskipun ada handler lama/tertimpa. */
+document.addEventListener('click',function(e){
+ const scan=e.target.closest('#scanAlbab, #scanHafalan');
+ if(scan){e.preventDefault();e.stopImmediatePropagation();openQr(scan.id==='scanAlbab'?'albab':'hafalan');return;}
+ const find=e.target.closest('#findAlbab, #findHafalan');
+ if(find){e.preventDefault();e.stopImmediatePropagation();if(find.id==='findAlbab')lookupAlbabStudent();else lookupHafalanStudent();return;}
+},true);
+document.addEventListener('keydown',function(e){
+ if(e.key!=='Enter')return;
+ const input=e.target.closest('#albabNis, #hafalanNis');
+ if(!input)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ if(input.id==='albabNis')lookupAlbabStudent();else lookupHafalanStudent();
+},true);
