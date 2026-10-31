@@ -490,7 +490,8 @@ function attendanceCellDate_(value) {
   if (value instanceof Date && !isNaN(value.getTime()))
     return Utilities.formatDate(value, ATTENDANCE_TZ, 'yyyy-MM-dd');
   const text = String(value == null ? '' : value).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  const isoDatePrefix=text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoDatePrefix) return isoDatePrefix[1];
   let m = text.match(/^(\d{1,2})[\\/.-](\d{1,2})[\\/.-](\d{4})$/);
   if (m) return m[3] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[1]).padStart(2,'0');
   const parsed = new Date(value);
