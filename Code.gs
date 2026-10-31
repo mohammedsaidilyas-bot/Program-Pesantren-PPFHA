@@ -523,35 +523,41 @@ function attendanceExistingKeys_(sh, date) {
 }
 
 
-/** Mengambil NIS santri yang sedang berstatus Izin Sakit pada tanggal absensi. */
-function activeSickStudents_(targetDate) {
+/** Mengambil semua izin aktif yang sah untuk dikecualikan dari absensi. */
+function activeAttendancePermissions_(targetDate) {
   const ss=SpreadsheetApp.openById(SPREADSHEET_ID), sh=ss.getSheetByName('Izin'), active={};
   if(!sh || sh.getLastRow()<2) return active;
   const values=sh.getDataRange().getValues(), headers=values[0].map(function(v){return String(v||'').trim();});
   const ix={}; headers.forEach(function(h,i){ix[h]=i;});
   values.slice(1).forEach(function(row){
-    const jenis=String(row[ix.jenis]||'').trim().toLowerCase(), status=String(row[ix.status]||'').trim().toLowerCase();
-    if(jenis!=='izin sakit' || status!=='sakit' || (row[ix.kembali] && String(row[ix.kembali]).trim())) return;
+    const jenis=String(row[ix.jenis]||'').trim(), lower=jenis.toLowerCase();
+    const status=String(row[ix.status]||'').trim().toLowerCase(), isSick=lower==='izin sakit';
+    if(!(isSick ? status==='sakit' : ['diizinkan','sudah keluar'].indexOf(status)>=0)) return;
+    if(row[ix.kembali] && String(row[ix.kembali]).trim()) return;
     const nis=String(row[ix.nis]||'').trim().replace(/\D/g,''); if(!nis) return;
-    const mulai=attendanceCellDate_(row[ix.keluar] || row[ix.dibuatPada]);
-    if(mulai && mulai<=targetDate) active[nis]={date:mulai,time:attendanceCellTime_(row[ix.keluar] || row[ix.dibuatPada])||'00:00'};
+    const startValue=row[ix.keluar]||row[ix.dibuatPada], date=attendanceCellDate_(startValue);
+    const time=attendanceCellTime_(startValue)||'00:00', endValue=row[ix.rencanaKembali];
+    const endDate=endValue?attendanceCellDate_(endValue):'', endTime=endValue?(attendanceCellTime_(endValue)||'23:59'):'23:59';
+    if(!date || date>targetDate || (endDate && endDate<targetDate)) return;
+    const label=isSick?'Izin Sakit':(lower.indexOf('pulang')>=0?'Izin Pulang':(lower.indexOf('keluar')>=0?'Izin Keluar':jenis));
+    const old=active[nis];
+    if(!old || date+' '+time>old.date+' '+old.time) active[nis]={date:date,time:time,endDate:endDate,endTime:endTime,status:label};
   });
   return active;
 }
 
-/** Menulis status Izin Sakit tanpa menimpa catatan hadir/terlambat yang sudah sah. */
-function writeSickAttendance_(sh,date,activity,session,student) {
+function writePermissionAttendance_(sh,date,activity,session,student,permission) {
   const rows=sh.getLastRow()>1?sh.getDataRange().getValues():[];
   for(let i=1;i<rows.length;i++) {
     const row=rows[i];
     if(attendanceCellDate_(row[0])===date && normalizeAttendanceActivity_(row[1])===activity && String(row[2]||'Utama')===session && String(row[3]||'').trim().replace(/\D/g,'')===student.nis) {
       const old=String(row[5]||'').toLowerCase();
-      if(old==='hadir'||old==='terlambat'||old==='izin sakit') return false;
-      sh.getRange(i+1,6,1,4).setValues([['Izin Sakit','',new Date(),'Otomatis · Izin Sakit']]);
+      if(old==='hadir'||old==='terlambat'||old.indexOf('izin')===0) return false;
+      sh.getRange(i+1,6,1,4).setValues([[permission.status,'',new Date(),'Otomatis · '+permission.status]]);
       return true;
     }
   }
-  sh.appendRow([date,activity,session,student.nis,student.nama,'Izin Sakit','',new Date(),'Otomatis · Izin Sakit']);
+  sh.appendRow([date,activity,session,student.nis,student.nama,permission.status,'',new Date(),'Otomatis · '+permission.status]);
   return true;
 }
 
@@ -572,7 +578,7 @@ function processAttendanceDeadlines_(targetDate) {
     return true;
   });
   const students = attendanceStudentRoster_();
-  const sick = activeSickStudents_(date);
+  const permissions = activeAttendancePermissions_(date);
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -584,10 +590,10 @@ function processAttendanceDeadlines_(targetDate) {
       if (date === today && nowTime <= end) return;
       students.forEach(function(st) {
         const key=[date,s.activity,s.session,st.nis].join('|');
-        const sickStart=sick[st.nis], sickForSession=!!(sickStart && (sickStart.date<date || (sickStart.date===date && sickStart.time<=end)));
-        if (sickForSession) {
-          if (!existing[key] || String(existing[key].status).toLowerCase()==='tidak hadir') writeSickAttendance_(sh,date,s.activity,s.session,st);
-          existing[key]=existing[key]||{status:'Izin Sakit'};
+        const permission=permissions[st.nis], permissionForSession=!!(permission && (permission.date<date || (permission.date===date && permission.time<=end)) && (!permission.endDate || permission.endDate>date || (permission.endDate===date && permission.endTime>=end)));
+        if (permissionForSession) {
+          if (!existing[key] || String(existing[key].status).toLowerCase()==='tidak hadir') writePermissionAttendance_(sh,date,s.activity,s.session,st,permission);
+          existing[key]=existing[key]||{status:permission.status};
         } else if (!existing[key]) {
           additions.push([date,s.activity,s.session,st.nis,st.nama,'Tidak Hadir','',new Date(),'Otomatis']);
           existing[key]=true;
