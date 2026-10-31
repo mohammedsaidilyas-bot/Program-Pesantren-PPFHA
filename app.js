@@ -702,14 +702,3 @@ $('#formEvaluasi').addEventListener('submit',async e=>{e.preventDefault();const 
  },true);
 })();
 
-
-/* HOTFIX: tombol Simpan Raport memicu submit form secara langsung. */
-document.addEventListener('click',function(e){
- const button=e.target&&e.target.closest?e.target.closest('#formRaport button[type="submit"]'):null;
- if(!button)return;
- e.preventDefault();
- e.stopImmediatePropagation();
- const form=document.getElementById('formRaport');
- if(!form)return;
- form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
-},true);
