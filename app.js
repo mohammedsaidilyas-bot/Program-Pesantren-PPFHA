@@ -1,4 +1,21 @@
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const $=s=>document.querySelector(s),$=s=>[...document.querySelectorAll(s)];
+/* Handler pendidikan dipasang sejak awal agar tetap aktif bila inisialisasi modul lain mengalami error. */
+document.addEventListener('click',function(e){
+ const target=e.target&&e.target.closest?e.target.closest('#scanAlbab, #scanHafalan, #findAlbab, #findHafalan'):null;
+ if(!target)return;
+ e.preventDefault();
+ if(target.id==='scanAlbab'){openQr('albab');return;}
+ if(target.id==='scanHafalan'){openQr('hafalan');return;}
+ if(target.id==='findAlbab'){lookupAlbabStudent();return;}
+ if(target.id==='findHafalan'){lookupHafalanStudent();return;}
+},true);
+document.addEventListener('keydown',function(e){
+ if(e.key!=='Enter')return;
+ const input=e.target&&e.target.closest?e.target.closest('#albabNis, #hafalanNis'):null;
+ if(!input)return;
+ e.preventDefault();
+ if(input.id==='albabNis')lookupAlbabStudent();else lookupHafalanStudent();
+},true);
 const API_URL='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbKFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
 const data={izin:[],peng:[],keg:[]};const names={dashboard:'Dashboard',izin:'Izin Santri',pengumuman:'Pengumuman',kegiatan:'Kegiatan & Jadwal',kehadiran:'Kegiatan & Kehadiran',pendidikan:'Pendidikan Santri'};let adminKey=sessionStorage.getItem('ppfha_admin_key')||'';
 function go(p){
@@ -488,18 +505,4 @@ $('#formEvaluasi').addEventListener('reset',()=>setTimeout(()=>{$('#evaluasiNama
 $('#formEvaluasi').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,nis=$('#evaluasiNis').value.trim(),nama=$('#evaluasiNama').value.trim(),kelas=$('#evaluasiKelas').value.trim();if(!nis||!nama){toast('Masukkan NIS santri yang valid terlebih dahulu.');return}if(!form.elements.catatanEvaluasi.value.trim()||!form.elements.ustaz.value.trim()){toast('Catatan evaluasi dan nama ustaz wajib diisi.');return}if(!adminKey){adminKey=await requestAdminKey('Simpan catatan evaluasi ustaz');if(!adminKey)return;sessionStorage.setItem('ppfha_admin_key',adminKey)}const btn=form.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Menyimpan…';try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'saveeducationevaluasi',apiKey:adminKey,data:{nis,nama,kelas,kategori:form.elements.kategori.value,catatanEvaluasi:form.elements.catatanEvaluasi.value.trim(),saranTindakLanjut:form.elements.saranTindakLanjut.value.trim(),ustaz:form.elements.ustaz.value.trim()}})});const x=await r.json();if(!x.ok)throw new Error(x.error||'Evaluasi gagal disimpan');toast('Catatan evaluasi berhasil disimpan.');await loadEvaluasiHistory(nis)}catch(err){toast('Gagal menyimpan evaluasi: '+err.message)}finally{btn.disabled=false;btn.textContent='➤ Simpan Evaluasi'}});
 
 
-/* Handler terpusat untuk pencarian NIS dan kamera pada Albab/Hafalan.
-   Capture phase memastikan klik tetap tertangkap meskipun ada handler lama/tertimpa. */
-document.addEventListener('click',function(e){
- const scan=e.target.closest('#scanAlbab, #scanHafalan');
- if(scan){e.preventDefault();e.stopImmediatePropagation();openQr(scan.id==='scanAlbab'?'albab':'hafalan');return;}
- const find=e.target.closest('#findAlbab, #findHafalan');
- if(find){e.preventDefault();e.stopImmediatePropagation();if(find.id==='findAlbab')lookupAlbabStudent();else lookupHafalanStudent();return;}
-},true);
-document.addEventListener('keydown',function(e){
- if(e.key!=='Enter')return;
- const input=e.target.closest('#albabNis, #hafalanNis');
- if(!input)return;
- e.preventDefault();e.stopImmediatePropagation();
- if(input.id==='albabNis')lookupAlbabStudent();else lookupHafalanStudent();
-},true);
+
