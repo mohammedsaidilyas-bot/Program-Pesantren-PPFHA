@@ -431,6 +431,12 @@ async function handleAlbabSave(){
  }catch(error){toast('Gagal menyimpan nilai ujian Albab: '+(error&&error.message?error.message:'Periksa koneksi.'))}
  finally{btn.dataset.busy='0';btn.disabled=false;btn.textContent=old}
 }
+document.addEventListener('click',function(event){
+ const button=event.target&&event.target.closest?event.target.closest('#formAlbab button.albab-save-action'):null;
+ if(!button)return;
+ event.preventDefault();event.stopImmediatePropagation();
+ handleAlbabSave();
+},true);
 document.addEventListener('submit',function(event){
  const form=event.target;
  if(!form||form.id!=='formAlbab')return;
