@@ -843,3 +843,60 @@ function setupEducationDatabase() {
   }
 }
 
+
+/**
+ * UJI LANGSUNG PENYIMPANAN UJIAN ALBAB.
+ * Jalankan manual dari Apps Script editor. Menulis satu baris sementara,
+ * memeriksa hasil baca, lalu menghapus baris uji agar database tetap bersih.
+ * Tidak memerlukan ADMIN_API_KEY karena dijalankan langsung oleh pemilik script.
+ */
+function testSaveEducationAlbab() {
+  const sheetName = 'UjianAlbab';
+  const headers = ['id','tanggalInput','nis','nama','kelas','periodeUjian','nilaiTulis','nilaiBaca','nilaiAkhir','catatan','ustaz'];
+  const testId = 'TEST-ALBAB-' + Utilities.getUuid();
+  let sh = null, testRow = 0, lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    sh = ss.getSheetByName(sheetName);
+    if (!sh) {
+      sh = ss.insertSheet(sheetName);
+      sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+      sh.setFrozenRows(1);
+    } else if (sh.getLastRow() === 0) {
+      sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+      sh.setFrozenRows(1);
+    }
+    const headerNow = sh.getRange(1, 1, 1, headers.length).getDisplayValues()[0];
+    if (headers.some(function(h, i) { return String(headerNow[i]).trim() !== h; })) {
+      throw new Error('Header tab UjianAlbab tidak sesuai. Ditemukan: ' + headerNow.join(' | '));
+    }
+    const nilaiTulis = 50, nilaiBaca = 10, nilaiAkhir = (nilaiTulis + nilaiBaca) / 2;
+    const row = [testId, new Date(), 'TEST0000', 'UJI PENYIMPANAN (AKAN DIHAPUS)', 'TEST', 'UJI OTOMATIS', nilaiTulis, nilaiBaca, nilaiAkhir, 'Baris sementara untuk tes fungsi simpan', 'TEST'];
+    testRow = sh.getLastRow() + 1;
+    sh.getRange(testRow, 1, 1, headers.length).setValues([row]);
+    SpreadsheetApp.flush();
+    const readBack = sh.getRange(testRow, 1, 1, headers.length).getValues()[0];
+    if (String(readBack[0]) !== testId || Number(readBack[6]) !== 50 || Number(readBack[7]) !== 10 || Number(readBack[8]) !== 30) {
+      throw new Error('Baris berhasil ditulis tetapi hasil baca ulang tidak cocok.');
+    }
+    sh.deleteRow(testRow);
+    testRow = 0;
+    SpreadsheetApp.flush();
+    const result = {ok:true, test:'WRITE_READ_DELETE', sheet:sheetName, nilaiTulis:50, nilaiBaca:10, nilaiAkhir:30, temporaryRowRemoved:true, message:'Fungsi tulis, baca ulang, dan hapus baris uji berhasil.'};
+    Logger.log(JSON.stringify(result));
+    return JSON.stringify(result);
+  } catch (err) {
+    if (sh && testRow > 0) {
+      try {
+        const idCell = sh.getRange(testRow, 1).getValue();
+        if (String(idCell) === testId) sh.deleteRow(testRow);
+      } catch (cleanupErr) { Logger.log('Pembersihan baris uji gagal: ' + cleanupErr.message); }
+    }
+    const result = {ok:false, test:'WRITE_READ_DELETE', sheet:sheetName, error:explainError_(err)};
+    Logger.log(JSON.stringify(result));
+    throw new Error(JSON.stringify(result));
+  } finally {
+    lock.releaseLock();
+  }
+}
