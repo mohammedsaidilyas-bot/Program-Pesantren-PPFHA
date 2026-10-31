@@ -410,15 +410,16 @@ $('#formAlbab').addEventListener('reset',()=>setTimeout(()=>{$('#albabNama').val
 async function handleAlbabSave(){
  const form=$('#formAlbab');
  if(!form)return;
- const btn=form.querySelector('button[type="submit"]');
- if(!btn||btn.dataset.busy==='1')return;
+ const btn=form.querySelector('.albab-save-action');
+ if(!btn){toast('Tombol Simpan Nilai Albab tidak ditemukan. Muat ulang halaman.');return}
+ if(btn.dataset.busy==='1')return;
  if(!form.checkValidity()){form.reportValidity();return}
  const nis=String($('#albabNis').value||'').trim().replace(/\D/g,'');
  const nama=$('#albabNama').value.trim(),kelas=$('#albabKelas').value.trim();
  if(!nis||!nama){toast('Masukkan NIS santri yang valid terlebih dahulu.');return}
  const nilaiTulis=Number(form.elements.nilaiTulis.value),nilaiBaca=Number(form.elements.nilaiBaca.value);
  if(!Number.isFinite(nilaiTulis)||!Number.isFinite(nilaiBaca)||nilaiTulis<0||nilaiTulis>100||nilaiBaca<0||nilaiBaca>100){toast('Nilai ujian harus 0 sampai 100.');return}
- if(!adminKey){adminKey=await requestAdminKey('Simpan nilai ujian Albab');if(!adminKey)return;adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey)}
+ if(!adminKey){adminKey=await requestAdminKey('Simpan nilai ujian Albab');if(!adminKey){toast('Penyimpanan dibatalkan: kunci pengurus belum dimasukkan.');return}adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey)}
  btn.dataset.busy='1';btn.disabled=true;const old=btn.textContent;btn.textContent='Menyimpan…';
  try{
   const response=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'saveeducationalbab',apiKey:adminKey,data:{nis,nama,kelas,periodeUjian:form.elements.periodeUjian.value.trim(),nilaiTulis,nilaiBaca,nilaiAkhir:(nilaiTulis+nilaiBaca)/2,catatan:form.elements.catatan.value.trim(),ustaz:form.elements.ustaz.value.trim()}})});
@@ -426,7 +427,7 @@ async function handleAlbabSave(){
   try{result=JSON.parse(raw)}catch(_){throw new Error('Respons server bukan JSON. Periksa deployment Apps Script.')}
   if(!response.ok)throw new Error('Server merespons HTTP '+response.status);
   if(!result||result.ok!==true)throw new Error(result&&result.error?result.error:'Nilai gagal disimpan.');
-  toast('Nilai ujian Albab berhasil disimpan.');
+  toast('✓ Nilai ujian Albab berhasil disimpan ke Google Sheets.');
   await loadAlbabHistory(nis);
  }catch(error){toast('Gagal menyimpan nilai ujian Albab: '+(error&&error.message?error.message:'Periksa koneksi.'))}
  finally{btn.dataset.busy='0';btn.disabled=false;btn.textContent=old}
