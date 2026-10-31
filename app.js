@@ -1,4 +1,4 @@
-const $=s=>document.querySelector(s),$=s=>[...document.querySelectorAll(s)];
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 /* Jalur tombol khusus Hafalan/Nadzom: capture di tingkat dokumen agar klik selalu tertangkap. */
 document.addEventListener('click',function(event){
  const button=event.target&&event.target.closest?event.target.closest('#findHafalan, #scanHafalan'):null;
