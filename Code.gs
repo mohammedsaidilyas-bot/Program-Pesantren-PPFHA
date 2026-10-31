@@ -306,6 +306,8 @@ function ensureAttendanceSheets_() {
 }
 
 function normalizeAttendanceTime_(value) { var raw=String(value==null?'':value).trim().toUpperCase(); if(!raw)return ''; var m=raw.match(/^(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?\s*(AM|PM)?$/); if(m){var h=Number(m[1]),min=Number(m[2]);if(min>59||h>23)return '';if(m[4]){if(h<1||h>12)return '';h=(h%12)+(m[4]==='PM'?12:0);}return ('0'+h).slice(-2)+':'+('0'+min).slice(-2);} if(/^\d+(?:\.\d+)?$/.test(raw)){var n=Number(raw);if(n>=0&&n<1){var mins=Math.round(n*1440);return ('0'+Math.floor(mins/60)%24).slice(-2)+':'+('0'+mins%60).slice(-2);}} return ''; }
+
+function getAttendanceConfig_(jamaahSession) {
   const ss = ensureAttendanceSheets_();
   const sh = ss.getSheetByName('JadwalAbsensi');
   const rows = sh.getDataRange().getDisplayValues();
