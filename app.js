@@ -617,3 +617,37 @@ $('#formEvaluasi').addEventListener('submit',async e=>{e.preventDefault();const 
   }
  },true);
 })();
+
+
+/* HOTFIX 2026-11-01: jalur langsung tombol Simpan Hafalan/Nadzom, setara Albab. */
+(function(){
+ function ensureHafalanSaveStatus(){
+  const form=document.getElementById('formHafalan');
+  if(!form)return null;
+  let status=document.getElementById('hafalanSaveStatus');
+  if(!status){
+   status=document.createElement('div');
+   status.id='hafalanSaveStatus';
+   status.setAttribute('role','status');
+   status.setAttribute('aria-live','polite');
+   status.style.display='none';
+   const actions=form.querySelector('.actions');
+   if(actions)form.insertBefore(status,actions);
+   else form.appendChild(status);
+  }
+  return status;
+ }
+ ensureHafalanSaveStatus();
+ document.addEventListener('click',function(event){
+  const button=event.target&&event.target.closest?event.target.closest('#formHafalan #saveHafalanBtn'):null;
+  if(!button)return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  ensureHafalanSaveStatus();
+  if(typeof handleHafalanSave==='function')handleHafalanSave();
+  else {
+   const status=ensureHafalanSaveStatus();
+   if(status){status.textContent='Kesalahan aplikasi: fungsi simpan Hafalan belum siap. Muat ulang halaman.';status.style.display='block';}
+  }
+ },true);
+})();
