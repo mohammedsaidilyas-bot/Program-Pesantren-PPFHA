@@ -1,4 +1,27 @@
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const $=s=>document.querySelector(s),$=s=>[...document.querySelectorAll(s)];
+/* Jalur tombol khusus Hafalan/Nadzom: capture di tingkat dokumen agar klik selalu tertangkap. */
+document.addEventListener('click',function(event){
+ const button=event.target&&event.target.closest?event.target.closest('#findHafalan, #scanHafalan'):null;
+ if(!button)return;
+ event.preventDefault();
+ event.stopImmediatePropagation();
+ if(button.id==='findHafalan'){
+  if(typeof lookupHafalanStudent==='function') lookupHafalanStudent();
+  else console.error('lookupHafalanStudent belum tersedia');
+ }else{
+  if(typeof openQr==='function') openQr('hafalan');
+  else console.error('openQr belum tersedia');
+ }
+},true);
+document.addEventListener('keydown',function(event){
+ if(event.key!=='Enter')return;
+ const input=event.target&&event.target.closest?event.target.closest('#hafalanNis'):null;
+ if(!input)return;
+ event.preventDefault();
+ event.stopImmediatePropagation();
+ if(typeof lookupHafalanStudent==='function')lookupHafalanStudent();
+},true);
+
 /* Handler pendidikan dipasang sejak awal agar tetap aktif bila inisialisasi modul lain mengalami error. */
 document.addEventListener('click',function(e){
  const target=e.target&&e.target.closest?e.target.closest('#scanAlbab, #findAlbab'):null;
