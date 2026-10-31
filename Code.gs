@@ -229,6 +229,7 @@ function doPost(e) {
     if (action === 'saveattendanceconfig') return output_(saveAttendanceConfig_(body.data || {}));
     if (action === 'toggleattendanceholiday') return output_(toggleAttendanceHoliday_(body.data || {}));
     if (action === 'setpondokholiday') return output_(setPondokHoliday_(body.data || {}));
+    if (action === 'activatepondoknow') return output_(activatePondokNow_());
     if (action === 'attendancescan') return output_(recordAttendanceScan_(body.data || {}));
     if (action === 'attendancerecords') return output_(getAttendanceRecords_(String(body.date || Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd')), String(body.activity || 'all'), String(body.session || '')));
     if (action === 'updatestatus') {
@@ -480,6 +481,30 @@ function setPondokHoliday_(data) {
     }
     if(rows.length) sh.getRange(sh.getLastRow()+1,1,rows.length,6).setValues(rows);
     return {ok:true,days:count,isHoliday:holiday,message:holiday?'Seluruh kegiatan dinonaktifkan selama libur pondok.':'Status libur pondok dibatalkan untuk rentang tanggal tersebut.'};
+  } finally {lock.releaseLock();}
+}
+
+
+/** Mengakhiri libur global mulai hari ini; tanggal lampau tidak diubah. */
+function activatePondokNow_() {
+  const today=Utilities.formatDate(new Date(),ATTENDANCE_TZ,'yyyy-MM-dd');
+  const lock=LockService.getScriptLock();lock.waitLock(15000);
+  try {
+    const sh=ensureAttendanceSheets_().getSheetByName('LiburAbsensi');
+    if(!sh || sh.getLastRow()<2) return {ok:true,updated:0,message:'Tidak ada jadwal libur pondok yang perlu diaktifkan.'};
+    const values=sh.getDataRange().getDisplayValues();
+    let updated=0;
+    for(let i=1;i<values.length;i++) {
+      const date=String(values[i][0]||'');
+      const isGlobal=String(values[i][1]||'').toLowerCase()==='all' && String(values[i][2]||'').toLowerCase()==='all';
+      const isHoliday=String(values[i][3]||'').toLowerCase()==='libur';
+      if(isGlobal && isHoliday && /^\\d{4}-\\d{2}-\\d{2}$/.test(date) && date>=today) {
+        sh.getRange(i+1,4).setValue('Aktif');
+        sh.getRange(i+1,6).setValue(new Date());
+        updated++;
+      }
+    }
+    return {ok:true,updated:updated,message:updated?'Libur pondok dihentikan mulai hari ini. Semua kegiatan kembali mengikuti jadwal normal.':'Tidak ada libur pondok hari ini atau mendatang yang perlu dihentikan.'};
   } finally {lock.releaseLock();}
 }
 
