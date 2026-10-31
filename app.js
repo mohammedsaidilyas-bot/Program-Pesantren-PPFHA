@@ -512,9 +512,14 @@ async function handleHafalanSave(){
   button.dataset.busy='0';button.disabled=false;button.textContent='➤ Simpan Catatan Hafalan';
  }
 }
-const hafalanSaveButton=$('#saveHafalanBtn');
-if(hafalanSaveButton)hafalanSaveButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();handleHafalanSave()});
-$('#formHafalan').addEventListener('submit',event=>{event.preventDefault();event.stopPropagation()});
+/* Tombol Simpan Hafalan ditangani lewat capture dokumen agar klik selalu tertangkap. */
+document.addEventListener('click',function(event){
+ const button=event.target&&event.target.closest?event.target.closest('#saveHafalanBtn'):null;
+ if(!button)return;
+ event.preventDefault();event.stopImmediatePropagation();
+ handleHafalanSave();
+},true);
+$('#formHafalan').addEventListener('submit',event=>{event.preventDefault();event.stopPropagation();handleHafalanSave()});
 
 
 async function loadHafalanHistory(nis){
