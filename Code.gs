@@ -685,18 +685,29 @@ function recordAttendanceScan_(data) {
     return {ok:false,error:'Sesi Sholat Jumat hanya aktif pada hari Jumat.'};
   // MODE UJI COBA: kamera tetap dapat digunakan kapan saja. Namun sesi
   // yang dicatat selalu ditentukan otomatis oleh jadwal server, bukan pilihan petugas.
+  const permissionsNow=activeAttendancePermissions_(date);
+  const permissionNow=permissionsNow[nis]||null;
+  const permissionEffective=!!(permissionNow && (permissionNow.date<date || (permissionNow.date===date && permissionNow.time<=time)) && (!permissionNow.endDate || permissionNow.endDate>date || (permissionNow.endDate===date && permissionNow.endTime>=time)));
   const students = attendanceStudentRoster_();
-  const student = students.find(function(x){return x.nis===nis;});
-  if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif.'};
-  const sickNow=activeSickStudents_(date);
-  const sickStartNow=sickNow[nis];
-  if(sickStartNow && (sickStartNow.date<date || (sickStartNow.date===date && sickStartNow.time<=time))) {
-    const lockSick=LockService.getScriptLock(); lockSick.waitLock(15000);
+  let student = students.find(function(x){return x.nis===nis;});
+  // Santri berstatus nonaktif tetap boleh dikenali hanya jika memiliki izin
+  // yang sah dan masih berlaku (misalnya Izin Pulang).
+  if (!student && permissionEffective) {
+    const db=SpreadsheetApp.openById(STUDENT_DB_ID).getSheetByName(STUDENT_SHEET_NAME);
+    if(db && db.getLastRow()>=2) {
+      const rows=db.getDataRange().getDisplayValues();
+      const row=rows.slice(1).find(function(x){return String(x[0]||'').trim().replace(/\\D/g,'')===nis;});
+      if(row) student={nis:nis,nama:String(row[1]||'').trim(),status:String(row[7]||'').trim().toLowerCase()};
+    }
+  }
+  if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif dan tidak memiliki izin aktif.'};
+  if (permissionEffective) {
+    const lockPermission=LockService.getScriptLock(); lockPermission.waitLock(15000);
     try {
-      const shSick=ensureAttendanceSheets_().getSheetByName('Absensi');
-      writeSickAttendance_(shSick,date,activity,session,student);
-      return {ok:true,data:{nis:nis,nama:student.nama,status:'Izin Sakit',time:'',activity:activity,session:session},message:'Santri sedang tercatat Izin Sakit. Absensi disimpan sebagai Izin Sakit.'};
-    } finally { lockSick.releaseLock(); }
+      const shPermission=ensureAttendanceSheets_().getSheetByName('Absensi');
+      writePermissionAttendance_(shPermission,date,activity,session,student,permissionNow);
+      return {ok:true,data:{nis:nis,nama:student.nama,status:permissionNow.status,time:'',activity:activity,session:session},message:'Santri memiliki '+permissionNow.status+'. Absensi tidak dihitung Hadir/Terlambat.'};
+    } finally { lockPermission.releaseLock(); }
   }
   const status = (testMode || session === 'Jumat') ? 'Hadir' : (time <= String(schedule.onTimeUntil) ? 'Hadir' : 'Terlambat');
   const lock = LockService.getScriptLock();
