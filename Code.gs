@@ -696,7 +696,7 @@ function recordAttendanceScan_(data) {
     const db=SpreadsheetApp.openById(STUDENT_DB_ID).getSheetByName(STUDENT_SHEET_NAME);
     if(db && db.getLastRow()>=2) {
       const rows=db.getDataRange().getDisplayValues();
-      const row=rows.slice(1).find(function(x){return String(x[0]||'').trim().replace(/\\D/g,'')===nis;});
+      const row=rows.slice(1).find(function(x){return String(x[0]||'').trim().replace(/\D/g,'')===nis;});
       if(row) student={nis:nis,nama:String(row[1]||'').trim(),status:String(row[7]||'').trim().toLowerCase()};
     }
   }
