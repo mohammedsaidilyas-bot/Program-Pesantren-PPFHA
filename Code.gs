@@ -498,7 +498,7 @@ function activatePondokNow_() {
       const date=String(values[i][0]||'');
       const isGlobal=String(values[i][1]||'').toLowerCase()==='all' && String(values[i][2]||'').toLowerCase()==='all';
       const isHoliday=String(values[i][3]||'').toLowerCase()==='libur';
-      if(isGlobal && isHoliday && /^\\d{4}-\\d{2}-\\d{2}$/.test(date) && date>=today) {
+      if(isGlobal && isHoliday && /^\d{4}-\d{2}-\d{2}$/.test(date) && date>=today) {
         sh.getRange(i+1,4).setValue('Aktif');
         sh.getRange(i+1,6).setValue(new Date());
         updated++;
