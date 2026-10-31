@@ -228,6 +228,7 @@ function doPost(e) {
     }
     if (action === 'saveattendanceconfig') return output_(saveAttendanceConfig_(body.data || {}));
     if (action === 'toggleattendanceholiday') return output_(toggleAttendanceHoliday_(body.data || {}));
+    if (action === 'setpondokholiday') return output_(setPondokHoliday_(body.data || {}));
     if (action === 'attendancescan') return output_(recordAttendanceScan_(body.data || {}));
     if (action === 'attendancerecords') return output_(getAttendanceRecords_(String(body.date || Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd')), String(body.activity || 'all'), String(body.session || '')));
     if (action === 'updatestatus') {
@@ -431,8 +432,9 @@ function isAttendanceHoliday_(date, activity, session) {
   const headers = rows[0].map(function(v){return String(v).trim();});
   for (let i=1;i<rows.length;i++) {
     const item={}; headers.forEach(function(k,j){if(k)item[k]=rows[i][j];});
-    if (String(item.tanggal)===String(date) && normalizeAttendanceActivity_(item.activity)===activity &&
-        String(item.session || 'Utama')===String(session || 'Utama') && String(item.status).toLowerCase()==='libur') return true;
+    const globalHoliday=String(item.activity||'').toLowerCase()==='all' && String(item.session||'').toLowerCase()==='all';
+    const specificHoliday=normalizeAttendanceActivity_(item.activity)===activity && String(item.session || 'Utama')===String(session || 'Utama');
+    if (String(item.tanggal)===String(date) && (globalHoliday || specificHoliday) && String(item.status).toLowerCase()==='libur') return true;
   }
   return false;
 }
@@ -452,6 +454,30 @@ function toggleAttendanceHoliday_(data) {
     const row=[date,activity,session,holiday?'Libur':'Aktif',String(data.catatan||''),new Date()];
     if(rowNumber) sh.getRange(rowNumber,1,1,row.length).setValues([row]); else sh.appendRow(row);
     return {ok:true,isHoliday:holiday,message:holiday?'Kegiatan diliburkan untuk tanggal ini.':'Status libur dibatalkan.'};
+  } finally {lock.releaseLock();}
+}
+
+
+/** Mengatur libur pondok untuk seluruh kegiatan pada rentang tanggal. */
+function setPondokHoliday_(data) {
+  const start=String(data.startDate||''), end=String(data.endDate||''), holiday=data.isHoliday!==false;
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(start)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(end)||end<start) return {ok:false,error:'Rentang tanggal libur tidak valid.'};
+  const startDate=new Date(start+'T12:00:00+07:00'), endDate=new Date(end+'T12:00:00+07:00');
+  const count=Math.round((endDate-startDate)/86400000)+1;
+  if(count>90) return {ok:false,error:'Rentang libur maksimal 90 hari dalam satu pengaturan.'};
+  const lock=LockService.getScriptLock();lock.waitLock(15000);
+  try {
+    const sh=ensureAttendanceSheets_().getSheetByName('LiburAbsensi'), values=sh.getDataRange().getDisplayValues();
+    const existing={};
+    for(let i=1;i<values.length;i++) if(String(values[i][1]).toLowerCase()==='all'&&String(values[i][2]).toLowerCase()==='all') existing[String(values[i][0])]=i+1;
+    const rows=[];
+    for(let i=0;i<count;i++) {
+      const date=Utilities.formatDate(new Date(startDate.getTime()+i*86400000),ATTENDANCE_TZ,'yyyy-MM-dd');
+      const row=[date,'all','all',holiday?'Libur':'Aktif',String(data.catatan||'Libur pondok'),new Date()];
+      if(existing[date]) sh.getRange(existing[date],1,1,row.length).setValues([row]); else rows.push(row);
+    }
+    if(rows.length) sh.getRange(sh.getLastRow()+1,1,rows.length,6).setValues(rows);
+    return {ok:true,days:count,isHoliday:holiday,message:holiday?'Seluruh kegiatan dinonaktifkan selama libur pondok.':'Status libur pondok dibatalkan untuk rentang tanggal tersebut.'};
   } finally {lock.releaseLock();}
 }
 
@@ -503,7 +529,7 @@ function activeSickStudents_(targetDate) {
   values.slice(1).forEach(function(row){
     const jenis=String(row[ix.jenis]||'').trim().toLowerCase(), status=String(row[ix.status]||'').trim().toLowerCase();
     if(jenis!=='izin sakit' || status!=='sakit' || (row[ix.kembali] && String(row[ix.kembali]).trim())) return;
-    const nis=String(row[ix.nis]||'').trim().replace(/\\D/g,''); if(!nis) return;
+    const nis=String(row[ix.nis]||'').trim().replace(/\D/g,''); if(!nis) return;
     const mulai=attendanceCellDate_(row[ix.keluar] || row[ix.dibuatPada]);
     if(mulai && mulai<=targetDate) active[nis]=true;
   });
