@@ -402,48 +402,65 @@ async function loadAlbabHistory(nis){
  const rows=j.data||[];body.innerHTML=rows.length?rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.periodeUjian||'—')+'</td><td>'+esc(x.nilaiTulis||'—')+'</td><td>'+esc(x.nilaiBaca||'—')+'</td><td>'+esc(x.nilaiAkhir||'—')+'</td><td>'+esc(x.ustaz||'—')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">Belum ada nilai ujian Albab untuk NIS ini.</td></tr>';
  }catch(err){body.innerHTML='<tr><td colspan="6" class="empty">'+esc(err.message)+'</td></tr>'}
 }
-function updateAlbabFinal(){const t=$('#nilaiTulis').value,b=$('#nilaiBaca').value;$('#nilaiAkhir').value=t!==''&&b!==''?((Number(t)+Number(b))/2).toLocaleString('id-ID',{maximumFractionDigits:2}):'0'}
-// Tombol Albab ditangani oleh delegated capture handler di bagian akhir file.
+function updateAlbabFinal(){
+ const t=$('#nilaiTulis').value,b=$('#nilaiBaca').value;
+ const akhir=t!==''&&b!==''?((Number(t)+Number(b))/2):0;
+ $('#nilaiAkhir').value=Number.isFinite(akhir)?String(Number(akhir.toFixed(2))):'0';
+}
 $('#nilaiTulis').addEventListener('input',updateAlbabFinal);
 $('#nilaiBaca').addEventListener('input',updateAlbabFinal);
 $('#formAlbab').addEventListener('reset',()=>setTimeout(()=>{$('#albabNama').value='';$('#albabKelas').value='';updateAlbabFinal()},0));
+function albabSaveStatus(message,kind){
+ const el=$('#albabSaveStatus');if(!el)return;
+ el.textContent=message;el.style.display='block';
+ el.style.cssText='display:block;margin:12px 0;padding:12px 14px;border-radius:10px;font-weight:600;background:'+(kind==='error'?'#fff0f0':kind==='success'?'#eaf8ef':'#eef5ff')+';color:'+(kind==='error'?'#a12626':kind==='success'?'#176b3a':'#24527a');
+}
+async function sendAlbabSave(payload,key){
+ const response=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'saveeducationalbab',apiKey:key,data:payload})});
+ const raw=await response.text();let result;
+ try{result=JSON.parse(raw)}catch(_){throw new Error('Server tidak mengirim JSON yang valid. Pastikan URL dan deployment Apps Script sudah terbaru.')}
+ if(!response.ok)throw new Error('Server merespons HTTP '+response.status);
+ if(!result||result.ok!==true)throw new Error(result&&result.error?result.error:'Server menolak penyimpanan tanpa keterangan.');
+ return result;
+}
 async function handleAlbabSave(){
- const form=$('#formAlbab');
- if(!form)return;
- const btn=form.querySelector('.albab-save-action');
- if(!btn){toast('Tombol Simpan Nilai Albab tidak ditemukan. Muat ulang halaman.');return}
+ const form=$('#formAlbab'),btn=form&&form.querySelector('.albab-save-action');
+ if(!form||!btn){toast('Form atau tombol Simpan Albab tidak ditemukan.');return}
  if(btn.dataset.busy==='1')return;
  if(!form.checkValidity()){form.reportValidity();return}
- const nis=String($('#albabNis').value||'').trim().replace(/\D/g,'');
+ const nis=String($('#albabNis').value||'').trim().replace(/\\D/g,'');
  const nama=$('#albabNama').value.trim(),kelas=$('#albabKelas').value.trim();
- if(!nis||!nama){toast('Masukkan NIS santri yang valid terlebih dahulu.');return}
+ if(!nis||!nama){albabSaveStatus('Cari NIS sampai biodata santri muncul sebelum menyimpan.','error');return}
  const nilaiTulis=Number(form.elements.nilaiTulis.value),nilaiBaca=Number(form.elements.nilaiBaca.value);
- if(!Number.isFinite(nilaiTulis)||!Number.isFinite(nilaiBaca)||nilaiTulis<0||nilaiTulis>100||nilaiBaca<0||nilaiBaca>100){toast('Nilai ujian harus 0 sampai 100.');return}
- if(!adminKey){adminKey=await requestAdminKey('Simpan nilai ujian Albab');if(!adminKey){toast('Penyimpanan dibatalkan: kunci pengurus belum dimasukkan.');return}adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey)}
+ if(!Number.isFinite(nilaiTulis)||!Number.isFinite(nilaiBaca)||nilaiTulis<0||nilaiTulis>100||nilaiBaca<0||nilaiBaca>100){albabSaveStatus('Nilai ujian harus 0 sampai 100.','error');return}
+ const payload={nis,nama,kelas,periodeUjian:form.elements.periodeUjian.value.trim(),nilaiTulis,nilaiBaca,nilaiAkhir:(nilaiTulis+nilaiBaca)/2,catatan:form.elements.catatan.value.trim(),ustaz:form.elements.ustaz.value.trim()};
  btn.dataset.busy='1';btn.disabled=true;const old=btn.textContent;btn.textContent='Menyimpan…';
+ albabSaveStatus('Mengirim nilai ujian ke Google Sheets…','loading');
  try{
-  const response=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'saveeducationalbab',apiKey:adminKey,data:{nis,nama,kelas,periodeUjian:form.elements.periodeUjian.value.trim(),nilaiTulis,nilaiBaca,nilaiAkhir:(nilaiTulis+nilaiBaca)/2,catatan:form.elements.catatan.value.trim(),ustaz:form.elements.ustaz.value.trim()}})});
-  const raw=await response.text();let result;
-  try{result=JSON.parse(raw)}catch(_){throw new Error('Respons server bukan JSON. Periksa deployment Apps Script.')}
-  if(!response.ok)throw new Error('Server merespons HTTP '+response.status);
-  if(!result||result.ok!==true)throw new Error(result&&result.error?result.error:'Nilai gagal disimpan.');
-  toast('✓ Nilai ujian Albab berhasil disimpan ke Google Sheets.');
+  if(!adminKey)adminKey=await requestAdminKey('Simpan nilai ujian Albab');
+  if(!adminKey)throw new Error('Penyimpanan dibatalkan karena kunci pengurus belum dimasukkan.');
+  let result;
+  try{result=await sendAlbabSave(payload,adminKey)}
+  catch(error){
+   if(!/kunci pengurus tidak valid|akses ditolak/i.test(error.message))throw error;
+   adminKey='';sessionStorage.removeItem('ppfha_admin_key');
+   adminKey=await requestAdminKey('Kunci pengurus lama ditolak. Masukkan kunci pengurus yang benar.');
+   if(!adminKey)throw new Error('Penyimpanan dibatalkan karena kunci pengurus tidak dimasukkan.');
+   result=await sendAlbabSave(payload,adminKey);
+  }
+  adminKey=String(adminKey).trim();sessionStorage.setItem('ppfha_admin_key',adminKey);
+  $('#nilaiAkhir').value=String(Number(payload.nilaiAkhir.toFixed(2)));
+  albabSaveStatus('✓ BERHASIL DISIMPAN. '+(result.message||'Nilai ujian sudah diterima Google Sheets.'),'success');
+  toast('Nilai ujian Albab berhasil disimpan.');
   await loadAlbabHistory(nis);
- }catch(error){toast('Gagal menyimpan nilai ujian Albab: '+(error&&error.message?error.message:'Periksa koneksi.'))}
- finally{btn.dataset.busy='0';btn.disabled=false;btn.textContent=old}
+ }catch(error){
+  albabSaveStatus('✕ GAGAL DISIMPAN: '+(error&&error.message?error.message:'Kesalahan tidak diketahui.'),'error');
+  toast('Gagal menyimpan nilai Albab: '+(error.message||'Periksa koneksi.'));
+ }finally{btn.dataset.busy='0';btn.disabled=false;btn.textContent=old}
 }
-document.addEventListener('click',function(event){
- const button=event.target&&event.target.closest?event.target.closest('#formAlbab button.albab-save-action'):null;
- if(!button)return;
- event.preventDefault();event.stopImmediatePropagation();
- handleAlbabSave();
-},true);
-document.addEventListener('submit',function(event){
- const form=event.target;
- if(!form||form.id!=='formAlbab')return;
- event.preventDefault();event.stopImmediatePropagation();
- handleAlbabSave();
-},true);
+const albabSaveButton=$('#formAlbab .albab-save-action');
+if(albabSaveButton)albabSaveButton.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();handleAlbabSave()});
+$('#formAlbab').addEventListener('submit',function(event){event.preventDefault();event.stopPropagation();handleAlbabSave()});
 
 
 
