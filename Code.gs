@@ -531,7 +531,7 @@ function activeSickStudents_(targetDate) {
     if(jenis!=='izin sakit' || status!=='sakit' || (row[ix.kembali] && String(row[ix.kembali]).trim())) return;
     const nis=String(row[ix.nis]||'').trim().replace(/\D/g,''); if(!nis) return;
     const mulai=attendanceCellDate_(row[ix.keluar] || row[ix.dibuatPada]);
-    if(mulai && mulai<=targetDate) active[nis]=true;
+    if(mulai && mulai<=targetDate) active[nis]={date:mulai,time:attendanceCellTime_(row[ix.keluar] || row[ix.dibuatPada])||'00:00'};
   });
   return active;
 }
@@ -581,7 +581,8 @@ function processAttendanceDeadlines_(targetDate) {
       if (date === today && nowTime <= end) return;
       students.forEach(function(st) {
         const key=[date,s.activity,s.session,st.nis].join('|');
-        if (sick[st.nis]) {
+        const sickStart=sick[st.nis], sickForSession=!!(sickStart && (sickStart.date<date || (sickStart.date===date && sickStart.time<=end)));
+        if (sickForSession) {
           if (!existing[key] || String(existing[key].status).toLowerCase()==='tidak hadir') writeSickAttendance_(sh,date,s.activity,s.session,st);
           existing[key]=existing[key]||{status:'Izin Sakit'};
         } else if (!existing[key]) {
@@ -654,7 +655,8 @@ function recordAttendanceScan_(data) {
   const student = students.find(function(x){return x.nis===nis;});
   if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif.'};
   const sickNow=activeSickStudents_(date);
-  if(sickNow[nis]) {
+  const sickStartNow=sickNow[nis];
+  if(sickStartNow && (sickStartNow.date<date || (sickStartNow.date===date && sickStartNow.time<=time))) {
     const lockSick=LockService.getScriptLock(); lockSick.waitLock(15000);
     try {
       const shSick=ensureAttendanceSheets_().getSheetByName('Absensi');
