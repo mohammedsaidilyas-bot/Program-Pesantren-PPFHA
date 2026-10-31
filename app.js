@@ -428,7 +428,7 @@ async function handleAlbabSave(){
  if(!form||!btn){toast('Form atau tombol Simpan Albab tidak ditemukan.');return}
  if(btn.dataset.busy==='1')return;
  if(!form.checkValidity()){form.reportValidity();return}
- const nis=String($('#albabNis').value||'').trim().replace(/\\D/g,'');
+ const nis=String($('#albabNis').value||'').trim().replace(/\D/g,'');
  const nama=$('#albabNama').value.trim(),kelas=$('#albabKelas').value.trim();
  if(!nis||!nama){albabSaveStatus('Cari NIS sampai biodata santri muncul sebelum menyimpan.','error');return}
  const nilaiTulis=Number(form.elements.nilaiTulis.value),nilaiBaca=Number(form.elements.nilaiBaca.value);
