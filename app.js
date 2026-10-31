@@ -366,7 +366,7 @@ function raportSaveStatus(message,type){
  return status;
 }
 async function handleRaportSave(){
- const form=$('#formRaport'),btn=form&&form.querySelector('button[type="submit"]');
+ const form=$('#formRaport'),btn=form&&form.querySelector('#saveRaportBtn, button[type="submit"]');
  if(!form||!btn){raportSaveStatus('Form atau tombol Simpan Raport tidak ditemukan.','error');return}
  if(btn.dataset.busy==='1')return;
  if(!form.checkValidity()){form.reportValidity();return}
