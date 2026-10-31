@@ -1,4 +1,4 @@
-const $=s=>document.querySelector(s),$=s=>[...document.querySelectorAll(s)];
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 /* Handler pendidikan dipasang sejak awal agar tetap aktif bila inisialisasi modul lain mengalami error. */
 document.addEventListener('click',function(e){
  const target=e.target&&e.target.closest?e.target.closest('#scanAlbab, #scanHafalan, #findAlbab, #findHafalan'):null;
