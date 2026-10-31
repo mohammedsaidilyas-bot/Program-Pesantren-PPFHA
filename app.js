@@ -432,9 +432,9 @@ async function lookupHafalanStudent(){
  const input=$('#hafalanNis'),nama=$('#hafalanNama'),kelas=$('#hafalanKelas'),btn=$('#findHafalan');
  if(!input||!nama||!kelas){setHafalanLookupStatus('Form Hafalan tidak ditemukan. Muat ulang halaman.','error');return}
  const raw=String(input.value||'').trim();
- const label=raw.match(/NIS\\s*[:=：-]\\s*(\\d+)/i);
+ const label=raw.match(/NIS\s*[:=：-]\s*(\d+)/i);
  const tail=raw.split(/[|;]/).pop()||raw;
- const nis=(label&&label[1])||(tail.match(/\\d+/g)||[]).join('');
+ const nis=(label&&label[1])||(tail.match(/\d+/g)||[]).join('');
  if(!nis){setHafalanLookupStatus('Masukkan NIS santri terlebih dahulu.','error');input.focus();return}
  input.value=nis;nama.value='';kelas.value='';
  setHafalanLookupStatus('Sedang mencari NIS '+nis+'…','loading');
@@ -446,7 +446,7 @@ async function lookupHafalanStudent(){
   if(!result||result.ok!==true||!result.data)throw new Error(result&&result.error?result.error:'Biodata santri tidak ditemukan.');
   const student=result.data;
   if(!student.nama)throw new Error('Data NIS ditemukan, tetapi nama santri kosong.');
-  input.value=String(student.nis||nis).replace(/\\D/g,'');
+  input.value=String(student.nis||nis).replace(/\D/g,'');
   nama.value=student.nama||'';kelas.value=student.kelas||'';
   setHafalanLookupStatus('✓ Biodata ditemukan: '+nama.value+(kelas.value?' — '+kelas.value:''),'success');
  }catch(err){
