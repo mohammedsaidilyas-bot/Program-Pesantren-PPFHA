@@ -233,7 +233,7 @@ function doPost(e) {
     if (action === 'updatestatus') {
       const id = String(body.id || '').trim();
       const status = String(body.status || '').trim();
-      const allowed = ['Diizinkan','Menunggu persetujuan','Ditolak','Sudah keluar','Sudah kembali'];
+      const allowed = ['Diizinkan','Menunggu persetujuan','Ditolak','Sudah keluar','Sudah kembali','Sudah Sehat'];
       if (!id) return output_({ok:false,error:'ID izin wajib diisi.'});
       if (allowed.indexOf(status) === -1) return output_({ok:false,error:'Status tidak valid.'});
       const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Izin');
@@ -246,8 +246,8 @@ function doPost(e) {
       for (let i = 1; i < values.length; i++) { if (String(values[i][idCol-1]).trim() === id) { rowNumber = i + 1; break; } }
       if (rowNumber < 0) return output_({ok:false,error:'ID izin tidak ditemukan.'});
       sh.getRange(rowNumber,statusCol).setValue(status);
-      if (status === 'Sudah kembali' && kembaliCol) sh.getRange(rowNumber,kembaliCol).setValue(body.kembaliAt ? new Date(body.kembaliAt) : new Date());
-      if (status === 'Sudah kembali' && catatanCol && body.catatan !== undefined) sh.getRange(rowNumber,catatanCol).setValue(String(body.catatan || ''));
+      if ((status === 'Sudah kembali' || status === 'Sudah Sehat') && kembaliCol) sh.getRange(rowNumber,kembaliCol).setValue(body.kembaliAt ? new Date(body.kembaliAt) : new Date());
+      if ((status === 'Sudah kembali' || status === 'Sudah Sehat') && catatanCol && body.catatan !== undefined) sh.getRange(rowNumber,catatanCol).setValue(String(body.catatan || ''));
       return output_({ok:true,message:'Status izin berhasil diperbarui.',id:id,status:status});
     }
     const name = ACTION_TO_SHEET[action], input = body.data;
@@ -493,7 +493,40 @@ function attendanceExistingKeys_(sh, date) {
   return set;
 }
 
-/** Membuat baris Tidak Hadir untuk seluruh santri aktif setelah batas akhir sesi lewat. */
+
+/** Mengambil NIS santri yang sedang berstatus Izin Sakit pada tanggal absensi. */
+function activeSickStudents_(targetDate) {
+  const ss=SpreadsheetApp.openById(SPREADSHEET_ID), sh=ss.getSheetByName('Izin'), active={};
+  if(!sh || sh.getLastRow()<2) return active;
+  const values=sh.getDataRange().getValues(), headers=values[0].map(function(v){return String(v||'').trim();});
+  const ix={}; headers.forEach(function(h,i){ix[h]=i;});
+  values.slice(1).forEach(function(row){
+    const jenis=String(row[ix.jenis]||'').trim().toLowerCase(), status=String(row[ix.status]||'').trim().toLowerCase();
+    if(jenis!=='izin sakit' || status!=='sakit' || (row[ix.kembali] && String(row[ix.kembali]).trim())) return;
+    const nis=String(row[ix.nis]||'').trim().replace(/\\D/g,''); if(!nis) return;
+    const mulai=attendanceCellDate_(row[ix.keluar] || row[ix.dibuatPada]);
+    if(mulai && mulai<=targetDate) active[nis]=true;
+  });
+  return active;
+}
+
+/** Menulis status Izin Sakit tanpa menimpa catatan hadir/terlambat yang sudah sah. */
+function writeSickAttendance_(sh,date,activity,session,student) {
+  const rows=sh.getLastRow()>1?sh.getDataRange().getValues():[];
+  for(let i=1;i<rows.length;i++) {
+    const row=rows[i];
+    if(attendanceCellDate_(row[0])===date && normalizeAttendanceActivity_(row[1])===activity && String(row[2]||'Utama')===session && String(row[3]||'').trim().replace(/\\D/g,'')===student.nis) {
+      const old=String(row[5]||'').toLowerCase();
+      if(old==='hadir'||old==='terlambat'||old==='izin sakit') return false;
+      sh.getRange(i+1,6,1,4).setValues([['Izin Sakit','',new Date(),'Otomatis · Izin Sakit']]);
+      return true;
+    }
+  }
+  sh.appendRow([date,activity,session,student.nis,student.nama,'Izin Sakit','',new Date(),'Otomatis · Izin Sakit']);
+  return true;
+}
+
+/** Membuat baris Tidak Hadir atau Izin Sakit setelah batas akhir sesi lewat. */
 function processAttendanceDeadlines_(targetDate) {
   const date = attendanceDateString_(targetDate || new Date());
   const now = new Date();
@@ -510,6 +543,7 @@ function processAttendanceDeadlines_(targetDate) {
     return true;
   });
   const students = attendanceStudentRoster_();
+  const sick = activeSickStudents_(date);
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -521,7 +555,10 @@ function processAttendanceDeadlines_(targetDate) {
       if (date === today && nowTime <= end) return;
       students.forEach(function(st) {
         const key=[date,s.activity,s.session,st.nis].join('|');
-        if (!existing[key]) {
+        if (sick[st.nis]) {
+          if (!existing[key] || String(existing[key].status).toLowerCase()==='tidak hadir') writeSickAttendance_(sh,date,s.activity,s.session,st);
+          existing[key]=existing[key]||{status:'Izin Sakit'};
+        } else if (!existing[key]) {
           additions.push([date,s.activity,s.session,st.nis,st.nama,'Tidak Hadir','',new Date(),'Otomatis']);
           existing[key]=true;
         }
@@ -590,6 +627,15 @@ function recordAttendanceScan_(data) {
   const students = attendanceStudentRoster_();
   const student = students.find(function(x){return x.nis===nis;});
   if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif.'};
+  const sickNow=activeSickStudents_(date);
+  if(sickNow[nis]) {
+    const lockSick=LockService.getScriptLock(); lockSick.waitLock(15000);
+    try {
+      const shSick=ensureAttendanceSheets_().getSheetByName('Absensi');
+      writeSickAttendance_(shSick,date,activity,session,student);
+      return {ok:true,data:{nis:nis,nama:student.nama,status:'Izin Sakit',time:'',activity:activity,session:session},message:'Santri sedang tercatat Izin Sakit. Absensi disimpan sebagai Izin Sakit.'};
+    } finally { lockSick.releaseLock(); }
+  }
   const status = (testMode || session === 'Jumat') ? 'Hadir' : (time <= String(schedule.onTimeUntil) ? 'Hadir' : 'Terlambat');
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
