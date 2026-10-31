@@ -443,7 +443,7 @@ function toggleAttendanceHoliday_(data) {
   const activity = normalizeAttendanceActivity_(data.activity);
   const session = activity === 'jamaah' ? String(data.session || 'Subuh') : 'Utama';
   const holiday = data.isHoliday === true;
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) return {ok:false,error:'Tanggal libur tidak valid.'};
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return {ok:false,error:'Tanggal libur tidak valid.'};
   if (!ATTENDANCE_ACTIVITY_NAMES[activity]) return {ok:false,error:'Kegiatan tidak dikenal.'};
   const lock=LockService.getScriptLock(); lock.waitLock(15000);
   try {
@@ -461,7 +461,7 @@ function toggleAttendanceHoliday_(data) {
 /** Mengatur libur pondok untuk seluruh kegiatan pada rentang tanggal. */
 function setPondokHoliday_(data) {
   const start=String(data.startDate||''), end=String(data.endDate||''), holiday=data.isHoliday!==false;
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(start)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(end)||end<start) return {ok:false,error:'Rentang tanggal libur tidak valid.'};
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end)||end<start) return {ok:false,error:'Rentang tanggal libur tidak valid.'};
   const startDate=new Date(start+'T12:00:00+07:00'), endDate=new Date(end+'T12:00:00+07:00');
   const count=Math.round((endDate-startDate)/86400000)+1;
   if(count>90) return {ok:false,error:'Rentang libur maksimal 90 hari dalam satu pengaturan.'};
@@ -490,8 +490,8 @@ function attendanceCellDate_(value) {
   if (value instanceof Date && !isNaN(value.getTime()))
     return Utilities.formatDate(value, ATTENDANCE_TZ, 'yyyy-MM-dd');
   const text = String(value == null ? '' : value).trim();
-  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) return text;
-  let m = text.match(/^(\\d{1,2})[\\/.-](\\d{1,2})[\\/.-](\\d{4})$/);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  let m = text.match(/^(\d{1,2})[\\/.-](\d{1,2})[\\/.-](\d{4})$/);
   if (m) return m[3] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[1]).padStart(2,'0');
   const parsed = new Date(value);
   return value && !isNaN(parsed.getTime()) ? Utilities.formatDate(parsed, ATTENDANCE_TZ, 'yyyy-MM-dd') : text;
@@ -500,7 +500,7 @@ function attendanceCellTime_(value) {
   if (value instanceof Date && !isNaN(value.getTime()))
     return Utilities.formatDate(value, ATTENDANCE_TZ, 'HH:mm');
   const text = String(value == null ? '' : value).trim();
-  const match = text.match(/(\\d{1,2}):(\\d{2})/);
+  const match = text.match(/(\d{1,2}):(\d{2})/);
   return match ? String(match[1]).padStart(2,'0') + ':' + match[2] : text;
 }
 function attendanceExistingKeys_(sh, date) {
@@ -541,7 +541,7 @@ function writeSickAttendance_(sh,date,activity,session,student) {
   const rows=sh.getLastRow()>1?sh.getDataRange().getValues():[];
   for(let i=1;i<rows.length;i++) {
     const row=rows[i];
-    if(attendanceCellDate_(row[0])===date && normalizeAttendanceActivity_(row[1])===activity && String(row[2]||'Utama')===session && String(row[3]||'').trim().replace(/\\D/g,'')===student.nis) {
+    if(attendanceCellDate_(row[0])===date && normalizeAttendanceActivity_(row[1])===activity && String(row[2]||'Utama')===session && String(row[3]||'').trim().replace(/\D/g,'')===student.nis) {
       const old=String(row[5]||'').toLowerCase();
       if(old==='hadir'||old==='terlambat'||old==='izin sakit') return false;
       sh.getRange(i+1,6,1,4).setValues([['Izin Sakit','',new Date(),'Otomatis · Izin Sakit']]);
