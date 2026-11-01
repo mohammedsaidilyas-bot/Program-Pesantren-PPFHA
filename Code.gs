@@ -294,9 +294,16 @@ function doPost(e) {
     record.id=record.id||Utilities.getUuid(); record.dibuatPada=record.dibuatPada||new Date().toISOString();
     sh.appendRow(HEADERS[name].map(function(k){return record[k]===undefined||record[k]===null?'':record[k];}));
     if (action === 'izin') {
-      queueWaliEventSafely_('izin-baru', record.nis, 'Pengajuan izin santri',
-        String(record.nama || 'Santri') + ' — pengajuan ' + String(record.jenis || 'izin') + ' telah dicatat.',
-        String(record.id));
+      // Izin dicatat langsung oleh pengurus, bukan pengajuan dari wali.
+      const jenis = String(record.jenis || 'Izin').trim();
+      const statusIzin = String(record.status || '').trim();
+      const catatanIzin = String(record.catatan || '').trim();
+      const judulIzin = jenis.toLowerCase().indexOf('sakit') >= 0
+        ? 'Kondisi santri: ' + jenis : 'Perizinan santri: ' + jenis;
+      const pesanIzin = String(record.nama || 'Santri') + ' — ' + jenis
+        + (statusIzin ? '. Status: ' + statusIzin : '')
+        + (catatanIzin ? '. Keterangan: ' + catatanIzin : '') + '.';
+      queueWaliEventSafely_('izin-dicatat', record.nis, judulIzin, pesanIzin, String(record.id));
     }
     return output_({ok:true,message:'Data berhasil disimpan.',id:record.id,action:action});
   } catch(err) { return output_({ok:false,error:explainError_(err)}); }
