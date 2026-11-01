@@ -1004,18 +1004,31 @@ function kirimAntrianNotifikasiWali() {
     const deviceRows=devices.getRange(2,1,devices.getLastRow()-1,5).getDisplayValues();
     const pending=queue.getRange(2,1,queue.getLastRow()-1,8).getDisplayValues();
     if (!pending.some(function(row){return row[6]==='Menunggu';})) return;
+    let receipts=ss.getSheetByName('PengirimanNotifikasiWali');
+    if (!receipts) receipts=ss.insertSheet('PengirimanNotifikasiWali');
+    if (!receipts.getLastRow()) {
+      receipts.appendRow(['eventKey','tokenHash','terkirimPada']);
+      receipts.setFrozenRows(1);
+    }
+    const receiptRows=receipts.getLastRow()>1
+      ? receipts.getRange(2,1,receipts.getLastRow()-1,2).getDisplayValues() : [];
+    const sent=new Set(receiptRows.map(function(x){return x.join('|');}));
     const accessToken=waliPushAccessToken_();
     let processed=0;
     pending.forEach(function(row,index){
       if (processed>=15 || row[6]!=='Menunggu') return;
       processed++;
-      const nis=String(row[3]).trim();
-      const tokens=deviceRows.filter(function(device){
+      const nis=String(row[3]).trim(),eventKey=String(row[0]);
+      const tokens=Array.from(new Set(deviceRows.filter(function(device){
         return device[4]==='Aktif' && String(device[1]).split(',').map(function(x){return x.trim();}).indexOf(nis)>=0;
-      }).map(function(device){return device[0];});
-      if (!tokens.length) return; // menunggu wali mengaktifkan notifikasi
-      let success=0,failed=0;
+      }).map(function(device){return device[0];})));
+      if (!tokens.length) return;
+      let failed=false;
       tokens.forEach(function(token){
+        const hash=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,token)
+          .map(function(byte){return ('0'+(byte&255).toString(16)).slice(-2);}).join('');
+        const receiptKey=eventKey+'|'+hash;
+        if (sent.has(receiptKey)) return;
         try {
           const response=UrlFetchApp.fetch('https://fcm.googleapis.com/v1/projects/'+WALI_FIREBASE_PROJECT_ID+'/messages:send',{
             method:'post',contentType:'application/json',muteHttpExceptions:true,
@@ -1026,13 +1039,20 @@ function kirimAntrianNotifikasiWali() {
               webpush:{fcm_options:{link:'https://wali-santri-ppfha.vercel.app/'}}
             }})
           });
-          if (response.getResponseCode()===200) success++;
-          else { failed++; console.error('FCM HTTP '+response.getResponseCode()); }
-        } catch(e) {failed++;console.error('FCM send error: '+e.message);}
+          if (response.getResponseCode()===200) {
+            receipts.appendRow([eventKey,hash,new Date()]);
+            sent.add(receiptKey);
+          } else {
+            failed=true;
+            console.error('FCM HTTP '+response.getResponseCode());
+          }
+        } catch(e) {failed=true;console.error('FCM send error: '+e.message);}
       });
-      // Baris tetap Menunggu bila sebagian perangkat gagal agar dapat dicoba ulang.
-      // Pengiriman ulang mungkin menimbulkan duplikat pada perangkat yang sudah sukses.
-      if (success>0 && failed===0) queue.getRange(index+2,7,1,2).setValues([['Terkirim',new Date()]]);
+      if (!failed && tokens.every(function(token){
+        const hash=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,token)
+          .map(function(byte){return ('0'+(byte&255).toString(16)).slice(-2);}).join('');
+        return sent.has(eventKey+'|'+hash);
+      })) queue.getRange(index+2,7,1,2).setValues([['Terkirim',new Date()]]);
     });
   } finally {lock.releaseLock();}
 }
