@@ -230,7 +230,16 @@ function doPost(e) {
     if (action === 'toggleattendanceholiday') return output_(toggleAttendanceHoliday_(body.data || {}));
     if (action === 'setpondokholiday') return output_(setPondokHoliday_(body.data || {}));
     if (action === 'activatepondoknow') return output_(activatePondokNow_());
-    if (action === 'attendancescan') return output_(recordAttendanceScan_(body.data || {}));
+    if (action === 'attendancescan') {
+      const scan = recordAttendanceScan_(body.data || {});
+      if (scan.ok && !scan.duplicate && scan.data && scan.data.nis) {
+        queueWaliEventSafely_('absensi', scan.data.nis,
+          'Kehadiran ' + (ATTENDANCE_ACTIVITY_NAMES[scan.data.activity] || scan.data.activity),
+          String(scan.data.nama || 'Santri') + ' tercatat ' + scan.data.status + ' pada sesi ' + scan.data.session + '.',
+          [Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd'),scan.data.activity,scan.data.session,scan.data.nis,scan.data.status].join('|'));
+      }
+      return output_(scan);
+    }
     if (action === 'attendancerecords') return output_(getAttendanceRecords_(String(body.date || Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd')), String(body.activity || 'all'), String(body.session || '')));
     if (action === 'updatestatus') {
       const id = String(body.id || '').trim();
@@ -247,9 +256,18 @@ function doPost(e) {
       let rowNumber = -1;
       for (let i = 1; i < values.length; i++) { if (String(values[i][idCol-1]).trim() === id) { rowNumber = i + 1; break; } }
       if (rowNumber < 0) return output_({ok:false,error:'ID izin tidak ditemukan.'});
+      const previousStatus = String(values[rowNumber-1][statusCol-1] || '').trim();
       sh.getRange(rowNumber,statusCol).setValue(status);
       if ((status === 'Sudah kembali' || status === 'Sudah Sehat') && kembaliCol) sh.getRange(rowNumber,kembaliCol).setValue(body.kembaliAt ? new Date(body.kembaliAt) : new Date());
       if ((status === 'Sudah kembali' || status === 'Sudah Sehat') && catatanCol && body.catatan !== undefined) sh.getRange(rowNumber,catatanCol).setValue(String(body.catatan || ''));
+      if (previousStatus !== status) {
+        const nisCol = headers.indexOf('nis');
+        const namaCol = headers.indexOf('nama');
+        const nisIzin = nisCol >= 0 ? String(values[rowNumber-1][nisCol] || '').trim() : '';
+        const namaIzin = namaCol >= 0 ? String(values[rowNumber-1][namaCol] || 'Santri').trim() : 'Santri';
+        queueWaliEventSafely_('izin', nisIzin, 'Status perizinan: ' + status,
+          namaIzin + ' — status izin sekarang ' + status + '.', id + '|' + status);
+      }
       return output_({ok:true,message:'Status izin berhasil diperbarui.',id:id,status:status});
     }
     const name = ACTION_TO_SHEET[action], input = body.data;
@@ -909,5 +927,35 @@ function testSaveEducationAlbab() {
     throw new Error(JSON.stringify(result));
   } finally {
     lock.releaseLock();
+  }
+}
+
+
+/**
+ * TAHAP 1: antrian peristiwa wali. Belum mengirim Firebase.
+ * Kegagalan antrian tidak boleh menggagalkan transaksi pengurus.
+ * Pengirim FCM harus berjalan di server tepercaya dan menandai baris terkirim.
+ */
+function queueWaliEventSafely_(type, nis, title, message, eventKey) {
+  try {
+    const studentNis = String(nis || '').trim().replace(/\D/g, '');
+    if (!studentNis) return;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sh = ss.getSheetByName('AntrianNotifikasiWali');
+    const columns = ['eventKey','dibuatPada','jenis','nis','judul','pesan','status','dikirimPada'];
+    if (!sh) sh = ss.insertSheet('AntrianNotifikasiWali');
+    if (!sh.getLastRow()) {
+      sh.getRange(1,1,1,columns.length).setValues([columns]);
+      sh.setFrozenRows(1);
+    }
+    const key = String(type) + '|' + String(eventKey);
+    const last = sh.getLastRow();
+    if (last > 1) {
+      const existing = sh.getRange(2,1,last-1,1).getDisplayValues();
+      if (existing.some(function(row) { return row[0] === key; })) return;
+    }
+    sh.appendRow([key,new Date(),String(type),studentNis,String(title),String(message),'Menunggu','']);
+  } catch (error) {
+    console.error('Gagal mencatat antrian notifikasi wali: ' + error.message);
   }
 }
