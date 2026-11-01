@@ -232,7 +232,7 @@ function doPost(e) {
     if (action === 'activatepondoknow') return output_(activatePondokNow_());
     if (action === 'attendancescan') {
       const scan = recordAttendanceScan_(body.data || {});
-      if (scan.ok && !scan.duplicate && scan.data && scan.data.nis) {
+      if (scan.ok && !scan.duplicate && !scan.test && scan.data && scan.data.nis && scan.data.status !== 'Uji coba') {
         queueWaliEventSafely_('absensi', scan.data.nis,
           'Kehadiran ' + (ATTENDANCE_ACTIVITY_NAMES[scan.data.activity] || scan.data.activity),
           String(scan.data.nama || 'Santri') + ' tercatat ' + scan.data.status + ' pada sesi ' + scan.data.session + '.',
