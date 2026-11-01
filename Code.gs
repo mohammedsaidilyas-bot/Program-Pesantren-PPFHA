@@ -959,3 +959,87 @@ function queueWaliEventSafely_(type, nis, title, message, eventKey) {
     console.error('Gagal mencatat antrian notifikasi wali: ' + error.message);
   }
 }
+
+/* ================= PENGIRIM NOTIFIKASI FCM (SERVER) =================
+ * Persiapan: isi FIREBASE_CLIENT_EMAIL dan FIREBASE_PRIVATE_KEY dalam
+ * Script Properties, menggunakan service account Firebase yang berizin
+ * Firebase Cloud Messaging API. Jangan pernah taruh private key di GitHub.
+ * Jalankan pasangPemicuNotifikasiWali() sekali dari editor Apps Script.
+ * Pengiriman tidak berjalan sebelum konfigurasi ini dipasang.
+ */
+const WALI_PUSH_ACCESS_SHEET_ID = '1A0wPmKJr51FBIoKIaevPZKV9cJJhFHjlNpElrJIpzVk';
+const WALI_FIREBASE_PROJECT_ID = 'wali-santri-ppfha';
+
+function waliPushAccessToken_() {
+  const p = PropertiesService.getScriptProperties();
+  const email = p.getProperty('FIREBASE_CLIENT_EMAIL');
+  const privateKey = (p.getProperty('FIREBASE_PRIVATE_KEY') || '').replace(/\\n/g, '\n');
+  if (!email || !privateKey) throw new Error('Kredensial Firebase belum disetel dalam Script Properties.');
+  const now = Math.floor(Date.now() / 1000);
+  const base64url = function(v) { return Utilities.base64EncodeWebSafe(v).replace(/=+$/,''); };
+  const header = base64url(JSON.stringify({alg:'RS256',typ:'JWT'}));
+  const payload = base64url(JSON.stringify({
+    iss:email,scope:'https://www.googleapis.com/auth/firebase.messaging',
+    aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3600
+  }));
+  const signingInput = header+'.'+payload;
+  const signature = base64url(Utilities.computeRsaSha256Signature(signingInput,privateKey));
+  const response = UrlFetchApp.fetch('https://oauth2.googleapis.com/token',{
+    method:'post',muteHttpExceptions:true,
+    payload:{grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion:signingInput+'.'+signature}
+  });
+  if (response.getResponseCode()!==200) throw new Error('Otorisasi Firebase gagal ('+response.getResponseCode()+').');
+  return JSON.parse(response.getContentText()).access_token;
+}
+
+function kirimAntrianNotifikasiWali() {
+  const lock=LockService.getScriptLock();
+  if (!lock.tryLock(1000)) return;
+  try {
+    const ss=SpreadsheetApp.openById(SPREADSHEET_ID);
+    const queue=ss.getSheetByName('AntrianNotifikasiWali');
+    if (!queue || queue.getLastRow()<2) return;
+    const devices=SpreadsheetApp.openById(WALI_PUSH_ACCESS_SHEET_ID).getSheetByName('PerangkatNotifikasiWali');
+    if (!devices || devices.getLastRow()<2) return;
+    const deviceRows=devices.getRange(2,1,devices.getLastRow()-1,5).getDisplayValues();
+    const pending=queue.getRange(2,1,queue.getLastRow()-1,8).getDisplayValues();
+    if (!pending.some(function(row){return row[6]==='Menunggu';})) return;
+    const accessToken=waliPushAccessToken_();
+    let processed=0;
+    pending.forEach(function(row,index){
+      if (processed>=15 || row[6]!=='Menunggu') return;
+      processed++;
+      const nis=String(row[3]).trim();
+      const tokens=deviceRows.filter(function(device){
+        return device[4]==='Aktif' && String(device[1]).split(',').map(function(x){return x.trim();}).indexOf(nis)>=0;
+      }).map(function(device){return device[0];});
+      if (!tokens.length) return; // menunggu wali mengaktifkan notifikasi
+      let success=0,failed=0;
+      tokens.forEach(function(token){
+        try {
+          const response=UrlFetchApp.fetch('https://fcm.googleapis.com/v1/projects/'+WALI_FIREBASE_PROJECT_ID+'/messages:send',{
+            method:'post',contentType:'application/json',muteHttpExceptions:true,
+            headers:{Authorization:'Bearer '+accessToken},
+            payload:JSON.stringify({message:{
+              token:token,
+              notification:{title:String(row[4]),body:String(row[5])},
+              webpush:{fcm_options:{link:'https://wali-santri-ppfha.vercel.app/'}}
+            }})
+          });
+          if (response.getResponseCode()===200) success++;
+          else { failed++; console.error('FCM HTTP '+response.getResponseCode()); }
+        } catch(e) {failed++;console.error('FCM send error: '+e.message);}
+      });
+      // Baris tetap Menunggu bila sebagian perangkat gagal agar dapat dicoba ulang.
+      // Pengiriman ulang mungkin menimbulkan duplikat pada perangkat yang sudah sukses.
+      if (success>0 && failed===0) queue.getRange(index+2,7,1,2).setValues([['Terkirim',new Date()]]);
+    });
+  } finally {lock.releaseLock();}
+}
+
+function pasangPemicuNotifikasiWali() {
+  // Tidak menghapus pemicu lain milik sistem pengurus.
+  const handler='kirimAntrianNotifikasiWali';
+  if (ScriptApp.getProjectTriggers().some(function(t){return t.getHandlerFunction()===handler;})) return;
+  ScriptApp.newTrigger(handler).timeBased().everyMinutes(1).create();
+}
