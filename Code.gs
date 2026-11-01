@@ -8,7 +8,7 @@ const STUDENT_DB_ID = '1JmWFYwHcXGTEauL-t9bqNGPtnH_L1dlkmqJFwCPtvyo';
 const STUDENT_SHEET_NAME = 'Uang Jajan Santri PPFHA';
 const HEADERS = {
   Izin: ['id','dibuatPada','nis','nama','jenis','status','keluar','rencanaKembali','kembali','wali','catatan','terbit'],
-  Pengumuman: ['id','dibuatPada','judul','kategori','tanggal','target','nisTarget','isi','status'],
+  Pengumuman: ['id','dibuatPada','judul','kategori','tanggal','target','nisTarget','isi','status','tanggalMulaiLibur','tanggalAkhirLibur','tanggalKembali','jamKembali'],
   Kegiatan: ['id','dibuatPada','judul','lokasi','tanggal','waktu','isi','status'],
   JadwalAbsensi: ['activity','session','startTime','onTimeUntil','endTime','days','updatedAt'],
   Absensi: ['tanggal','activity','session','nis','nama','status','waktuScan','dicatatPada','sumber'],
@@ -261,6 +261,17 @@ function doPost(e) {
     const ss=SpreadsheetApp.openById(SPREADSHEET_ID); let sh=ss.getSheetByName(name);
     if (!sh) { sh=ss.insertSheet(name); sh.getRange(1,1,1,HEADERS[name].length).setValues([HEADERS[name]]); sh.setFrozenRows(1); }
     else if (sh.getLastRow()===0) { sh.getRange(1,1,1,HEADERS[name].length).setValues([HEADERS[name]]); sh.setFrozenRows(1); }
+    // Migrasi aman: tambahkan kolom baru di ujung tab tanpa mengubah data lama.
+    const expectedHeaders = HEADERS[name];
+    const currentLastCol = Math.max(sh.getLastColumn(), 1);
+    const currentHeaders = sh.getRange(1,1,1,currentLastCol).getDisplayValues()[0].map(function(v){return String(v).trim();});
+    expectedHeaders.forEach(function(header){
+      if (currentHeaders.indexOf(header) < 0) {
+        const nextCol = sh.getLastColumn() + 1;
+        sh.getRange(1,nextCol).setValue(header);
+        currentHeaders.push(header);
+      }
+    });
     const record=Object.assign({},input);
     record.id=record.id||Utilities.getUuid(); record.dibuatPada=record.dibuatPada||new Date().toISOString();
     sh.appendRow(HEADERS[name].map(function(k){return record[k]===undefined||record[k]===null?'':record[k];}));
