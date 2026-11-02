@@ -911,3 +911,15 @@ function testSaveEducationAlbab() {
     lock.releaseLock();
   }
 }
+
+
+/** Uji idempotensi lokal; tidak mengirim pemberitahuan. */
+function testAbsentNotificationKeys() {
+  const examples = [
+    ['2026-11-02','jamaah','Ashar','20260001'],
+    ['2026-11-02','jamaah','Ashar','20260001'],
+    ['2026-11-02','jamaah','Maghrib','20260001']
+  ];
+  const unique = new Set(examples.map(function(row){ return row.join('|'); }));
+  return {ok:unique.size===2, input:examples.length, unique:unique.size};
+}
