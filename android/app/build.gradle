@@ -1,0 +1,13 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.ppfha.programpesantren'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.ppfha.programpesantren'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0-uji'
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
