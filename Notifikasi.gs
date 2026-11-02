@@ -5,7 +5,7 @@
  *
  * Cara pakai: salin seluruh isi file ini ke Notifikasi.gs
  * dalam proyek Apps Script "Program Pesantren PPFHA".
- * Membutuhkan konstanta SPREADSHEET_ID dari Code.gs.
+ * Membutuhkan konstanta SPREADSHEET_ID dari Code.gs. Token dibaca lintas spreadsheet.
  * JANGAN jalankan semua antrean sebagai pengiriman massal.
  */
 
@@ -180,7 +180,7 @@ function tesNotifAsharAditya() {
  * TAHAP 2 — PENGIRIMAN FCM SATU NOTIFIKASI (UJI TERBATAS)
  *
  * Prasyarat:
- * 1. Sheet PerangkatNotifikasiWali memiliki header: token, nisList, status.
+ * 1. Sheet PerangkatNotifikasiWali berada di database akses wali yang sudah aktif.
  * 2. Script Properties berisi FIREBASE_PROJECT_ID (Project ID Firebase).
  * 3. Manifest Apps Script memberi scope:
  *    https://www.googleapis.com/auth/firebase.messaging
@@ -191,7 +191,7 @@ function tesNotifAsharAditya() {
  */
 
 function cariTokenWaliUntukNis_(nis) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.openById('1A0wPmKJr51FBIoKIaevPZKV9cJJhFHjlNpElrJIpzVk');
   const sh = ss.getSheetByName('PerangkatNotifikasiWali');
   if (!sh) throw new Error('Sheet PerangkatNotifikasiWali tidak ditemukan');
 
@@ -208,7 +208,7 @@ function cariTokenWaliUntukNis_(nis) {
   }
 
   return values.filter(function(row) {
-    const daftarNis = String(row[iNis] || '').split(/[;,\\s]+/).map(function(x) { return x.trim(); });
+    const daftarNis = String(row[iNis] || '').match(/\d{6,}/g) || [];
     return String(row[iStatus]).trim().toLowerCase() === 'aktif'
       && daftarNis.indexOf(String(nis).trim()) >= 0
       && String(row[iToken] || '').trim() !== '';
@@ -315,4 +315,15 @@ function kirimSatuNotifAsharAditya() {
   } finally {
     lock.releaseLock();
   }
+}
+
+/** Cek aman: antrean dan token Maghrib Aditya tanpa mengirim. */
+function cekNotifMaghribAditya() {
+  const sh = getNotifAbsenSheet_();
+  const data = sh.getDataRange().getDisplayValues();
+  const kunci = '2026-11-02|jamaah|Maghrib|20260004';
+  const cocok = data.slice(1).filter(function(r) { return String(r[0]).trim() === kunci; });
+  const hasil = { kunci: kunci, antreanDitemukan: cocok.length, status: cocok.length ? cocok[0][6] : 'BELUM_ADA', jumlahTokenAktif: cariTokenWaliUntukNis_('20260004').length, firebaseDikirim: false };
+  Logger.log(JSON.stringify(hasil));
+  return hasil;
 }
