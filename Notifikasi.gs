@@ -175,3 +175,144 @@ function tesNotifAsharAditya() {
   Logger.log(JSON.stringify(hasil, null, 2));
   return hasil;
 }
+
+/**
+ * TAHAP 2 — PENGIRIMAN FCM SATU NOTIFIKASI (UJI TERBATAS)
+ *
+ * Prasyarat:
+ * 1. Sheet PerangkatNotifikasiWali memiliki header: token, nisList, status.
+ * 2. Script Properties berisi FIREBASE_PROJECT_ID (Project ID Firebase).
+ * 3. Manifest Apps Script memberi scope:
+ *    https://www.googleapis.com/auth/firebase.messaging
+ *    https://www.googleapis.com/auth/script.external_request
+ *
+ * Fungsi ini hanya mengirim SATU antrean untuk NIS/tanggal/kegiatan
+ * yang ditentukan. Tidak ada pengiriman massal/trigger otomatis.
+ */
+
+function cariTokenWaliUntukNis_(nis) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName('PerangkatNotifikasiWali');
+  if (!sh) throw new Error('Sheet PerangkatNotifikasiWali tidak ditemukan');
+
+  const values = sh.getDataRange().getDisplayValues();
+  if (values.length < 2) return [];
+
+  const headers = values.shift().map(function(x) { return String(x).trim(); });
+  const iToken = headers.indexOf('token');
+  const iNis = headers.indexOf('nisList');
+  const iStatus = headers.indexOf('status');
+
+  if (iToken < 0 || iNis < 0 || iStatus < 0) {
+    throw new Error('Header PerangkatNotifikasiWali harus memuat token, nisList, status');
+  }
+
+  return values.filter(function(row) {
+    const daftarNis = String(row[iNis] || '').split(/[;,\\s]+/).map(function(x) { return x.trim(); });
+    return String(row[iStatus]).trim().toLowerCase() === 'aktif'
+      && daftarNis.indexOf(String(nis).trim()) >= 0
+      && String(row[iToken] || '').trim() !== '';
+  }).map(function(row) { return String(row[iToken]).trim(); });
+}
+
+function kirimFCMWali_(token, title, body, dataTambahan) {
+  const projectId = PropertiesService.getScriptProperties().getProperty('FIREBASE_PROJECT_ID');
+  if (!projectId) throw new Error('Script Property FIREBASE_PROJECT_ID belum diisi');
+
+  const url = 'https://fcm.googleapis.com/v1/projects/' +
+    encodeURIComponent(projectId) + '/messages:send';
+
+  const payload = {
+    message: {
+      token: token,
+      notification: { title: title, body: body },
+      data: dataTambahan || {},
+      android: { priority: 'HIGH' }
+    }
+  };
+
+  const response = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+
+  const code = response.getResponseCode();
+  const textBody = response.getContentText();
+  if (code < 200 || code >= 300) {
+    throw new Error('FCM HTTP ' + code + ': ' + textBody);
+  }
+  return JSON.parse(textBody);
+}
+
+/**
+ * Uji kirim hanya untuk Aditya Firmansyah (NIS 20260004),
+ * Sholat Ashar tanggal 2026-11-02.
+ * Menandai baris TERKIRIM hanya setelah Firebase merespons sukses.
+ */
+function kirimSatuNotifAsharAditya() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+
+  try {
+    const sh = getNotifAbsenSheet_();
+    const all = sh.getDataRange().getDisplayValues();
+    if (all.length < 2) throw new Error('Antrean notifikasi masih kosong');
+
+    const key = '2026-11-02|jamaah|Ashar|20260004';
+    let rowNumber = -1;
+    let row = null;
+
+    for (let i = 1; i < all.length; i++) {
+      if (String(all[i][0]).trim() === key) {
+        rowNumber = i + 1;
+        row = all[i];
+        break;
+      }
+    }
+
+    if (!row) throw new Error('Antrean khusus Aditya/Ashar tidak ditemukan. Jalankan siapkanAntrianTidakHadir terlebih dahulu.');
+    if (String(row[6]).trim() === 'TERKIRIM') {
+      return { berhasil: true, sudahTerkirim: true, firebaseDikirim: false, kunci: key };
+    }
+    if (String(row[6]).trim() !== 'PENDING') {
+      throw new Error('Status antrean bukan PENDING: ' + row[6]);
+    }
+
+    const tokens = cariTokenWaliUntukNis_('20260004');
+    if (!tokens.length) throw new Error('Token perangkat aktif untuk NIS 20260004 tidak ditemukan');
+
+    const nama = row[5] || 'Santri';
+    const kegiatan = row[2] + (row[3] ? ' - ' + row[3] : '');
+    const body = nama + ' tercatat Tidak Hadir pada ' + kegiatan + ' tanggal ' + row[1] + '.';
+
+    // Kirim hanya ke satu token perangkat aktif pertama untuk NIS ini.
+    const hasilFCM = kirimFCMWali_(
+      tokens[0],
+      'Informasi Ketidakhadiran Santri',
+      body,
+      { tipe: 'ketidakhadiran', nis: '20260004', tanggal: String(row[1]), kegiatan: kegiatan }
+    );
+
+    sh.getRange(rowNumber, 7).setValue('TERKIRIM');
+    sh.getRange(rowNumber, 9).setValue(new Date());
+    sh.getRange(rowNumber, 10).setValue('FCM sukses: ' + (hasilFCM.name || 'message accepted'));
+
+    const hasil = {
+      berhasil: true,
+      santri: nama,
+      nis: '20260004',
+      kegiatan: kegiatan,
+      tokenDipakai: 1,
+      firebaseDikirim: true,
+      fcmMessage: hasilFCM.name || ''
+    };
+    Logger.log(JSON.stringify(hasil, null, 2));
+    return hasil;
+
+  } finally {
+    lock.releaseLock();
+  }
+}
