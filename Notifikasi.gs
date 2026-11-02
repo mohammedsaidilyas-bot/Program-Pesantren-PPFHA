@@ -327,3 +327,56 @@ function cekNotifMaghribAditya() {
   Logger.log(JSON.stringify(hasil));
   return hasil;
 }
+
+/**
+ * Uji kirim khusus Aditya, Maghrib 2 November 2026.
+ * Hanya mengirim jika antrean PENDING benar-benar ada.
+ * Tidak membuat data ketidakhadiran palsu.
+ * Jika gagal/timeout, status PERIKSA_MANUAL untuk mencegah kirim ganda.
+ */
+function kirimNotifMaghribAditya() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = getNotifAbsenSheet_();
+    const rows = sh.getDataRange().getDisplayValues();
+    const key = '2026-11-02|jamaah|Maghrib|20260004';
+    const idx = rows.findIndex(function(r, i) { return i > 0 && String(r[0]).trim() === key; });
+    if (idx < 0) {
+      const result = { berhasil: false, status: 'BELUM_ADA', firebaseDikirim: false, pesan: 'Belum tercatat Tidak Hadir Maghrib untuk Aditya. Tunggu penutupan absensi.' };
+      Logger.log(JSON.stringify(result)); return result;
+    }
+    const row = rows[idx];
+    const status = String(row[6]).trim();
+    if (status !== 'PENDING') {
+      const result = { berhasil: false, status: status, firebaseDikirim: false, pesan: 'Tidak dikirim ulang untuk menghindari duplikat.' };
+      Logger.log(JSON.stringify(result)); return result;
+    }
+    const tokens = cariTokenWaliUntukNis_('20260004');
+    if (tokens.length !== 1) throw new Error('Uji dibatasi satu token aktif Aditya; ditemukan: ' + tokens.length);
+    const projectId = PropertiesService.getScriptProperties().getProperty('FIREBASE_PROJECT_ID');
+    if (!projectId) throw new Error('Script Property FIREBASE_PROJECT_ID belum diatur.');
+    sh.getRange(idx + 1, 7).setValue('SEDANG_DIKIRIM');
+    sh.getRange(idx + 1, 10).setValue('Uji Firebase Maghrib dimulai');
+    SpreadsheetApp.flush();
+    try {
+      const resultFCM = kirimFCMWali_(
+        tokens[0],
+        'Informasi Ketidakhadiran Santri',
+        String(row[5] || 'Aditya Firmansyah') + ' tercatat Tidak Hadir pada Sholat Maghrib tanggal 2 November 2026.',
+        { tipe: 'ketidakhadiran', nis: '20260004', tanggal: '2026-11-02', kegiatan: 'jamaah', sesi: 'Maghrib' }
+      );
+      sh.getRange(idx + 1, 7).setValue('TERKIRIM');
+      sh.getRange(idx + 1, 9).setValue(new Date());
+      sh.getRange(idx + 1, 10).setValue('FCM menerima pesan: ' + String(resultFCM.name || '').slice(0, 100));
+      const result = { berhasil: true, firebaseDikirim: true, status: 'TERKIRIM', nis: '20260004' };
+      Logger.log(JSON.stringify(result)); return result;
+    } catch (err) {
+      sh.getRange(idx + 1, 7).setValue('PERIKSA_MANUAL');
+      sh.getRange(idx + 1, 10).setValue(String(err.message).slice(0, 450));
+      throw err;
+    }
+  } finally {
+    lock.releaseLock();
+  }
+}
