@@ -105,7 +105,7 @@ async function handleQrDecoded(decoded){
  const nis=(nisMatch&&nisMatch[1])||(lastPart.match(/\d+/g)||[]).join('');
  if(!nis){$('#qrMessage').textContent='QR terbaca, tetapi isi QR tidak memuat NIS.';return}
  qrLocked=true;$('#qrMessage').textContent='QR terbaca. Memuat biodata santri…';
- if(qrTarget==='attendance'){if(!currentAttendanceActivity){await closeQr();toast('Pilih kegiatan terlebih dahulu.');return}const msg=$('#qrMessage');if(msg)msg.textContent='NIS '+nis+' terbaca. Menyimpan absensi…';try{await recordAttendanceScan(nis)}finally{if(qrTarget==='attendance'&&qrScanner&&qrScanner.isScanning){qrLocked=false;const m=$('#qrMessage');if(m)m.textContent='Siap scan santri berikutnya. Arahkan KTS ke kamera.'}}return}
+ if(qrTarget==='attendance'){if(!currentAttendanceActivity){await closeQr();toast('Pilih kegiatan terlebih dahulu.');return}const msg=$('#qrMessage');if(msg)msg.textContent='NIS '+nis+' terbaca. Menyimpan absensi…';try{await recordAttendanceScan(nis)}finally{await new Promise(resolve=>setTimeout(resolve,1400));if(qrTarget==='attendance'&&qrScanner&&qrScanner.isScanning){qrLocked=false;const m=$('#qrMessage');if(m)m.textContent='Siap scan santri berikutnya. Arahkan KTS ke kamera.'}}return}
  const targets={raport:['#raportNis',lookupRaportStudent],albab:['#albabNis',lookupAlbabStudent],hafalan:['#hafalanNis',lookupHafalanStudent],evaluasi:['#evaluasiNis',lookupEvaluasiStudent]};
  if(targets[qrTarget]){const input=$(targets[qrTarget][0]);if(!input){await closeQr();toast('Kolom NIS tidak ditemukan.');return}input.value=nis;await closeQr();await targets[qrTarget][1]();return}
  const input=$('#nisInput');if(!input){await closeQr();toast('Kolom NIS tidak ditemukan.');return}
