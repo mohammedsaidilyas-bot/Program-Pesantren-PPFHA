@@ -625,13 +625,14 @@ function processAttendanceDeadlines_(targetDate) {
       const end = String(s.endTime || '');
       if (date === today && nowTime <= end) return;
       students.forEach(function(st) {
-        const key=[date,s.activity,s.session,st.nis].join('|');
+        const session=s.activity==='jamaah'?s.session:'Utama';
+        const key=[date,s.activity,session,st.nis].join('|');
         const permission=permissions[st.nis], permissionForSession=!!(permission && (permission.date<date || (permission.date===date && permission.time<=end)) && (!permission.endDate || permission.endDate>date || (permission.endDate===date && permission.endTime>=end)));
         if (permissionForSession) {
-          if (!existing[key] || String(existing[key].status).toLowerCase()==='tidak hadir') writePermissionAttendance_(sh,date,s.activity,s.session,st,permission);
+          if (!existing[key] || String(existing[key].status).toLowerCase()==='tidak hadir') writePermissionAttendance_(sh,date,s.activity,session,st,permission);
           existing[key]=existing[key]||{status:permission.status};
         } else if (!existing[key]) {
-          additions.push([date,s.activity,s.session,st.nis,st.nama,'Tidak Hadir','',new Date(),'Otomatis']);
+          additions.push([date,s.activity,session,st.nis,st.nama,'Tidak Hadir','',new Date(),'Otomatis']);
           existing[key]=true;
         }
       });
