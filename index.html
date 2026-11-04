@@ -157,6 +157,26 @@
   }
   open.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();show();},true);
   if(cancel)cancel.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();hide();},true);
+  var history=document.getElementById('liburanRiwayat');
+  if(history)history.addEventListener('click',async function(e){
+   var button=e.target.closest('.liburan-activate');
+   if(!button)return;
+   e.preventDefault();e.stopImmediatePropagation();
+   if(button.disabled)return;
+   if(!window.confirm('Aktifkan masa liburan ini? Pengumuman akan diterbitkan dan dapat dikirim ke seluruh wali santri.'))return;
+   button.disabled=true;
+   var original=button.textContent;
+   button.textContent='Mengaktifkan...';
+   var info=document.createElement('p');info.setAttribute('role','status');button.insertAdjacentElement('afterend',info);
+   try{
+    if(typeof simpanMasaLiburan!=='function')throw new Error('Modul penyimpanan belum siap');
+    var result=await simpanMasaLiburan('liburanubahstatus',{id:button.dataset.id,status:'Aktif'});
+    if(!result)throw new Error('Aktivasi dibatalkan');
+    info.textContent=result.message||'Liburan diaktifkan';
+    if(typeof loadLiburan==='function')await loadLiburan();
+   }catch(error){info.textContent='Gagal mengaktifkan: '+error.message;}
+   finally{button.disabled=false;button.textContent=original;}
+  },true);
   var msg=document.createElement('p');msg.setAttribute('role','status');form.appendChild(msg);
   form.addEventListener('submit',async function(e){
    e.preventDefault();e.stopImmediatePropagation();
