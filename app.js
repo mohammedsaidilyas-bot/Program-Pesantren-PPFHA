@@ -763,7 +763,7 @@ function renderLiburan(){
  $('#aktifkanLiburan').classList.add('hidden');
  const history=liburanData.riwayat||[];
  $('#liburanRiwayat').innerHTML=history.length?history.map(x=>'<div style="padding:12px 0;border-bottom:1px solid #e5e9e6"><b>'+esc(x.judul)+'</b> · '+esc(x.status)+'<p>'+esc(x.mulai)+' s.d. '+esc(x.akhir)+' · kembali '+esc(x.tenggat)+' '+esc(x.jam)+' WIB</p>'+(x.status==='Draf'?'<button type="button" class="primary liburan-activate" data-id="'+esc(x.id)+'">Aktifkan Liburan</button>':'')+'</div>').join(''):'Belum ada masa liburan yang dibuat.';
- $('#liburanJadwal').textContent=p?'Mulai '+p.mulai+' · Batas kembali '+p.tenggat+' pukul '+p.jam+' WIB':'Terbitkan pengumuman kategori Liburan beserta tanggal kembali terlebih dahulu.';
+ $('#liburanJadwal').textContent=p?'Mulai '+p.mulai+' · Batas kembali '+p.tenggat+' pukul '+p.jam+' WIB':'Buat masa liburan baru, simpan draf, lalu aktifkan dari Riwayat Masa Liburan.';
  $('#liburanTotal').textContent=c.total||0;$('#liburanKembali').textContent=c.kembali||0;
  $('#liburanBelum').textContent=c.belum||0;$('#liburanTerlambat').textContent=c.terlambat||0;
  const q=String($('#liburanFilter').value||'').toLowerCase();
