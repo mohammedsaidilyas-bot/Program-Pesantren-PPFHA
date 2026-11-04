@@ -100,7 +100,12 @@ function doGet(e) {
       if (status && !['aktif','active'].includes(status.toLowerCase())) return output_({ok:false,error:'Santri '+nis+' tidak berstatus aktif ('+status+').'});
       return output_({ok:true,data:{nis:String(row[iNis]||'').trim(),nama:String(row[iNama]||'').trim(),kelas:String(row[iKelas]||'').trim(),asrama:String(row[iAsrama]||'').trim(),wali:String(row[iWali]||'').trim(),noWaWali:String(row[iWa]||'').trim(),status:status||'Aktif'}});
     }
-    if (action === 'liburanrekap') return output_(liburanRekap_());
+    if (action === 'liburanrekap') {
+      const savedKey = PropertiesService.getScriptProperties().getProperty('ADMIN_API_KEY');
+      const suppliedKey = String((e.parameter && e.parameter.key) || '');
+      if (!savedKey || !constantTimeEquals_(suppliedKey, savedKey)) return output_({ok:false,error:'Akses rekap liburan ditolak.'});
+      return output_(liburanRekap_());
+    }
     if (action === 'attendanceconfig') return output_(getAttendanceConfig_(String((e.parameter && e.parameter.session) || 'Subuh')));
     if (action === 'attendancerecords') {
       const savedKey = PropertiesService.getScriptProperties().getProperty('ADMIN_API_KEY');
