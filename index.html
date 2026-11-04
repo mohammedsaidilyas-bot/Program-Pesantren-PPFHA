@@ -157,10 +157,21 @@
   }
   open.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();show();},true);
   if(cancel)cancel.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();hide();},true);
-  form.addEventListener('submit',function(e){
-   if(typeof simpanMasaLiburan!=='function'){
-    e.preventDefault();alert('Fungsi penyimpanan belum siap. Mohon laporkan pesan ini.');
-   }
+  var msg=document.createElement('p');msg.setAttribute('role','status');form.appendChild(msg);
+  form.addEventListener('submit',async function(e){
+   e.preventDefault();e.stopImmediatePropagation();
+   if(form.dataset.busy)return;
+   form.dataset.busy='1';
+   var button=form.querySelector('[type="submit"]');button.disabled=true;
+   msg.textContent='Menyimpan draf...';
+   try{
+    var result=await simpanMasaLiburan('liburanbuatperiode',Object.fromEntries(new FormData(form).entries()));
+    if(!result)throw new Error('Penyimpanan dibatalkan');
+    msg.textContent='Berhasil disimpan. Periksa Riwayat Masa Liburan.';
+    form.reset();
+    await loadLiburan();
+   }catch(error){msg.textContent='Gagal: '+error.message;}
+   finally{button.disabled=false;delete form.dataset.busy;}
   },true);
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
