@@ -439,7 +439,7 @@ function attendanceScheduleRows_() {
     const rawDays=String(o.days||'').trim();
     o.days = o.activity === 'jamaah'
       ? (o.session.toLowerCase() === 'jumat' ? [5] : (['dzuhur','ashar'].includes(o.session.toLowerCase()) ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
-      : (o.activity === 'kitab-pagi' ? [1,2,3,4] : o.activity === 'albab' ? [0,2,3,5,6] : o.activity === 'madrasiyah' ? [0,1,2,3,4,6] : activity === 'madrasiyah' ? [0,1,2,3,4,6] : (rawDays ? rawDays.split(',').map(Number) : [0,1,2,3,4,5,6]));
+      : (o.activity === 'kitab-pagi' ? [1,2,3,4] : o.activity === 'albab' ? [0,2,3,5,6] : o.activity === 'madrasiyah' ? [0,1,2,3,4,6] : (rawDays ? rawDays.split(',').map(Number) : [0,1,2,3,4,5,6]));
     return o;
   }).filter(function(x){return ATTENDANCE_ACTIVITY_NAMES[x.activity] && x.startTime && x.endTime;});
   // Tambahkan sesi Jumat otomatis bila belum ada baris manual di JadwalAbsensi.
