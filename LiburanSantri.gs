@@ -35,6 +35,23 @@ function liburanBuatPeriode_(data){
   return {ok:true,id:id,message:'Masa liburan disimpan sebagai draf.'};
  }finally{lock.releaseLock();}
 }
+function liburanTerbitkanPengumuman_(period){
+ var ss=SpreadsheetApp.openById(SPREADSHEET_ID),sh=ss.getSheetByName('Pengumuman');
+ var headers=HEADERS.Pengumuman;
+ if(!sh){sh=ss.insertSheet('Pengumuman');sh.getRange(1,1,1,headers.length).setValues([headers]);sh.setFrozenRows(1);}
+ if(sh.getLastRow()===0){sh.getRange(1,1,1,headers.length).setValues([headers]);sh.setFrozenRows(1);}
+ var current=sh.getRange(1,1,1,Math.max(1,sh.getLastColumn())).getDisplayValues()[0];
+ headers.forEach(function(h){if(current.indexOf(h)<0){sh.getRange(1,sh.getLastColumn()+1).setValue(h);current.push(h);}});
+ var id='liburan-'+String(period.id),idCol=current.indexOf('id');
+ if(sh.getLastRow()>1&&idCol>=0){
+  var ids=sh.getRange(2,idCol+1,sh.getLastRow()-1,1).getDisplayValues();
+  if(ids.some(function(r){return r[0]===id;}))return {id:id,alreadyExists:true};
+ }
+ var isi='Informasi resmi '+period.judul+'. Masa liburan: '+period.mulai+' sampai '+period.akhir+'. Batas kembali ke pesantren: '+period.tenggat+' pukul '+period.jam+' WIB. Mohon wali santri memperhatikan jadwal kepulangan.';
+ var record={id:id,dibuatPada:new Date().toISOString(),judul:'Pengumuman '+period.judul,kategori:'Liburan',tanggal:period.mulai,target:'Semua',nisTarget:'',isi:isi,status:'Terbit',tanggalMulaiLibur:period.mulai,tanggalAkhirLibur:period.akhir,tanggalKembali:period.tenggat,jamKembali:period.jam};
+ sh.appendRow(current.map(function(k){return record[k]===undefined?'':record[k];}));
+ return {id:id,alreadyExists:false};
+}
 function liburanUbahStatus_(data){
  var id=String((data||{}).id||''),target=String((data||{}).status||'');
  if(!id||!['Aktif','Selesai'].includes(target))return {ok:false,error:'Perintah status tidak valid.'};
@@ -46,9 +63,14 @@ function liburanUbahStatus_(data){
   var old=rows[index-1][6];
   if(target==='Aktif'&&(old!=='Draf'||active))return {ok:false,error:'Hanya draf dapat diaktifkan, dan tidak boleh ada masa liburan aktif lain.'};
   if(target==='Selesai'&&old!=='Aktif')return {ok:false,error:'Hanya masa liburan aktif yang dapat diselesaikan.'};
+  var announcement=null;
+  if(target==='Aktif'){
+   var row=rows[index-1];
+   announcement=liburanTerbitkanPengumuman_({id:row[0],judul:row[1],mulai:row[2],akhir:row[3],tenggat:row[4],jam:row[5]});
+  }
   sh.getRange(index,7).setValue(target);
   sh.getRange(index,9).setValue(Utilities.formatDate(new Date(),'Asia/Jakarta','yyyy-MM-dd HH:mm:ss'));
-  return {ok:true,message:target==='Aktif'?'Masa liburan diaktifkan.':'Masa liburan diselesaikan dan disimpan sebagai riwayat.'};
+  return {ok:true,pengumuman:announcement,message:target==='Aktif'?'Masa liburan diaktifkan dan pengumuman diterbitkan.':'Masa liburan diselesaikan dan disimpan sebagai riwayat.'};
  }finally{lock.releaseLock();}
 }
 function liburanSantriAktif_(){
