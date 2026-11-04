@@ -37,14 +37,14 @@ document.addEventListener('keydown',function(e){
  e.preventDefault();lookupAlbabStudent();
 },true);
 const API_URL='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbKFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
-const data={izin:[],peng:[],keg:[]};const names={dashboard:'Dashboard',izin:'Izin Santri',pengumuman:'Pengumuman',kegiatan:'Kegiatan & Jadwal',kehadiran:'Kegiatan & Kehadiran',pendidikan:'Pendidikan Santri'};let adminKey=sessionStorage.getItem('ppfha_admin_key')||'';
+const data={izin:[],peng:[],keg:[]};const names={dashboard:'Dashboard',izin:'Izin Santri',pengumuman:'Pengumuman',kegiatan:'Kegiatan & Jadwal',kehadiran:'Kegiatan & Kehadiran',pendidikan:'Pendidikan Santri',liburan:'Liburan Santri'};let adminKey=sessionStorage.getItem('ppfha_admin_key')||'';
 function go(p){
  const pages=$$('.page'),navs=$$('.nav');
  pages.forEach(el=>{const active=el.id===p;el.classList.toggle('active',active);el.hidden=!active;});
  navs.forEach(el=>{const active=el.dataset.page===p;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
  const title=$('#title');if(title)title.textContent=names[p]||'Dashboard';
  window.scrollTo({top:0,behavior:'instant'});
- if(p==='izin')loadIzin();if(p==='kehadiran')loadAttendanceConfig();
+ if(p==='izin')loadIzin();if(p==='liburan')loadLiburan();if(p==='kehadiran')loadAttendanceConfig();
 }
 
 function openEducationModule(module){
@@ -105,6 +105,7 @@ async function handleQrDecoded(decoded){
  const nis=(nisMatch&&nisMatch[1])||(lastPart.match(/\d+/g)||[]).join('');
  if(!nis){$('#qrMessage').textContent='QR terbaca, tetapi isi QR tidak memuat NIS.';return}
  qrLocked=true;$('#qrMessage').textContent='QR terbaca. Memuat biodata santri…';
+ if(qrTarget==='liburan'){await closeQr();await catatLiburan(nis);return}
  if(qrTarget==='attendance'){if(!currentAttendanceActivity){await closeQr();toast('Pilih kegiatan terlebih dahulu.');return}enqueueAttendanceScan(nis);await closeQr();toast('NIS '+nis+' masuk antrean penyimpanan. Buka scan untuk santri berikutnya.');return}
  const targets={raport:['#raportNis',lookupRaportStudent],albab:['#albabNis',lookupAlbabStudent],hafalan:['#hafalanNis',lookupHafalanStudent],evaluasi:['#evaluasiNis',lookupEvaluasiStudent]};
  if(targets[qrTarget]){const input=$(targets[qrTarget][0]);if(!input){await closeQr();toast('Kolom NIS tidak ditemukan.');return}input.value=nis;await closeQr();await targets[qrTarget][1]();return}
@@ -744,3 +745,45 @@ $('#formEvaluasi').addEventListener('submit',async e=>{e.preventDefault();const 
  },true);
 })();
 
+
+/* Liburan Santri: simpan otomatis segera setelah KTS dipindai. */
+let liburanData=null,liburanSaving=false;
+async function liburanRequest(action,nis){
+ if(!adminKey){adminKey=await requestAdminKey('Akses Liburan Santri');if(!adminKey)return null;}
+ const options=nis?{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'liburanscankembali',apiKey:adminKey,nis:nis})}:null;
+ const url=nis?API_URL:API_URL+'?action=liburanrekap&key='+encodeURIComponent(adminKey);
+ const response=await fetch(url,options||{cache:'no-store'});const json=await response.json();
+ if(!json.ok)throw new Error(json.error||'Gagal mengakses data liburan');return json;
+}
+function renderLiburan(){
+ if(!liburanData)return;
+ const p=liburanData.periode,c=liburanData.jumlah||{},list=liburanData.santri||[];
+ $('#liburanJudul').textContent=p?p.judul:'Belum ada periode liburan aktif';
+ $('#liburanJadwal').textContent=p?'Mulai '+p.mulai+' · Batas kembali '+p.tenggat+' pukul '+p.jam+' WIB':'Terbitkan pengumuman kategori Liburan beserta tanggal kembali terlebih dahulu.';
+ $('#liburanTotal').textContent=c.total||0;$('#liburanKembali').textContent=c.kembali||0;
+ $('#liburanBelum').textContent=c.belum||0;$('#liburanTerlambat').textContent=c.terlambat||0;
+ const q=String($('#liburanFilter').value||'').toLowerCase();
+ const filtered=list.filter(x=>(x.nis+' '+x.nama).toLowerCase().includes(q));
+ $('#liburanRows').innerHTML=filtered.length?filtered.map(x=>'<tr><td><b>'+esc(x.nama)+'</b><br><small>'+esc(x.nis)+'</small></td><td>'+esc(x.status)+'</td><td>'+esc(x.waktuKembali||'—')+'</td></tr>').join(''):'<tr><td colspan="3">Belum ada data yang cocok.</td></tr>';
+}
+async function loadLiburan(){
+ try{const json=await liburanRequest('liburanrekap');if(!json)return;liburanData=json;renderLiburan();}
+ catch(err){$('#liburanHasil').textContent='Gagal memuat: '+err.message;toast('Liburan: '+err.message);}
+}
+async function catatLiburan(nis){
+ nis=String(nis||'').replace(/\D/g,'');
+ if(!nis){$('#liburanHasil').textContent='Masukkan NIS santri yang benar.';return}
+ if(liburanSaving)return;
+ liburanSaving=true;$('#liburanHasil').textContent='Menyimpan kepulangan NIS '+nis+'…';
+ try{
+  const result=await liburanRequest('liburanscankembali',nis);if(!result)return;
+  $('#liburanHasil').textContent=(result.duplikat?'Sudah pernah tercatat: ':'Berhasil tersimpan: ')+result.nama+' · '+result.status+' · '+result.waktuKembali;
+  $('#liburanNis').value='';await loadLiburan();
+ }catch(err){$('#liburanHasil').textContent='Belum tersimpan: '+err.message;toast(err.message)}
+ finally{liburanSaving=false}
+}
+$('#liburanScan').addEventListener('click',()=>openQr('liburan'));
+$('#liburanCari').addEventListener('click',()=>catatLiburan($('#liburanNis').value));
+$('#liburanNis').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();catatLiburan(e.target.value)}});
+$('#liburanFilter').addEventListener('input',renderLiburan);
+$('#refreshLiburan').addEventListener('click',loadLiburan);
