@@ -157,6 +157,16 @@
   }
   open.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();show();},true);
   if(cancel)cancel.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();hide();},true);
+  var scanButton=document.getElementById('liburanScan');
+  if(scanButton)scanButton.addEventListener('click',function(e){
+   e.preventDefault();e.stopImmediatePropagation();
+   var info=document.getElementById('liburanHasil');
+   if(info)info.textContent='Membuka pemindai KTS...';
+   try{
+    if(typeof openQr!=='function')throw new Error('Modul pemindai belum siap. Muat ulang aplikasi.');
+    Promise.resolve(openQr('liburan')).catch(function(err){if(info)info.textContent='Gagal membuka kamera: '+err.message;});
+   }catch(err){if(info)info.textContent='Gagal membuka kamera: '+err.message;}
+  },true);
   var history=document.getElementById('liburanRiwayat');
   if(history)history.addEventListener('click',async function(e){
    var button=e.target.closest('.liburan-activate');
