@@ -232,6 +232,8 @@ function doPost(e) {
       const row=[Utilities.getUuid(),new Date(),nis,String(x.nama||''),String(x.kelas||''),kategori,catatan,String(x.saranTindakLanjut||''),ustaz],lock=LockService.getScriptLock();lock.waitLock(15000);try{sh.getRange(sh.getLastRow()+1,1,1,headers.length).setValues([row])}finally{lock.releaseLock()}
       return output_({ok:true,saved:1,message:'Catatan evaluasi berhasil disimpan.'});
     }
+    if (action === 'liburanbuatperiode') return output_(liburanBuatPeriode_(body.data || {}));
+    if (action === 'liburanubahstatus') return output_(liburanUbahStatus_(body.data || {}));
     if (action === 'liburanscankembali') return output_(liburanScanKembali_(body.nis));
     if (action === 'saveattendanceconfig') return output_(saveAttendanceConfig_(body.data || {}));
     if (action === 'toggleattendanceholiday') return output_(toggleAttendanceHoliday_(body.data || {}));
