@@ -100,6 +100,7 @@ function doGet(e) {
       if (status && !['aktif','active'].includes(status.toLowerCase())) return output_({ok:false,error:'Santri '+nis+' tidak berstatus aktif ('+status+').'});
       return output_({ok:true,data:{nis:String(row[iNis]||'').trim(),nama:String(row[iNama]||'').trim(),kelas:String(row[iKelas]||'').trim(),asrama:String(row[iAsrama]||'').trim(),wali:String(row[iWali]||'').trim(),noWaWali:String(row[iWa]||'').trim(),status:status||'Aktif'}});
     }
+    if (action === 'liburanrekap') return output_(liburanRekap_());
     if (action === 'attendanceconfig') return output_(getAttendanceConfig_(String((e.parameter && e.parameter.session) || 'Subuh')));
     if (action === 'attendancerecords') {
       const savedKey = PropertiesService.getScriptProperties().getProperty('ADMIN_API_KEY');
@@ -226,6 +227,7 @@ function doPost(e) {
       const row=[Utilities.getUuid(),new Date(),nis,String(x.nama||''),String(x.kelas||''),kategori,catatan,String(x.saranTindakLanjut||''),ustaz],lock=LockService.getScriptLock();lock.waitLock(15000);try{sh.getRange(sh.getLastRow()+1,1,1,headers.length).setValues([row])}finally{lock.releaseLock()}
       return output_({ok:true,saved:1,message:'Catatan evaluasi berhasil disimpan.'});
     }
+    if (action === 'liburanscankembali') return output_(liburanScanKembali_(body.nis));
     if (action === 'saveattendanceconfig') return output_(saveAttendanceConfig_(body.data || {}));
     if (action === 'toggleattendanceholiday') return output_(toggleAttendanceHoliday_(body.data || {}));
     if (action === 'setpondokholiday') return output_(setPondokHoliday_(body.data || {}));
