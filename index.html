@@ -135,4 +135,35 @@
  else ensureRaportScanner();
  setTimeout(ensureRaportScanner,300);
 })();
+</script><script>
+/* Pengaman mandiri: tombol masa liburan tetap bekerja bila inisialisasi app.js terhenti. */
+(function(){
+ function init(){
+  var open=document.getElementById('buatLiburan');
+  var form=document.getElementById('formMasaLiburan');
+  var cancel=document.getElementById('batalMasaLiburan');
+  if(!open||!form)return;
+  function show(){
+   form.classList.remove('hidden');
+   form.hidden=false;
+   form.style.setProperty('display','block','important');
+   form.style.setProperty('visibility','visible','important');
+   form.scrollIntoView({behavior:'smooth',block:'start'});
+   var first=form.querySelector('input[name="judul"]');if(first)first.focus({preventScroll:true});
+  }
+  function hide(){
+   form.classList.add('hidden');form.hidden=true;
+   form.style.setProperty('display','none','important');
+  }
+  open.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();show();},true);
+  if(cancel)cancel.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();hide();},true);
+  form.addEventListener('submit',function(e){
+   if(typeof simpanMasaLiburan!=='function'){
+    e.preventDefault();alert('Fungsi penyimpanan belum siap. Mohon laporkan pesan ini.');
+   }
+  },true);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+ else init();
+})();
 </script></body></html>
