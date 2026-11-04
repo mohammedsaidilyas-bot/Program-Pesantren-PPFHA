@@ -747,7 +747,7 @@ $('#formEvaluasi').addEventListener('submit',async e=>{e.preventDefault();const 
 
 
 /* Liburan Santri: simpan otomatis segera setelah KTS dipindai. */
-let liburanData=null,liburanSaving=false;
+var liburanData=null,liburanSaving=false;
 async function liburanRequest(action,nis){
  if(!adminKey){adminKey=await requestAdminKey('Akses Liburan Santri');if(!adminKey)return null;}
  const options=nis?{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'liburanscankembali',apiKey:adminKey,nis:nis})}:null;
