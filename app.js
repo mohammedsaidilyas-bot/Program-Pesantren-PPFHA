@@ -758,7 +758,11 @@ async function liburanRequest(action,nis){
 function renderLiburan(){
  if(!liburanData)return;
  const p=liburanData.periode,c=liburanData.jumlah||{},list=liburanData.santri||[];
- $('#liburanJudul').textContent=p?p.judul:'Belum ada periode liburan aktif';
+ $('#liburanJudul').textContent=p?p.judul:'Belum ada masa liburan aktif';
+ $('#selesaikanLiburan').classList.toggle('hidden',!p);
+ $('#aktifkanLiburan').classList.add('hidden');
+ const history=liburanData.riwayat||[];
+ $('#liburanRiwayat').innerHTML=history.length?history.map(x=>'<div style="padding:12px 0;border-bottom:1px solid #e5e9e6"><b>'+esc(x.judul)+'</b> · '+esc(x.status)+'<p>'+esc(x.mulai)+' s.d. '+esc(x.akhir)+' · kembali '+esc(x.tenggat)+' '+esc(x.jam)+' WIB</p>'+(x.status==='Draf'?'<button type="button" class="primary liburan-activate" data-id="'+esc(x.id)+'">Aktifkan Liburan</button>':'')+'</div>').join(''):'Belum ada masa liburan yang dibuat.';
  $('#liburanJadwal').textContent=p?'Mulai '+p.mulai+' · Batas kembali '+p.tenggat+' pukul '+p.jam+' WIB':'Terbitkan pengumuman kategori Liburan beserta tanggal kembali terlebih dahulu.';
  $('#liburanTotal').textContent=c.total||0;$('#liburanKembali').textContent=c.kembali||0;
  $('#liburanBelum').textContent=c.belum||0;$('#liburanTerlambat').textContent=c.terlambat||0;
@@ -782,6 +786,16 @@ async function catatLiburan(nis){
  }catch(err){$('#liburanHasil').textContent='Belum tersimpan: '+err.message;toast(err.message)}
  finally{liburanSaving=false}
 }
+async function simpanMasaLiburan(action,data){
+ if(!adminKey){adminKey=await requestAdminKey('Kelola Masa Liburan');if(!adminKey)return;}
+ const response=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:action,apiKey:adminKey,data:data})});
+ const result=await response.json();if(!result.ok)throw new Error(result.error||'Gagal menyimpan');return result;
+}
+$('#buatLiburan').onclick=()=>{$('#formMasaLiburan').classList.remove('hidden');$('#formMasaLiburan').scrollIntoView({behavior:'smooth'});};
+$('#batalMasaLiburan').onclick=()=>$('#formMasaLiburan').classList.add('hidden');
+$('#formMasaLiburan').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector('[type="submit"]');if(button.disabled)return;const d=Object.fromEntries(new FormData(form).entries());button.disabled=true;try{const r=await simpanMasaLiburan('liburanbuatperiode',d);toast(r.message);form.reset();form.classList.add('hidden');await loadLiburan();}catch(err){toast(err.message)}finally{button.disabled=false;}});
+$('#liburanRiwayat').addEventListener('click',async e=>{const b=e.target.closest('.liburan-activate');if(!b)return;if(!await askConfirmation('Aktifkan liburan?','Seluruh santri aktif akan masuk daftar liburan. Scan KTS setelah diaktifkan.','Aktifkan'))return;b.disabled=true;try{const r=await simpanMasaLiburan('liburanubahstatus',{id:b.dataset.id,status:'Aktif'});toast(r.message);await loadLiburan();}catch(err){toast(err.message)}finally{b.disabled=false;}});
+$('#selesaikanLiburan').onclick=async()=>{if(!liburanData||!liburanData.periode)return;if(!await askConfirmation('Selesaikan liburan?','Periode akan ditutup dan disimpan dalam riwayat. Scan kepulangan tidak lagi dapat dilakukan untuk periode ini.','Selesaikan'))return;try{const r=await simpanMasaLiburan('liburanubahstatus',{id:liburanData.periode.id,status:'Selesai'});toast(r.message);await loadLiburan();}catch(err){toast(err.message)}};
 $('#liburanScan').addEventListener('click',()=>openQr('liburan'));
 $('#liburanCari').addEventListener('click',()=>catatLiburan($('#liburanNis').value));
 $('#liburanNis').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();catatLiburan(e.target.value)}});
