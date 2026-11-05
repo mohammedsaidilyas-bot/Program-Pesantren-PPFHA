@@ -12,7 +12,7 @@ function ppfhaPerpanjangIzin_(body){
   const ix=n=>h.indexOf(n),i= data.findIndex((r,j)=>j>0&&String(r[ix('id')])===id);
   if(i<1)return {ok:false,error:'Izin tidak ditemukan.'};
   const row=data[i],status=String(row[ix('status')]||'').toLowerCase(),jenis=String(row[ix('jenis')]||'').toLowerCase();
-  if(/kembali|sehat|tolak|batal/.test(status)||row[ix('kembali')])return {ok:false,error:'Izin sudah selesai.'};
+  if(/sudah kembali|sudah sehat|ditolak|dibatalkan|batal/.test(status))return {ok:false,error:'Izin sudah selesai.'};
   if(!/pulang|keluarga|berobat|keluar/.test(jenis)||jenis==='izin sakit')return {ok:false,error:'Hanya izin pulang/keluar dengan batas kembali yang dapat diperpanjang.'};
   const old=row[ix('rencanaKembali')];if(!old)return {ok:false,error:'Batas izin lama tidak tersedia.'};
   const oldDate=old instanceof Date?old:new Date(old);
