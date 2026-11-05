@@ -58,7 +58,7 @@ function getAttendanceConfig_(jamaahSession) {
     if (!ATTENDANCE_ACTIVITY_NAMES[activity]) return;
     const days = activity === 'jamaah'
       ? (String(item.session) === 'Jumat' ? [5] : (String(item.session) === 'Dzuhur' || String(item.session) === 'Ashar' ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
-      : (activity === 'kitab-pagi' ? [1,2,3,4] : activity === 'albab' ? [0,2,3,5,6] : activity === 'madrasiyah' ? [0,1,2,3,4,6] : (String(item.days || '').trim() ? String(item.days).split(',').map(Number) : [0,1,2,3,4,5,6]));
+      : (activity === 'kitab-pagi' ? [1,2,3,4] : activity === 'albab' ? [0,2,3,5,6] : activity === 'madrasiyah' ? [0,1,2,3,4,6] : activity === 'alquran' ? [0,1,2,3,6] : (String(item.days || '').trim() ? String(item.days).split(',').map(Number) : [0,1,2,3,4,5,6]));
     const sessionName = String(item.session || (activity === 'jamaah' ? 'Subuh' : 'Utama')).trim();
     const config = {
       session: sessionName,
@@ -99,7 +99,7 @@ function saveAttendanceConfig_(data) {
   // Hari aktif ditentukan otomatis oleh kalender WIB sesuai jenis sesi.
   const days = activity === 'jamaah'
     ? (session === 'Jumat' ? [5] : (session === 'Dzuhur' || session === 'Ashar' ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
-    : (activity === 'kitab-pagi' ? [1,2,3,4] : activity === 'albab' ? [0,2,3,5,6] : activity === 'madrasiyah' ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]);
+    : (activity === 'kitab-pagi' ? [1,2,3,4] : activity === 'albab' ? [0,2,3,5,6] : activity === 'madrasiyah' ? [0,1,2,3,4,6] : activity === 'alquran' ? [0,1,2,3,6] : [0,1,2,3,4,5,6]);
   if (!ATTENDANCE_ACTIVITY_NAMES[activity]) return {ok:false,error:'Kegiatan tidak dikenal.'};
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(onTimeUntil) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime))
     return {ok:false,error:'Format jam tidak valid.'};
@@ -153,7 +153,7 @@ function attendanceScheduleRows_() {
     const rawDays=String(o.days||'').trim();
     o.days = o.activity === 'jamaah'
       ? (o.session.toLowerCase() === 'jumat' ? [5] : (['dzuhur','ashar'].includes(o.session.toLowerCase()) ? [0,1,2,3,4,6] : [0,1,2,3,4,5,6]))
-      : (o.activity === 'kitab-pagi' ? [1,2,3,4] : o.activity === 'albab' ? [0,2,3,5,6] : o.activity === 'madrasiyah' ? [0,1,2,3,4,6] : (rawDays ? rawDays.split(',').map(Number) : [0,1,2,3,4,5,6]));
+      : (o.activity === 'kitab-pagi' ? [1,2,3,4] : o.activity === 'albab' ? [0,2,3,5,6] : o.activity === 'madrasiyah' ? [0,1,2,3,4,6] : o.activity === 'alquran' ? [0,1,2,3,6] : (rawDays ? rawDays.split(',').map(Number) : [0,1,2,3,4,5,6]));
     return o;
   }).filter(function(x){return ATTENDANCE_ACTIVITY_NAMES[x.activity] && x.startTime && x.endTime;});
   // Tambahkan sesi Jumat otomatis bila belum ada baris manual di JadwalAbsensi.
