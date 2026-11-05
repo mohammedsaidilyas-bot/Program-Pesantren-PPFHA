@@ -241,6 +241,7 @@ function doPost(e) {
     if (action === 'activatepondoknow') return output_(activatePondokNow_());
     if (action === 'attendancescan') return output_(recordAttendanceScan_(body.data || {}));
     if (action === 'attendancerecords') return output_(getAttendanceRecords_(String(body.date || Utilities.formatDate(new Date(), ATTENDANCE_TZ, 'yyyy-MM-dd')), String(body.activity || 'all'), String(body.session || '')));
+    if (action === 'perpanjangizin') return output_(ppfhaPerpanjangIzin_(body));
     if (action === 'updatestatus') {
       const id = String(body.id || '').trim();
       const status = String(body.status || '').trim();
