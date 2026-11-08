@@ -369,6 +369,14 @@ function recordAttendanceScan_(data) {
   // ditentukan sepenuhnya di server dari jadwal WIB, tidak menerima pilihan sesi manual.
   const requestedActivity = normalizeAttendanceActivity_(data.activity);
   if (!ATTENDANCE_ACTIVITY_NAMES[requestedActivity]) return {ok:false,error:'Portal kegiatan tidak valid.'};
+  // Proteksi izin dijalankan sebelum scan dicatat. Santri dengan izin aktif ditolak.
+  const permissionNow = ppfhaFindActivePermission_(nis, date, time);
+  if (permissionNow) {
+    return {ok:false,error:'Scan ditolak. Santri sedang memiliki '+permissionNow.status+' yang masih aktif. Absensi akan dicatat sebagai izin secara otomatis.'};
+  }
+  const students = attendanceStudentRoster_();
+  const student = students.find(function(x){return x.nis===nis;});
+  if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif.'};
   const testMode = data.testMode === true && requestedActivity === 'madrasiyah';
   const activitySchedules = attendanceScheduleRows_().filter(function(s){return s.activity===requestedActivity && s.days.indexOf(weekday)>=0;});
   if (!testMode && activitySchedules.some(function(s){return isAttendanceHoliday_(date,s.activity,s.session);})) return {ok:false,error:'Kegiatan hari ini diliburkan oleh pengurus. Absensi tidak dicatat.'};
@@ -400,14 +408,6 @@ function recordAttendanceScan_(data) {
     return {ok:false,error:'Absensi jamaah Ashar ditiadakan khusus hari Jumat.'};
   if (session === 'Jumat' && weekday !== 5)
     return {ok:false,error:'Sesi Sholat Jumat hanya aktif pada hari Jumat.'};
-  // Proteksi izin dijalankan sebelum scan dicatat. Santri dengan izin aktif ditolak.
-  const permissionNow = ppfhaFindActivePermission_(nis, date, time);
-  if (permissionNow) {
-    return {ok:false,error:'Scan ditolak. Santri sedang memiliki '+permissionNow.status+' yang masih aktif. Absensi akan dicatat sebagai izin secara otomatis.'};
-  }
-  const students = attendanceStudentRoster_();
-  const student = students.find(function(x){return x.nis===nis;});
-  if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif.'};
   const status = (testMode || session === 'Jumat') ? 'Hadir' : (time <= String(schedule.onTimeUntil) ? 'Hadir' : 'Terlambat');
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
