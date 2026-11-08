@@ -282,27 +282,9 @@ function attendanceExistingKeys_(sh, date) {
 }
 
 
-/** Mengambil semua izin aktif yang sah untuk dikecualikan dari absensi. */
+/** Mengambil izin aktif melalui modul ProteksiAbsensiIzin.gs. */
 function activeAttendancePermissions_(targetDate) {
-  const ss=SpreadsheetApp.openById(SPREADSHEET_ID), sh=ss.getSheetByName('Izin'), active={};
-  if(!sh || sh.getLastRow()<2) return active;
-  const values=sh.getDataRange().getValues(), headers=values[0].map(function(v){return String(v||'').trim();});
-  const ix={}; headers.forEach(function(h,i){ix[h]=i;});
-  values.slice(1).forEach(function(row){
-    const jenis=String(row[ix.jenis]||'').trim(), lower=jenis.toLowerCase();
-    const status=String(row[ix.status]||'').trim().toLowerCase(), isSick=lower==='izin sakit';
-    if(!(isSick ? status==='sakit' : ['diizinkan','sudah keluar'].indexOf(status)>=0)) return;
-    if(row[ix.kembali] && String(row[ix.kembali]).trim()) return;
-    const nis=String(row[ix.nis]||'').trim().replace(/\D/g,''); if(!nis) return;
-    const startValue=row[ix.keluar]||row[ix.dibuatPada], date=attendanceCellDate_(startValue);
-    const time=attendanceCellTime_(startValue)||'00:00', endValue=row[ix.rencanaKembali];
-    const endDate=endValue?attendanceCellDate_(endValue):'', endTime=endValue?(attendanceCellTime_(endValue)||'23:59'):'23:59';
-    if(!date || date>targetDate || (endDate && endDate<targetDate)) return;
-    const label=isSick?'Izin Sakit':(lower.indexOf('pulang')>=0?'Izin Pulang':(lower.indexOf('keluar')>=0?'Izin Keluar':jenis));
-    const old=active[nis];
-    if(!old || date+' '+time>old.date+' '+old.time) active[nis]={date:date,time:time,endDate:endDate,endTime:endTime,status:label};
-  });
-  return active;
+  return ppfhaActiveAttendancePermissions_(targetDate);
 }
 
 function writePermissionAttendance_(sh,date,activity,session,student,permission) {
@@ -418,32 +400,14 @@ function recordAttendanceScan_(data) {
     return {ok:false,error:'Absensi jamaah Ashar ditiadakan khusus hari Jumat.'};
   if (session === 'Jumat' && weekday !== 5)
     return {ok:false,error:'Sesi Sholat Jumat hanya aktif pada hari Jumat.'};
-  // MODE UJI COBA: kamera tetap dapat digunakan kapan saja. Namun sesi
-  // yang dicatat selalu ditentukan otomatis oleh jadwal server, bukan pilihan petugas.
-  const permissionsNow=activeAttendancePermissions_(date);
-  const permissionNow=permissionsNow[nis]||null;
-  const permissionEffective=!!(permissionNow && (permissionNow.date<date || (permissionNow.date===date && permissionNow.time<=time)) && (!permissionNow.endDate || permissionNow.endDate>date || (permissionNow.endDate===date && permissionNow.endTime>=time)));
+  // Proteksi izin dijalankan sebelum scan dicatat. Santri dengan izin aktif ditolak.
+  const permissionNow = ppfhaFindActivePermission_(nis, date, time);
+  if (permissionNow) {
+    return {ok:false,error:'Scan ditolak. Santri sedang memiliki '+permissionNow.status+' yang masih aktif. Absensi akan dicatat sebagai izin secara otomatis.'};
+  }
   const students = attendanceStudentRoster_();
-  let student = students.find(function(x){return x.nis===nis;});
-  // Santri berstatus nonaktif tetap boleh dikenali hanya jika memiliki izin
-  // yang sah dan masih berlaku (misalnya Izin Pulang).
-  if (!student && permissionEffective) {
-    const db=SpreadsheetApp.openById(STUDENT_DB_ID).getSheetByName(STUDENT_SHEET_NAME);
-    if(db && db.getLastRow()>=2) {
-      const rows=db.getDataRange().getDisplayValues();
-      const row=rows.slice(1).find(function(x){return String(x[0]||'').trim().replace(/\D/g,'')===nis;});
-      if(row) student={nis:nis,nama:String(row[1]||'').trim(),status:String(row[7]||'').trim().toLowerCase()};
-    }
-  }
-  if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif dan tidak memiliki izin aktif.'};
-  if (permissionEffective) {
-    const lockPermission=LockService.getScriptLock(); lockPermission.waitLock(15000);
-    try {
-      const shPermission=ensureAttendanceSheets_().getSheetByName('Absensi');
-      writePermissionAttendance_(shPermission,date,activity,session,student,permissionNow);
-      return {ok:true,data:{nis:nis,nama:student.nama,status:permissionNow.status,time:'',activity:activity,session:session},message:'Santri memiliki '+permissionNow.status+'. Absensi tidak dihitung Hadir/Terlambat.'};
-    } finally { lockPermission.releaseLock(); }
-  }
+  const student = students.find(function(x){return x.nis===nis;});
+  if (!student) return {ok:false,error:'NIS tidak ditemukan atau santri tidak berstatus aktif.'};
   const status = (testMode || session === 'Jumat') ? 'Hadir' : (time <= String(schedule.onTimeUntil) ? 'Hadir' : 'Terlambat');
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
