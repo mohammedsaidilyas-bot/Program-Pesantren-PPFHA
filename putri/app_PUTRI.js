@@ -145,7 +145,7 @@ async function openQr(target){
   if(/NotAllowed|Permission|denied|Permission dismissed/i.test(msg))help='Izin kamera ditolak. Buka ikon pengaturan situs di Chrome, izinkan Kamera, lalu muat ulang.';
   else if(/NotFound|Requested device|no camera/i.test(msg))help='Kamera tidak ditemukan pada perangkat ini.';
   else if(/NotReadable|Could not start|in use/i.test(msg))help='Kamera sedang dipakai aplikasi lain. Tutup Kamera/WhatsApp lalu coba lagi.';
-  else if(/secure|HTTPS/i.test(msg))help='Buka website dengan alamat https://program-pesantren-ppfha.vercel.app.';
+  else if(/secure|HTTPS/i.test(msg))help='Buka website Program PUTRI melalui alamat HTTPS dari proyek Vercel PUTRI.';
   message.textContent='Kamera belum bisa dibuka: '+help;
   if(qrScanner){try{if(qrScanner.isScanning)await qrScanner.stop()}catch(e){}try{qrScanner.clear()}catch(e){}qrScanner=null}
   qrStarting=false;toast('Kamera gagal dibuka: '+help);
