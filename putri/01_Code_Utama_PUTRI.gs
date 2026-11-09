@@ -1,7 +1,9 @@
 /**
- * Program Pesantren PPFHA — Google Apps Script backend.
- * Data lama tidak dihapus. Endpoint tulis dilindungi Script Property ADMIN_API_KEY.
- * Perubahan kode tidak dapat memperbaiki OAuth Google invalid_client.
+ * PROGRAM PESANTREN PUTRI PPFHA — BACKEND UTAMA.
+ * Mempertahankan fungsi izin, pengumuman, kegiatan, kehadiran, liburan,
+ * pendidikan, dan menambahkan router SPP PUTRI.
+ * Seluruh data memakai konfigurasi database PUTRI; tidak terhubung ke PUTRA.
+ * Endpoint pengurus tetap menggunakan Script Property ADMIN_API_KEY.
  */
 const HEADERS = {
   Izin: ['id','dibuatPada','nis','nama','jenis','status','keluar','rencanaKembali','kembali','wali','catatan','terbit'],
@@ -74,7 +76,7 @@ function doGet(e) {
   try {
     const action = String((e && e.parameter && e.parameter.action) || 'health').toLowerCase();
     if (action.indexOf('spp_') === 0) return sppPutriDoGet_(e);
-    if (action === 'health') return output_({ok:true,app:'Program Pesantren PPFHA',message:'Endpoint aktif',actions:['izin','pengumuman','kegiatan','student','educationrecords','saveeducationraport','saveeducationalbab','saveeducationhafalan']});
+    if (action === 'health') return output_({ok:true,app:'Program Pesantren PUTRI PPFHA',message:'Endpoint aktif',actions:['izin','pengumuman','kegiatan','student','educationrecords','saveeducationraport','saveeducationalbab','saveeducationhafalan','spp_health','spp_student','spp_tagihan','spp_riwayat','spp_kuitansi','spp_pending']});
     if (action === 'student') {
       const nis = String((e && e.parameter && e.parameter.nis) || '').trim().replace(/\D/g, '');
       if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
