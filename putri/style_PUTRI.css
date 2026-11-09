@@ -310,3 +310,34 @@ button.education-tile:hover{transform:translateY(-2px);border-color:#b8d8c5;box-
 .uj-kts-label{font-size:9px;letter-spacing:1px;font-weight:800;color:#6b927f;white-space:nowrap}
 @media(max-width:900px){.uj-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.uj-header{padding:17px;gap:11px}.uj-brand-mark{width:45px;height:45px;flex-basis:45px}.uj-header h2{font-size:17px}.uj-header-chip{font-size:8px;padding:8px}.uj-header-chip b{font-size:10px}.uj-welcome h2{font-size:18px}.uj-menu-grid{gap:8px}.uj-menu-card{min-height:160px;padding:13px}.uj-feature-grid{grid-template-columns:1fr}.uj-kts-panel{align-items:flex-start;flex-direction:column}.uj-kts-label{padding-left:50px}}
+
+
+/* Bendahara PUTRI — tampilan buku kas operasional */
+.bendahara-banner{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:30px;border-radius:20px;color:#fff;background:linear-gradient(115deg,#124b39,#218363);margin:12px 0 17px}
+.bendahara-kicker{font-size:10px;letter-spacing:1.6px;font-weight:800;color:#b9e1cc}
+.bendahara-banner h2{font-size:clamp(23px,3vw,30px);margin:10px 0}
+.bendahara-banner p{color:#d7ece1;font-size:13px;line-height:1.6;margin:0;max-width:620px}
+.bendahara-period{background:#fff;color:#176b58;border-radius:15px;padding:15px 18px;min-width:170px;box-shadow:0 8px 24px #073b2b20}
+.bendahara-period small,.bendahara-period b{display:block}.bendahara-period small{font-size:9px;letter-spacing:1px;color:#82948b}.bendahara-period b{font:800 18px Manrope;margin:6px 0}.bendahara-period span{font-size:10px;color:#7d9086}
+.bendahara-alert{display:flex;align-items:center;gap:13px;padding:15px 18px;border:1px solid #e6e3c8;background:#fffbee;border-radius:14px;color:#775c25;margin-bottom:17px}
+.bendahara-alert>span{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#fff1c9;font-size:20px}
+.bendahara-alert b{font-size:13px}.bendahara-alert p{margin:4px 0 0;font-size:12px;color:#8b7951}
+.bendahara-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:17px}
+.bendahara-stat,.bendahara-panel{background:#fff;border:1px solid var(--line);border-radius:17px;padding:19px;box-shadow:0 6px 20px #173f3008}
+.bendahara-stat>div{display:flex;align-items:center;gap:10px}.bendahara-stat small{font-size:12px;color:#74837b}.bendahara-stat strong{display:block;font:800 27px Manrope;margin:13px 0 5px}.bendahara-stat>span{font-size:11px;color:#96a29b}
+.bendahara-stat-icon{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-size:18px;background:#eaf5ef;color:#168367}.bendahara-stat-icon.orange{background:#fff1df;color:#d77b17}.bendahara-stat-icon.green{background:#e7f5ec;color:#21935d}
+.bendahara-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:17px}
+.bendahara-action{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;padding:19px;border:1px solid var(--line);border-radius:16px;background:#fff;color:var(--ink);cursor:default}
+.bendahara-action>span{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#e8f5ed;color:#16805d;font-size:22px;font-weight:700}
+.bendahara-action.expense>span{background:#fff0eb;color:#d65a45}.bendahara-action.report>span{background:#edf2ff;color:#5475c9}
+.bendahara-action b{font:700 14px Manrope}.bendahara-action small{font-size:11px;color:#819087;line-height:1.5}.bendahara-action em{font-style:normal;font-size:9px;letter-spacing:.4px;text-transform:uppercase;color:#91a198}
+.bendahara-main-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:15px}
+.bendahara-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.bendahara-panel-head h3{font-size:16px;margin:0 0 5px}.bendahara-panel-head p{font-size:11px;margin:0}.bendahara-panel-head>span{font-size:19px;color:#27836a}
+.bendahara-toolbar{display:flex;gap:8px;margin:17px 0 12px}.bendahara-toolbar input,.bendahara-filter,.bendahara-toolbar button{min-width:0;border:1px solid #e1e9e4;border-radius:10px;padding:11px 12px;background:#fbfcfb;color:#829088;font:11px 'DM Sans'}.bendahara-toolbar input{flex:1}.bendahara-toolbar button{background:#edf5f0}
+.bendahara-empty{min-height:190px;border:1px dashed #e0e9e3;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+.bendahara-empty>span{width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:#edf6f0;color:#287d60;font-size:22px;margin-bottom:11px}.bendahara-empty b{font-size:13px}.bendahara-empty p,.bendahara-chart-empty p{font-size:11px;line-height:1.6;max-width:340px;margin:7px auto 0}
+.bendahara-chart-empty{margin-top:18px;padding:10px 4px}.bendahara-legend{display:flex;gap:16px;font-size:10px;color:#75847c}.bendahara-legend span{display:flex;align-items:center;gap:6px}.bendahara-legend i{width:8px;height:8px;border-radius:50%;display:inline-block}.income-dot{background:#168574}.expense-dot{background:#e8a12b}
+.bendahara-chart-lines{height:155px;margin-top:14px;display:flex;flex-direction:column;justify-content:space-between;border-bottom:1px solid #e7ede9}.bendahara-chart-lines i{display:block;border-top:1px dashed #edf1ee}
+.bendahara-chart-empty p{text-align:center;color:#97a39c}.bendahara-note{margin-top:16px;padding:16px 18px;border-radius:13px;background:#edf5f0;border:1px solid #dceae2;color:#557463;font-size:12px;line-height:1.7}
+@media(max-width:850px){.bendahara-main-grid{grid-template-columns:1fr}.bendahara-banner{align-items:flex-start;flex-direction:column}.bendahara-period{min-width:0;width:100%}}
+@media(max-width:620px){.bendahara-summary{grid-template-columns:1fr}.bendahara-actions{grid-template-columns:1fr}.bendahara-stat{padding:16px}.bendahara-toolbar{flex-wrap:wrap}.bendahara-toolbar input{flex-basis:100%}.bendahara-filter{flex:1}}
