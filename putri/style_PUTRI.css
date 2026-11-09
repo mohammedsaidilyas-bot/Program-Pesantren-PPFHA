@@ -91,3 +91,44 @@ button.education-tile:hover{transform:translateY(-2px);border-color:#b8d8c5;box-
 @media(max-width:700px){.education-menu{grid-template-columns:1fr;gap:11px}.education-tile{min-height:94px;padding:15px}.education-tile-icon{width:46px;height:46px;flex-basis:46px}}
 
 .friday-auto-note{margin:12px 0 0;padding:12px 15px;border:1px solid #d7e9dd;border-radius:11px;background:#f0f7f2;color:#426451;font-size:12px;line-height:1.65}.friday-auto-note b{display:block;margin-bottom:3px;color:#24543d;font-size:12px}
+
+/* Tampilan terpadu keuangan PUTRI */
+.finance-label{margin-top:26px;padding-top:20px;border-top:1px solid #2c5b49}
+.finance-nav{font-size:12px}
+.finance-overview{margin-top:30px}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.section-heading h3{margin:5px 0 3px}
+.section-heading p{margin:0}
+.section-kicker,.finance-page-head>span{font-size:10px;letter-spacing:1.4px;font-weight:800;color:#6a947b}
+.finance-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.finance-card{position:relative;min-height:150px;padding:18px;background:#fff;border:1px solid var(--line);border-radius:15px;text-align:left;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:8px;transition:.18s}
+.finance-card:hover{border-color:#a9cdb7;transform:translateY(-2px);box-shadow:0 9px 22px #173f3010}
+.finance-icon{width:42px;height:42px;border-radius:13px;background:#eaf5ee;color:#176b4d;display:grid;place-items:center;font-size:22px;font-weight:700}
+.finance-card b{font:700 13px Manrope}
+.finance-card small{font-size:11px;color:var(--muted);line-height:1.5}
+.finance-arrow{position:absolute;right:16px;bottom:15px;color:#6a947b;font-size:20px}
+.finance-hero{padding:28px;border-radius:18px;background:linear-gradient(115deg,#123f31,#247b57);color:white}
+.finance-hero>span{font-size:10px;letter-spacing:1.5px;color:#b6e2c6;font-weight:800}
+.finance-hero h2{font-size:27px;margin:10px 0}
+.finance-hero p{color:#d3e8dc;max-width:680px;line-height:1.7}
+.finance-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:18px 0}
+.finance-metrics article,.finance-panel{background:#fff;border:1px solid var(--line);border-radius:15px;padding:19px}
+.finance-metrics small,.finance-metrics strong,.finance-metrics span{display:block}
+.finance-metrics small{color:#64756b;font-size:11px}
+.finance-metrics strong{font:800 25px Manrope;margin:10px 0 5px}
+.finance-metrics span{font-size:10px;color:#8a9890}
+.finance-panel{margin-top:16px}
+.finance-panel>h3{margin:0 0 15px}
+.finance-page-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+.finance-title{display:flex;align-items:center;gap:14px}
+.finance-title h2{margin:0 0 5px}
+.finance-title p{margin:0}
+.finance-placeholder{margin-top:20px;padding:24px;border-radius:13px;background:#f5f8f6;border:1px dashed #cbdcd1}
+.finance-placeholder p{line-height:1.7;margin-bottom:0}
+.finance-note{margin-top:15px;padding:14px 16px;border-radius:12px;background:#f0f6f2;color:#57715f;font-size:12px;line-height:1.7}
+.finance-report-list{display:grid;gap:10px;margin-top:20px}
+.finance-report-list>div{padding:15px;border:1px solid var(--line);border-radius:11px;background:#fbfcfb}
+.finance-report-list b,.finance-report-list small{display:block}
+.finance-report-list small{margin-top:5px;color:var(--muted);font-size:11px}
+@media(max-width:1100px){.finance-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.finance-cards{grid-template-columns:1fr}.finance-card{min-height:118px}.finance-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.section-heading{align-items:flex-start;flex-direction:column}.finance-hero{padding:22px}.finance-hero h2{font-size:23px}.finance-label{display:block;margin-top:16px;padding-top:14px}.finance-nav{display:inline-block}}
