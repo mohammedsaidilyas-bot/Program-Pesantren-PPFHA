@@ -127,7 +127,7 @@ function attendanceStudentRoster_() {
   // menyebabkan NIS terbaca tetapi nama/status kosong.
   const ss = SpreadsheetApp.openById(STUDENT_DB_ID);
   const sh = ss.getSheetByName(STUDENT_SHEET_NAME);
-  if (!sh || sh.getLastRow() < 2) throw new Error('Database santri uang jajan tidak ditemukan atau masih kosong.');
+  if (!sh || sh.getLastRow() < 2) throw new Error('Tab database putri tidak ditemukan atau masih kosong.');
   const rows = sh.getDataRange().getDisplayValues();
   return rows.slice(1).map(function(row) {
     return {
