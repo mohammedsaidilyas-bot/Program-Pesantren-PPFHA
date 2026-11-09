@@ -36,7 +36,7 @@ document.addEventListener('keydown',function(e){
  if(!input)return;
  e.preventDefault();lookupAlbabStudent();
 },true);
-const API_URL='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbKFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
+const API_URL='ISI_URL_APPS_SCRIPT_PROGRAM_PUTRI_DI_SINI';
 const data={izin:[],peng:[],keg:[]};const names={dashboard:'Dashboard',izin:'Izin Santri',pengumuman:'Pengumuman',kegiatan:'Kegiatan & Jadwal',kehadiran:'Kegiatan & Kehadiran',pendidikan:'Pendidikan Santri',liburan:'Liburan Santri'};let adminKey=sessionStorage.getItem('ppfha_admin_key')||'';
 function go(p){
  const pages=$$('.page'),navs=$$('.nav');
