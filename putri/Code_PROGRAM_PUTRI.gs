@@ -5,7 +5,7 @@
  */
 const SPREADSHEET_ID = '1ZFOtVEoB48NytlEqtq9RrFHomHMTF7einzGIAHOp9LM';
 const STUDENT_DB_ID = '1ZFOtVEoB48NytlEqtq9RrFHomHMTF7einzGIAHOp9LM';
-const STUDENT_SHEET_NAME = 'Uang Jajan Santri PPFHA';
+const STUDENT_SHEET_NAME = 'database putri';
 const HEADERS = {
   Izin: ['id','dibuatPada','nis','nama','jenis','status','keluar','rencanaKembali','kembali','wali','catatan','terbit'],
   Pengumuman: ['id','dibuatPada','judul','kategori','tanggal','target','nisTarget','isi','status','tanggalMulaiLibur','tanggalAkhirLibur','tanggalKembali','jamKembali'],
@@ -82,7 +82,7 @@ function doGet(e) {
       if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
       const studentSS = SpreadsheetApp.openById(STUDENT_DB_ID);
       const studentSheet = studentSS.getSheetByName(STUDENT_SHEET_NAME);
-      if (!studentSheet) return output_({ok:false,error:'Tab database Uang Jajan Santri PPFHA tidak ditemukan.'});
+      if (!studentSheet) return output_({ok:false,error:'Tab database putri tidak ditemukan.'});
       const rows = studentSheet.getDataRange().getDisplayValues();
       if (rows.length < 2) return output_({ok:false,error:'Database santri masih kosong.'});
       const headers = rows[0].map(function(h){return String(h||'').toLowerCase().replace(/[^a-z0-9]/g,'');});
@@ -95,7 +95,7 @@ function doGet(e) {
       const iWa=col_(['nowawali','nowa','whatsappwali','nomorwawali'],5);
       const iStatus=col_(['status','statussantri'],7);
       const row = rows.slice(1).find(function(r){ return String(r[iNis] || '').trim().replace(/\D/g, '') === nis; });
-      if (!row) return output_({ok:false,error:'NIS '+nis+' tidak ditemukan. Pastikan NIS sesuai database Uang Jajan Santri.'});
+      if (!row) return output_({ok:false,error:'NIS '+nis+' tidak ditemukan. Pastikan NIS sesuai database putri.'});
       const status = String(row[iStatus] || '').trim();
       if (status && !['aktif','active'].includes(status.toLowerCase())) return output_({ok:false,error:'Santri '+nis+' tidak berstatus aktif ('+status+').'});
       return output_({ok:true,data:{nis:String(row[iNis]||'').trim(),nama:String(row[iNama]||'').trim(),kelas:String(row[iKelas]||'').trim(),asrama:String(row[iAsrama]||'').trim(),wali:String(row[iWali]||'').trim(),noWaWali:String(row[iWa]||'').trim(),status:status||'Aktif'}});
