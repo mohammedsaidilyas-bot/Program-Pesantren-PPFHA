@@ -38,13 +38,22 @@
  </div>
  <section class="spp-progress-card"><div class="spp-progress-heading"><div><b>Progres Pembayaran</b><small>Persentase pembayaran seluruh santri PUTRI</small></div><strong>—</strong></div><div class="finance-progress-track"><span></span></div><div class="spp-progress-foot"><span>Sudah membayar: —</span><span>Belum membayar: —</span></div></section>
  <section class="spp-list-panel">
+  <div class="spp-list-heading"><div><h3>Pencarian dan Pembayaran SPP</h3><p>Cari santri menggunakan NIS atau pindai QR KTS PUTRI.</p></div><span class="spp-count-chip">DATABASE PUTRI</span></div>
+  <div class="spp-toolbar"><div class="spp-searchbox"><span>⌕</span><input id="sppNis" type="search" inputmode="numeric" placeholder="Masukkan NIS santri PUTRI"/></div><button class="primary" id="sppFind" type="button">Cari NIS</button><button class="secondary" id="sppScan" type="button">▦ Scan QR</button></div>
+  <div id="sppStudentResult" class="spp-empty-state">Masukkan NIS atau pindai QR untuk mencari santri.</div>
+  <div id="sppPaymentArea" hidden><div class="spp-toolbar"><label>Periode tagihan <input id="sppPeriod" type="month"/></label><button class="secondary" id="sppLoadBills" type="button">Muat Tagihan</button></div><div id="sppBills"></div>
+  <div class="spp-toolbar"><label>Metode <select id="sppMethod"><option value="transfer">Transfer</option><option value="tunai">Tunai</option></select></label><label>Bukti transfer (tautan) <input id="sppProof" placeholder="Wajib untuk transfer"/></label><button class="primary" id="sppSubmit" type="button">Ajukan Pembayaran</button></div><div id="sppHistory"></div></div>
+ </section>
+ <section class="spp-list-panel"><div class="spp-list-heading"><div><h3>Administrasi Tagihan</h3><p>Buat tagihan untuk seluruh santri PUTRI aktif.</p></div><span class="spp-count-chip">PENGURUS</span></div>
+ <div class="spp-toolbar"><label>Periode <input id="sppCreatePeriod" type="month"/></label><label>Nominal (Rp) <input id="sppCreateAmount" type="number" min="1" placeholder="Nominal SPP"/></label><button class="primary" id="sppCreateBills" type="button">Buat Tagihan Periode</button></div></section>
+
   <div class="spp-list-heading"><div><h3>Daftar Pembayaran Santri</h3><p>Daftar tagihan dan status pembayaran per santri.</p></div><span class="spp-count-chip">Data PUTRI</span></div>
   <div class="spp-toolbar"><div class="spp-searchbox"><span>⌕</span><input type="search" placeholder="Cari nama atau NIS santri..." disabled aria-label="Pencarian santri belum diaktifkan"/></div><div class="spp-filter-placeholder">Semua status　⌄</div><button class="spp-export-placeholder" type="button" disabled>↓ Ekspor</button></div>
   <div class="spp-table-wrap"><table class="spp-table"><thead><tr><th>NO.</th><th>NAMA SANTRI</th><th>NIS</th><th>KELAS</th><th>TAGIHAN</th><th>STATUS</th><th>AKSI</th></tr></thead><tbody><tr><td colspan="7"><div class="spp-empty-state"><span>▤</span><b>Data pembayaran belum ditampilkan</b><p>Daftar santri dan tagihan akan muncul setelah data SPP PUTRI dihubungkan.</p></div></td></tr></tbody></table></div>
   <div class="spp-table-footer"><span>Menampilkan data pembayaran PUTRI</span><span>— data</span></div>
  </section>
  <section class="spp-history-panel"><div class="spp-list-heading"><div><h3>Riwayat Pembayaran Terbaru</h3><p>Catatan pembayaran SPP yang telah diterima.</p></div><span class="spp-history-icon">◷</span></div><div class="spp-history-empty">Belum ada riwayat pembayaran yang ditampilkan.</div></section>
- <p class="finance-preview-note">Tampilan SPP sudah disiapkan. Data tagihan, status lunas, dan riwayat akan diaktifkan setelah koneksi database PUTRI dipasang.</p>
+
 </section>
 <section id="uangjajan" class="page finance-page">
  <div class="finance-subhead"><button class="secondary" data-go="finance-dashboard">← Dashboard Keuangan</button><span>KEUANGAN PESANTREN PUTRI</span></div>
