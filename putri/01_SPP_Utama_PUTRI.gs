@@ -5,6 +5,7 @@ function sppPutriDoGet_(e) {
   if(action==='spp_student') return output_(sppPutriStudent_(p.nis));
   if(action==='spp_tagihan') return output_(sppPutriGetBills_(p.nis,p.periode));
   if(action==='spp_riwayat') return output_(sppPutriHistory_(p.nis));
+  if(action==='spp_kuitansi') return output_(sppPutriReceipt_(p.idPembayaran));
   if(action==='spp_pending') {
     if(!sppPutriAuthorized_(p.key)) return output_({ok:false,error:'Akses daftar verifikasi ditolak.'});
     return output_(sppPutriPending_());
