@@ -106,6 +106,7 @@ async function handleQrDecoded(decoded){
  if(!nis){$('#qrMessage').textContent='QR terbaca, tetapi isi QR tidak memuat NIS.';return}
  qrLocked=true;$('#qrMessage').textContent='QR terbaca. Memuat biodata santri…';
  if(qrTarget==='liburan'){await closeQr();await catatLiburan(nis);return}
+ if(qrTarget==='spp'){await closeQr();$('#sppNis').value=nis;await sppFindStudent(nis);return}
  if(qrTarget==='attendance'){if(!currentAttendanceActivity){await closeQr();toast('Pilih kegiatan terlebih dahulu.');return}enqueueAttendanceScan(nis);await closeQr();toast('NIS '+nis+' masuk antrean penyimpanan. Buka scan untuk santri berikutnya.');return}
  const targets={raport:['#raportNis',lookupRaportStudent],albab:['#albabNis',lookupAlbabStudent],hafalan:['#hafalanNis',lookupHafalanStudent],evaluasi:['#evaluasiNis',lookupEvaluasiStudent]};
  if(targets[qrTarget]){const input=$(targets[qrTarget][0]);if(!input){await closeQr();toast('Kolom NIS tidak ditemukan.');return}input.value=nis;await closeQr();await targets[qrTarget][1]();return}
@@ -833,3 +834,79 @@ $('#liburanCari').addEventListener('click',()=>catatLiburan($('#liburanNis').val
 $('#liburanNis').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();catatLiburan(e.target.value)}});
 $('#liburanFilter').addEventListener('input',renderLiburan);
 $('#refreshLiburan').addEventListener('click',loadLiburan);
+
+
+/* ================= SPP PUTRI ================= */
+let sppCurrentStudent=null,sppCurrentBills=[];
+async function sppApiGet(action,params={}){
+ const q=new URLSearchParams({action,...params});
+ const r=await fetch(API_URL+'?'+q.toString(),{cache:'no-store'});return await r.json();
+}
+async function sppApiPost(action,data){
+ const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,data})});
+ return await r.json();
+}
+function sppMoney(n){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0)}
+function sppPeriodNow(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+async function sppFindStudent(nis){
+ nis=String(nis||$('#sppNis')?.value||'').replace(/\D/g,'');
+ if(!nis){toast('Masukkan NIS santri PUTRI.');return}
+ $('#sppStudentResult').textContent='Mencari data santri PUTRI…';
+ $('#sppPaymentArea').hidden=true;
+ try{
+  const j=await sppApiGet('spp_student',{nis});
+  if(!j.ok||!j.data)throw new Error(j.error||'Santri tidak ditemukan.');
+  sppCurrentStudent=j.data;
+  $('#sppStudentResult').innerHTML='<div class="spp-student-card"><b>'+esc(j.data.nama)+'</b><p>NIS: '+esc(j.data.nis)+' · Kelas: '+esc(j.data.kelas||'—')+' · Asrama: '+esc(j.data.asrama||'—')+'</p><small>Wali: '+esc(j.data.wali||'—')+'</small></div>';
+  $('#sppPaymentArea').hidden=false;
+  $('#sppPeriod').value=sppPeriodNow();
+  await sppLoadBills();
+  await sppLoadHistory();
+ }catch(e){$('#sppStudentResult').textContent=e.message;toast(e.message)}
+}
+async function sppLoadBills(){
+ if(!sppCurrentStudent)return;
+ const period=$('#sppPeriod').value||'';
+ $('#sppBills').textContent='Memuat tagihan…';
+ try{
+  const j=await sppApiGet('spp_tagihan',{nis:sppCurrentStudent.nis,periode:period});
+  if(!j.ok)throw new Error(j.error||'Tagihan gagal dimuat.');
+  sppCurrentBills=j.data||[];
+  if(!sppCurrentBills.length){$('#sppBills').innerHTML='<div class="spp-empty-state">Belum ada tagihan untuk periode ini. Pengurus dapat membuat tagihan melalui Administrasi Tagihan.</div>';return}
+  $('#sppBills').innerHTML='<div class="spp-table-wrap"><table class="spp-table"><thead><tr><th>PILIH</th><th>PERIODE</th><th>NOMINAL</th><th>STATUS</th></tr></thead><tbody>'+sppCurrentBills.map(x=>'<tr><td>'+(x.status=== 'Belum Lunas'||x.status==='Ditolak'?'<input type="checkbox" class="sppBillCheck" value="'+esc(x.idTagihan)+'">':'—')+'</td><td>'+esc(x.periode)+'</td><td>'+sppMoney(x.nominal)+'</td><td>'+esc(x.status)+'</td></tr>').join('')+'</tbody></table></div>';
+ }catch(e){$('#sppBills').textContent=e.message;toast(e.message)}
+}
+async function sppLoadHistory(){
+ if(!sppCurrentStudent)return;
+ try{const j=await sppApiGet('spp_riwayat',{nis:sppCurrentStudent.nis});const rows=j.data||[];
+ $('#sppHistory').innerHTML='<h3>Riwayat Pembayaran</h3>'+(rows.length?'<div class="spp-table-wrap"><table class="spp-table"><thead><tr><th>TANGGAL</th><th>PERIODE</th><th>NOMINAL</th><th>METODE</th><th>STATUS</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+dateOnly(x.tanggalAjukan)+'</td><td>'+esc(x.periode)+'</td><td>'+sppMoney(x.nominal)+'</td><td>'+esc(x.metode)+'</td><td>'+esc(x.status)+'</td></tr>').join('')+'</tbody></table></div>':'<p>Belum ada riwayat pembayaran.</p>');
+ }catch(e){toast(e.message)}
+}
+async function sppSubmitPayment(){
+ if(!sppCurrentStudent)return;
+ const ids=$$('.sppBillCheck:checked').map(x=>x.value),metode=$('#sppMethod').value,proof=$('#sppProof').value.trim();
+ if(!ids.length){toast('Pilih minimal satu tagihan yang belum lunas.');return}
+ if(metode==='transfer'&&!proof){toast('Masukkan tautan bukti transfer terlebih dahulu.');return}
+ if(!await askConfirmation('Ajukan pembayaran SPP','Pembayaran akan masuk status Menunggu Verifikasi. Lanjutkan?','Ya, Ajukan'))return;
+ try{const j=await sppApiPost('spp_ajukan_pembayaran',{nis:sppCurrentStudent.nis,tagihanIds:ids,metode,referensiBukti:proof});
+ if(!j.ok)throw new Error(j.error||'Pembayaran gagal disimpan.');
+ toast(j.message||'Pembayaran diajukan.');$('#sppProof').value='';await sppLoadBills();await sppLoadHistory();
+ }catch(e){toast(e.message)}
+}
+async function sppCreateBills(){
+ const periode=$('#sppCreatePeriod').value,nominal=Number($('#sppCreateAmount').value);
+ if(!periode||!Number.isSafeInteger(nominal)||nominal<=0){toast('Periode dan nominal SPP wajib diisi.');return}
+ const key=await requestAdminKey('Pembuatan tagihan SPP PUTRI');if(!key)return;
+ if(!await askConfirmation('Buat tagihan SPP','Tagihan akan dibuat untuk seluruh santri PUTRI aktif yang belum memiliki tagihan periode ini.','Buat Tagihan'))return;
+ try{const j=await sppApiPost('spp_buat_tagihan',{apiKey:key,periode,nominal});if(!j.ok)throw new Error(j.error||'Gagal membuat tagihan.');toast(j.message+' Jumlah: '+j.created);if(sppCurrentStudent)await sppLoadBills();}
+ catch(e){toast(e.message)}
+}
+document.addEventListener('click',e=>{
+ const id=e.target&&e.target.id;
+ if(id==='sppFind'){e.preventDefault();sppFindStudent();}
+ if(id==='sppScan'){e.preventDefault();openQr('spp');}
+ if(id==='sppLoadBills'){e.preventDefault();sppLoadBills();}
+ if(id==='sppSubmit'){e.preventDefault();sppSubmitPayment();}
+ if(id==='sppCreateBills'){e.preventDefault();sppCreateBills();}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='sppNis'){e.preventDefault();sppFindStudent();}});
