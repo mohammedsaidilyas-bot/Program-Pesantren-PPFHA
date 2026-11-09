@@ -44,6 +44,11 @@
   <div id="sppPaymentArea" hidden><div class="spp-toolbar"><label>Periode tagihan <input id="sppPeriod" type="month"/></label><button class="secondary" id="sppLoadBills" type="button">Muat Tagihan</button></div><div id="sppBills"></div>
   <div class="spp-toolbar"><label>Metode <select id="sppMethod"><option value="transfer">Transfer</option><option value="tunai">Tunai</option></select></label><label>Bukti transfer (tautan) <input id="sppProof" placeholder="Wajib untuk transfer"/></label><button class="primary" id="sppSubmit" type="button">Ajukan Pembayaran</button></div><div id="sppHistory"></div></div>
  </section>
+ <section class="spp-list-panel" id="sppVerificationPanel">
+  <div class="spp-list-heading"><div><h3>Verifikasi Pembayaran</h3><p>Periksa pembayaran transfer atau tunai sebelum mengesahkan tagihan.</p></div><span class="spp-count-chip">KHUSUS PENGURUS</span></div>
+  <div class="spp-toolbar"><button class="secondary" id="sppLoadPending" type="button">↻ Muat Pembayaran Menunggu</button><span id="sppPendingCount" class="spp-count-chip">Belum dimuat</span></div>
+  <div id="sppPendingList" class="spp-empty-state">Tekan “Muat Pembayaran Menunggu” untuk melihat pengajuan.</div>
+ </section>
  <section class="spp-list-panel"><div class="spp-list-heading"><div><h3>Administrasi Tagihan</h3><p>Buat tagihan untuk seluruh santri PUTRI aktif.</p></div><span class="spp-count-chip">PENGURUS</span></div>
  <div class="spp-toolbar"><label>Periode <input id="sppCreatePeriod" type="month"/></label><label>Nominal (Rp) <input id="sppCreateAmount" type="number" min="1" placeholder="Nominal SPP"/></label><button class="primary" id="sppCreateBills" type="button">Buat Tagihan Periode</button></div></section>
 
