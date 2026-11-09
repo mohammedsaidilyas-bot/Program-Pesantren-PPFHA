@@ -3,9 +3,6 @@
  * Data lama tidak dihapus. Endpoint tulis dilindungi Script Property ADMIN_API_KEY.
  * Perubahan kode tidak dapat memperbaiki OAuth Google invalid_client.
  */
-const SPREADSHEET_ID = '1ZFOtVEoB48NytlEqtq9RrFHomHMTF7einzGIAHOp9LM';
-const STUDENT_DB_ID = '1ZFOtVEoB48NytlEqtq9RrFHomHMTF7einzGIAHOp9LM';
-const STUDENT_SHEET_NAME = 'database putri';
 const HEADERS = {
   Izin: ['id','dibuatPada','nis','nama','jenis','status','keluar','rencanaKembali','kembali','wali','catatan','terbit'],
   Pengumuman: ['id','dibuatPada','judul','kategori','tanggal','target','nisTarget','isi','status','tanggalMulaiLibur','tanggalAkhirLibur','tanggalKembali','jamKembali'],
