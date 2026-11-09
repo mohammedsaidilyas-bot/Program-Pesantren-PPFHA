@@ -107,6 +107,7 @@ async function handleQrDecoded(decoded){
  qrLocked=true;$('#qrMessage').textContent='QR terbaca. Memuat biodata santri…';
  if(qrTarget==='liburan'){await closeQr();await catatLiburan(nis);return}
  if(qrTarget==='spp'){await closeQr();$('#sppNis').value=nis;await sppFindStudent(nis);return}
+ if(qrTarget==='spp-portal'){await closeQr();$('#sppPortalNis').value=nis;await sppPortalFindStudent(nis);return}
  if(qrTarget==='attendance'){if(!currentAttendanceActivity){await closeQr();toast('Pilih kegiatan terlebih dahulu.');return}enqueueAttendanceScan(nis);await closeQr();toast('NIS '+nis+' masuk antrean penyimpanan. Buka scan untuk santri berikutnya.');return}
  const targets={raport:['#raportNis',lookupRaportStudent],albab:['#albabNis',lookupAlbabStudent],hafalan:['#hafalanNis',lookupHafalanStudent],evaluasi:['#evaluasiNis',lookupEvaluasiStudent]};
  if(targets[qrTarget]){const input=$(targets[qrTarget][0]);if(!input){await closeQr();toast('Kolom NIS tidak ditemukan.');return}input.value=nis;await closeQr();await targets[qrTarget][1]();return}
