@@ -5,7 +5,7 @@
  *
  * Cara pakai: salin seluruh isi file ini ke Notifikasi.gs
  * dalam proyek Apps Script "Program Pesantren PPFHA".
- * Membutuhkan konstanta SPREADSHEET_ID dari Code.gs. Token dibaca lintas spreadsheet.
+ * Membutuhkan konstanta SPREADSHEET_ID dari Code.gs. Token perangkat dibaca dari database PUTRI yang sama dengan data wali PUTRI.
  * JANGAN jalankan semua antrean sebagai pengiriman massal.
  */
 
@@ -193,7 +193,7 @@ function tesNotifAsharAditya() {
  */
 
 function cariTokenWaliUntukNis_(nis) {
-  const ss = SpreadsheetApp.openById('1A0wPmKJr51FBIoKIaevPZKV9cJJhFHjlNpElrJIpzVk');
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sh = ss.getSheetByName('PerangkatNotifikasiWali');
   if (!sh) throw new Error('Sheet PerangkatNotifikasiWali tidak ditemukan');
 
