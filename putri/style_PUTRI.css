@@ -341,3 +341,38 @@ button.education-tile:hover{transform:translateY(-2px);border-color:#b8d8c5;box-
 .bendahara-chart-empty p{text-align:center;color:#97a39c}.bendahara-note{margin-top:16px;padding:16px 18px;border-radius:13px;background:#edf5f0;border:1px solid #dceae2;color:#557463;font-size:12px;line-height:1.7}
 @media(max-width:850px){.bendahara-main-grid{grid-template-columns:1fr}.bendahara-banner{align-items:flex-start;flex-direction:column}.bendahara-period{min-width:0;width:100%}}
 @media(max-width:620px){.bendahara-summary{grid-template-columns:1fr}.bendahara-actions{grid-template-columns:1fr}.bendahara-stat{padding:16px}.bendahara-toolbar{flex-wrap:wrap}.bendahara-toolbar input{flex-basis:100%}.bendahara-filter{flex:1}}
+
+
+/* Portal pembayaran mandiri SPP PUTRI — desain ringkas seperti portal acuan */
+.spp-portal-page{min-height:calc(100vh - 40px)}
+.spp-portal-shell{min-height:calc(100vh - 90px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:22px 10px;background:radial-gradient(circle at 80% 10%,#075e49 0,#00382c 45%,#002b22 100%);border-radius:22px}
+.spp-portal-card{width:min(100%,600px);background:#fff;border-radius:25px;overflow:hidden;box-shadow:0 22px 70px #001d1640}
+.spp-portal-brand{background:linear-gradient(135deg,#075d47,#08775a);color:#fff;text-align:center;padding:30px 22px 27px}
+.spp-portal-logo{width:76px;height:76px;border:2px solid #d8f2e6;border-radius:50%;display:grid;place-items:center;margin:0 auto 18px;font:800 25px Manrope;color:#fff;letter-spacing:2px}
+.spp-portal-brand h2{font-size:20px;margin:0 0 6px;color:#fff}.spp-portal-brand p{font-size:12px;letter-spacing:1px;color:#c6eadb;margin:0}
+.spp-portal-search{padding:28px 32px 25px}.spp-portal-search label,.spp-portal-proof label{display:block;font-weight:800;font-size:12px;letter-spacing:.5px;color:#667487;margin-bottom:10px}
+.spp-portal-search-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px}
+.spp-portal-search-row input,.spp-portal-proof input{width:100%;min-width:0;border:1px solid #dce5e8;border-radius:17px;padding:16px 18px;font:16px 'DM Sans';background:#f8fafb;color:#20362e}
+.spp-portal-search-row button{border-radius:17px;padding:0 24px;font-size:15px;min-height:56px}
+.spp-portal-scan{border:0;background:#075743;color:white;font-weight:700;cursor:pointer;padding:0 20px}
+.spp-portal-hint{margin:11px 0 0;font-size:12px;color:#829087}
+.spp-portal-result{padding:0 32px 30px}
+.spp-portal-profile{display:flex;align-items:center;gap:17px;padding:18px;background:linear-gradient(110deg,#ecfbf4,#fff);border:1px solid #d8f0e4;border-radius:18px;margin-bottom:18px}
+.spp-portal-avatar{width:88px;height:88px;flex:0 0 88px;border:3px solid #c5efdc;border-radius:50%;display:grid;place-items:center;background:#e2f5eb;color:#0b7052;font:800 25px Manrope;overflow:hidden}
+.spp-portal-avatar img{width:100%;height:100%;object-fit:cover}
+.spp-portal-profile small{font-size:11px;color:#0b785a;font-weight:800;letter-spacing:.5px}.spp-portal-profile h3{font-size:22px;margin:6px 0;color:#172b25}.spp-portal-profile p{font-size:13px;margin:0}
+.spp-portal-details{display:grid;gap:11px;padding:0 0 18px;border-bottom:1px solid #e8eeea}
+.spp-portal-details>div{display:flex;justify-content:space-between;gap:15px;font-size:14px}.spp-portal-details span{color:#78858e}.spp-portal-details b{text-align:right;color:#263b34}.spp-portal-details .spp-portal-fee{color:#087a5b}
+.spp-portal-month-heading{font-size:11px;font-weight:800;color:#94a0ad;letter-spacing:.5px;margin:22px 0 12px}
+.spp-portal-months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-height:310px;overflow:auto;padding:2px}
+.spp-portal-month{display:flex;flex-direction:column;justify-content:space-between;gap:12px;min-height:84px;border:1px solid #dfe7e3;border-radius:15px;padding:12px;background:#fff;cursor:pointer}
+.spp-portal-month b,.spp-portal-month small{display:block}.spp-portal-month b{font-size:13px;color:#35433e}.spp-portal-month small{font-size:11px;color:#65746d;margin-top:5px}
+.spp-portal-month input{width:19px;height:19px;accent-color:#087b5b}.spp-portal-month.is-paid{background:#eafaf2;border-color:#b9ebd2}.spp-portal-month.is-paid b,.spp-portal-month.is-paid small{color:#08714f}.spp-portal-month.is-pending{background:#fff8e8;border-color:#f0dfb8}.spp-portal-status{font-size:18px;color:#0b7857}
+.spp-portal-total{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:20px 0 15px;padding:17px;border:1px solid #d7f0e4;background:#f0fbf5;border-radius:16px;color:#075a45;font-weight:700}.spp-portal-total b{font-size:20px;color:#087a5b}
+.spp-portal-payment-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}.spp-portal-payment-options button{border:0;border-radius:14px;padding:17px 10px;color:#fff;font-weight:800;font-size:14px;cursor:pointer;background:#07815f}.spp-portal-payment-options .spp-portal-cash{background:#075b47}
+.spp-portal-proof{margin-top:16px;padding:17px;background:#f7faf8;border:1px solid #e1ebe4;border-radius:15px}.spp-portal-proof small,.spp-portal-proof p{display:block;color:#74847b;font-size:12px;line-height:1.6;margin:10px 0}.spp-portal-proof .primary{margin-top:12px;width:100%;padding:14px}
+.spp-portal-no-bills{grid-column:1/-1;padding:18px;background:#fff8e8;border:1px solid #f0e1c0;border-radius:14px;color:#7c6330;line-height:1.5}
+.spp-portal-history{margin-top:22px}.spp-portal-history h3{font-size:16px;margin:0 0 10px}.spp-portal-history-row{display:grid;grid-template-columns:1fr auto;gap:6px;padding:12px 0;border-bottom:1px solid #edf1ee}.spp-portal-history-row span{font-weight:700}.spp-portal-history-row small{display:block;color:#7a8981;font-weight:400;margin-top:4px}.spp-portal-history-row em{grid-column:1/-1;font-size:11px;color:#08785a;font-style:normal}
+.spp-portal-reset{display:block;margin:20px auto 0;border:0;background:none;color:#84928a;font-weight:600;cursor:pointer;padding:10px}
+.spp-portal-admin{border:1px solid #39876e;background:#07533f;color:#d6f0e4;border-radius:30px;padding:12px 22px;font-weight:700;cursor:pointer}
+@media(max-width:650px){.spp-portal-shell{margin:-10px -6px;padding:18px 10px;border-radius:15px}.spp-portal-search,.spp-portal-result{padding-left:18px;padding-right:18px}.spp-portal-brand{padding:25px 15px}.spp-portal-search-row{grid-template-columns:minmax(0,1fr) auto auto;gap:7px}.spp-portal-search-row input{padding:13px 12px;font-size:14px}.spp-portal-search-row button{padding:0 14px;min-height:50px}.spp-portal-months{gap:7px}.spp-portal-month{padding:10px;min-height:80px}.spp-portal-profile{padding:13px;gap:12px}.spp-portal-avatar{width:68px;height:68px;flex-basis:68px}.spp-portal-profile h3{font-size:18px}.spp-portal-payment-options{grid-template-columns:1fr}.spp-portal-details>div{font-size:13px}}
