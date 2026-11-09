@@ -261,3 +261,52 @@ button.education-tile:hover{transform:translateY(-2px);border-color:#b8d8c5;box-
 .spp-history-empty{padding:18px;border-radius:10px;background:#f7faf8;color:#95a19a;text-align:center;font-size:10px}
 @media(max-width:850px){.spp-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.finance-subhead{align-items:flex-start}.finance-subhead>span{font-size:8px}.spp-page-banner{padding:18px;align-items:flex-start}.spp-page-banner h2{font-size:21px}.spp-page-banner p{font-size:10px;max-width:230px}.spp-period-chip{min-width:104px;padding:9px}.spp-period-chip b{font-size:11px}.spp-summary-grid{gap:8px}.spp-summary-card{padding:12px}.spp-summary-card>strong{font-size:20px}.spp-toolbar{flex-wrap:wrap}.spp-searchbox{flex-basis:100%}.spp-list-heading h3{font-size:13px}}
+
+/* Uang Jajan Santri PUTRI — visual layout */
+.uj-header{display:flex;align-items:center;gap:16px;padding:22px 24px;border-radius:18px;background:linear-gradient(112deg,#07594e,#078c78);color:#fff;margin-bottom:20px;position:relative;overflow:hidden}
+.uj-brand-mark{width:58px;height:58px;flex:0 0 58px;border-radius:16px;background:#ffffff20;border:1px solid #ffffff35;display:grid;place-items:center;font:800 18px Manrope;color:#e0fff3}
+.uj-header small{font-size:10px;letter-spacing:1.5px;font-weight:800;color:#c2e7dc}
+.uj-header h2{font:800 22px Manrope;margin:5px 0 2px}
+.uj-header p{font-size:12px;margin:0;color:#e0f4ed}
+.uj-header>div:nth-child(2)>span{display:block;font-size:10px;color:#c2e7dc;margin-top:5px}
+.uj-header-chip{margin-left:auto;text-align:right;border:1px solid #ffffff40;background:#ffffff14;border-radius:12px;padding:10px 13px;font-size:9px;line-height:1.7;color:#d6f2e9;white-space:nowrap}
+.uj-header-chip b{font-size:12px;color:#fff;letter-spacing:.7px}
+.uj-welcome{display:flex;justify-content:space-between;align-items:center;margin:4px 0 15px}
+.uj-welcome h2{font:800 21px Manrope;margin:0 0 4px;color:#193d35}
+.uj-welcome p{font-size:12px;color:#87958e;margin:0}
+.uj-role-pill{font-size:10px;font-weight:700;color:#26735f;background:#eaf5ef;border-radius:30px;padding:9px 13px}
+.uj-balance-card{overflow:hidden;border:1px solid #dcebe4;border-radius:18px;background:#fff;box-shadow:0 6px 20px #153e300a;margin-bottom:22px}
+.uj-balance-main{padding:20px 23px;background:linear-gradient(110deg,#08665b,#07927b);color:white}
+.uj-balance-main small,.uj-balance-main span{display:block;font-size:11px;color:#d0eee4}
+.uj-balance-main strong{display:block;font:800 34px Manrope;margin:7px 0 3px}
+.uj-balance-stats{display:grid;grid-template-columns:1fr 1fr}
+.uj-balance-stats>div{padding:14px 22px}
+.uj-balance-stats>div+div{border-left:1px solid #e4eee9}
+.uj-balance-stats small,.uj-mini-stats small{display:block;font-size:10px;color:#84928b;margin-bottom:5px}
+.uj-balance-stats b{font:800 20px Manrope;color:#11685e}
+.uj-section-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.uj-section-heading h3,.uj-panel-heading h3,.uj-kts-panel h3{font:800 15px Manrope;color:#263e35;margin:0 0 4px}
+.uj-section-heading p,.uj-panel-heading p,.uj-kts-panel p{font-size:10px;color:#8b9891;margin:0}
+.uj-menu-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:15px}
+.uj-menu-card{position:relative;display:flex;flex-direction:column;gap:10px;min-height:170px;padding:16px;background:#fff;border:1px solid #e3ece7;border-radius:15px;box-shadow:0 4px 14px #183c2e08}
+.uj-menu-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:#e8f6ef;color:#087b66;font-size:21px;font-weight:800}
+.uj-menu-icon.pink{background:#fff0f2;color:#c44c64}.uj-menu-icon.amber{background:#fff6e4;color:#bd8428}.uj-menu-icon.blue{background:#edf2ff;color:#496bc1}
+.uj-menu-card b{font:800 12px Manrope;color:#263c34}
+.uj-menu-card p{font-size:10px;line-height:1.5;color:#87938d;margin:4px 18px 0 0}
+.uj-menu-arrow{position:absolute;right:15px;top:19px;color:#6e9a88;font-size:19px}
+.uj-menu-sub{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto}
+.uj-menu-sub span{font-size:8px;color:#58816f;background:#f0f7f3;border-radius:20px;padding:5px 7px}
+.uj-feature-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.uj-feature-panel{background:#fff;border:1px solid #e4ece7;border-radius:15px;padding:16px;min-width:0}
+.uj-panel-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.uj-panel-heading>span{font-size:18px;color:#14816f;font-weight:800}
+.uj-mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.uj-mini-stats>div{background:#f6faf7;border-radius:10px;padding:10px}
+.uj-mini-stats b{font:800 15px Manrope;color:#176e60}
+.uj-empty-note,.uj-transaction-empty{margin-top:12px;padding:13px;border-radius:10px;background:#f7faf8;text-align:center;color:#95a29b;font-size:9px}
+.uj-kts-panel{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#f0f7f3;border:1px solid #dcebe2;border-radius:14px;padding:16px 18px}
+.uj-kts-panel>div{display:flex;align-items:center;gap:12px}
+.uj-kts-icon{width:39px;height:39px;border-radius:11px;background:#fff;color:#177b68;display:grid;place-items:center;font-size:19px}
+.uj-kts-label{font-size:9px;letter-spacing:1px;font-weight:800;color:#6b927f;white-space:nowrap}
+@media(max-width:900px){.uj-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.uj-header{padding:17px;gap:11px}.uj-brand-mark{width:45px;height:45px;flex-basis:45px}.uj-header h2{font-size:17px}.uj-header-chip{font-size:8px;padding:8px}.uj-header-chip b{font-size:10px}.uj-welcome h2{font-size:18px}.uj-menu-grid{gap:8px}.uj-menu-card{min-height:160px;padding:13px}.uj-feature-grid{grid-template-columns:1fr}.uj-kts-panel{align-items:flex-start;flex-direction:column}.uj-kts-label{padding-left:50px}}
