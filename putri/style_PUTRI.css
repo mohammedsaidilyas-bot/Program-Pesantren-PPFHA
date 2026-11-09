@@ -209,3 +209,55 @@ button.education-tile:hover{transform:translateY(-2px);border-color:#b8d8c5;box-
 .finance-preview-note{text-align:center;font-size:10px;color:#9aa49e;margin:14px 0 0}
 @media(max-width:900px){.finance-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-dashboard-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.finance-app-head{margin:-18px -16px 18px;padding:17px 16px;align-items:flex-start}.finance-app-brand{gap:10px}.finance-app-mark{width:44px;height:44px;flex-basis:44px}.finance-app-brand h2{font-size:17px}.finance-app-brand p{font-size:10px}.finance-app-actions{flex-direction:column;align-items:flex-end}.finance-refresh-label{display:none}.finance-welcome h2{font-size:21px}.finance-stat-grid{gap:8px}.finance-stat{padding:12px}.finance-stat strong{font-size:20px}.finance-dashboard-grid{grid-template-columns:1fr}.finance-bottom-nav{grid-template-columns:1fr}.finance-status{font-size:9px}}
+
+/* Halaman Pembayaran SPP PUTRI — visual only */
+.finance-subhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.finance-subhead>span{font-size:10px;letter-spacing:1.4px;font-weight:800;color:#6a947b}
+.spp-page-banner{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:23px 25px;background:linear-gradient(110deg,#11776e,#218b78);border-radius:18px;color:white;margin-bottom:14px}
+.spp-page-banner>div:first-child>span{font-size:10px;letter-spacing:1.5px;color:#c4e9db;font-weight:800}
+.spp-page-banner h2{font:800 25px Manrope;margin:7px 0}
+.spp-page-banner p{font-size:12px;color:#d7eee6;margin:0}
+.spp-period-chip{background:#fff;color:#176d63;border-radius:13px;padding:11px 16px;min-width:140px;display:flex;flex-direction:column}
+.spp-period-chip small{font-size:9px;letter-spacing:1px;color:#899b94}
+.spp-period-chip b{font:800 14px Manrope;margin-top:4px}
+.spp-period-notice{display:flex;align-items:center;gap:12px;padding:12px 15px;border:1px solid #f0e2b4;background:#fff9e9;color:#80521f;border-radius:13px;margin-bottom:13px}
+.spp-period-notice>span{font-size:22px}
+.spp-period-notice b{font-size:12px}
+.spp-period-notice p{margin:3px 0 0;font-size:10px;color:#8c704d}
+.spp-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:13px}
+.spp-summary-card{background:#fff;border:1px solid #e5ece8;border-radius:15px;padding:15px;box-shadow:0 4px 14px #183c2e08;min-width:0}
+.spp-summary-card>div{display:flex;align-items:center;gap:9px}
+.spp-summary-card>div>small{font-size:10px;color:#74837b}
+.spp-summary-icon{width:31px;height:31px;border-radius:9px;background:#eaf5f0;color:#147e6d;display:grid;place-items:center;font-size:16px}
+.spp-summary-icon.green{background:#e8f6ee;color:#15966c}.spp-summary-icon.amber{background:#fff5df;color:#d38a1d}.spp-summary-icon.blue{background:#edf2ff;color:#416bd0}
+.spp-summary-card>strong{display:block;font:800 23px Manrope;color:#137e70;margin:11px 0 3px}
+.spp-summary-caption{font-size:9px;color:#99a49e}
+.spp-progress-card,.spp-list-panel,.spp-history-panel{background:#fff;border:1px solid #e5ece8;border-radius:15px;padding:16px;box-shadow:0 4px 14px #183c2e08;margin-bottom:13px}
+.spp-progress-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+.spp-progress-heading b,.spp-progress-heading small{display:block}
+.spp-progress-heading b{font-size:12px}.spp-progress-heading small{font-size:10px;color:#8a968f;margin-top:3px}
+.spp-progress-heading>strong{font:800 14px Manrope;color:#718179}
+.spp-progress-foot{display:flex;justify-content:space-between;gap:10px;font-size:9px;color:#8b9891}
+.spp-list-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.spp-list-heading h3{font:800 15px Manrope;margin:0 0 4px;color:#263b32}
+.spp-list-heading p{font-size:10px;color:#8a968f;margin:0}
+.spp-count-chip{font-size:9px;color:#287762;background:#edf6f1;border-radius:20px;padding:7px 11px;white-space:nowrap}
+.spp-toolbar{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+.spp-searchbox{display:flex;align-items:center;gap:8px;flex:1;min-width:120px;padding:10px 12px;border:1px solid #e3eae6;border-radius:10px;background:#fbfcfb;color:#819088}
+.spp-searchbox span{font-size:18px}
+.spp-searchbox input{border:0;outline:0;background:transparent;width:100%;font:inherit;font-size:10px;color:#64736b}
+.spp-filter-placeholder,.spp-export-placeholder{padding:10px 12px;border:1px solid #e3eae6;border-radius:10px;background:#fff;color:#718179;font-size:10px;white-space:nowrap}
+.spp-export-placeholder{background:#f0f7f3;color:#789086}
+.spp-table-wrap{overflow-x:auto;border:1px solid #e9efeb;border-radius:11px}
+.spp-table{width:100%;border-collapse:collapse;min-width:720px}
+.spp-table th{background:#f5f8f6;padding:12px 10px;text-align:left;font-size:9px;letter-spacing:.5px;color:#78877f;font-weight:800}
+.spp-table td{padding:0}
+.spp-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 15px;color:#8b9991}
+.spp-empty-state>span{width:42px;height:42px;border-radius:13px;background:#edf6f1;color:#267c64;display:grid;place-items:center;font-size:20px;margin-bottom:10px}
+.spp-empty-state b{font-size:11px;color:#53665c}
+.spp-empty-state p{font-size:10px;margin:5px 0 0}
+.spp-table-footer{display:flex;justify-content:space-between;padding:10px 2px 0;color:#9aa59f;font-size:9px}
+.spp-history-icon{font-size:20px;color:#2b8877}
+.spp-history-empty{padding:18px;border-radius:10px;background:#f7faf8;color:#95a19a;text-align:center;font-size:10px}
+@media(max-width:850px){.spp-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.finance-subhead{align-items:flex-start}.finance-subhead>span{font-size:8px}.spp-page-banner{padding:18px;align-items:flex-start}.spp-page-banner h2{font-size:21px}.spp-page-banner p{font-size:10px;max-width:230px}.spp-period-chip{min-width:104px;padding:9px}.spp-period-chip b{font-size:11px}.spp-summary-grid{gap:8px}.spp-summary-card{padding:12px}.spp-summary-card>strong{font-size:20px}.spp-toolbar{flex-wrap:wrap}.spp-searchbox{flex-basis:100%}.spp-list-heading h3{font-size:13px}}
