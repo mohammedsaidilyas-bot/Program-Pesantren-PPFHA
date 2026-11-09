@@ -103,7 +103,9 @@ function siapkanAntrianTidakHadir() {
     const baru = [];
 
     data.forEach(function(r) {
-      if (String(r[idx('status')]).trim().toLowerCase() !== 'tidak hadir') return;
+      const statusAbsensi = String(r[idx('status')] || '').trim().toLowerCase();
+      // Ketidakhadiran berizin juga harus masuk antrean notifikasi wali.
+      if (!['tidak hadir', 'izin pulang', 'izin sakit', 'izin keluar'].includes(statusAbsensi)) return;
 
       const tanggal = r[idx('tanggal')];
       const kegiatan = r[idx('activity')];
@@ -121,7 +123,7 @@ function siapkanAntrianTidakHadir() {
       baru.push([
         kunci, tanggal, kegiatan, sesi, nis, nama,
         'PENDING', new Date(), '',
-        'Belum dikirim ke Firebase'
+        'Status absensi: ' + String(r[idx('status')] || '').trim() + ' — belum dikirim ke Firebase'
       ]);
     });
 
