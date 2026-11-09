@@ -910,3 +910,37 @@ document.addEventListener('click',e=>{
  if(id==='sppCreateBills'){e.preventDefault();sppCreateBills();}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='sppNis'){e.preventDefault();sppFindStudent();}});
+
+/* VERIFIKASI PEMBAYARAN SPP PUTRI */
+async function sppLoadPending(){
+ const body=$('#sppPendingList'),count=$('#sppPendingCount');
+ body.textContent='Memuat daftar pembayaran…';
+ const key=await requestAdminKey('Verifikasi pembayaran SPP PUTRI');
+ if(!key){body.textContent='Akses pengurus diperlukan untuk melihat pembayaran.';return;}
+ try{
+  const j=await sppApiGet('spp_pending',{key:String(key).trim()});
+  if(!j.ok)throw new Error(j.error||'Gagal memuat pembayaran.');
+  const rows=j.data||[];count.textContent=rows.length+' menunggu';
+  if(!rows.length){body.innerHTML='<div class="spp-empty-state">Tidak ada pembayaran yang menunggu verifikasi.</div>';return;}
+  body.innerHTML='<div class="spp-table-wrap"><table class="spp-table"><thead><tr><th>TANGGAL</th><th>SANTRI / NIS</th><th>PERIODE</th><th>NOMINAL</th><th>METODE</th><th>BUKTI</th><th>AKSI</th></tr></thead><tbody>'+
+   rows.map(x=>'<tr><td>'+dateOnly(x.tanggalAjukan)+'</td><td><b>'+esc(x.nama||'—')+'</b><br><small>'+esc(x.nis||'—')+'</small></td><td>'+esc(x.periode||'—')+'</td><td>'+sppMoney(x.nominal)+'</td><td>'+esc(x.metode||'—')+'</td><td>'+(x.referensiBukti?'<a href="'+esc(x.referensiBukti)+'" target="_blank" rel="noopener">Lihat bukti ↗</a>':'—')+'</td><td><button type="button" class="primary spp-verify" data-id="'+esc(x.idPembayaran)+'">Sahkan</button> <button type="button" class="secondary spp-reject" data-id="'+esc(x.idPembayaran)+'">Tolak</button></td></tr>').join('')+'</tbody></table></div>';
+ }catch(e){body.textContent=e.message;toast(e.message);}
+}
+async function sppReviewPayment(id,approved){
+ const key=await requestAdminKey(approved?'Sahkan pembayaran SPP PUTRI':'Tolak pembayaran SPP PUTRI');if(!key)return;
+ let catatan='';
+ if(!approved){catatan=prompt('Tuliskan alasan penolakan pembayaran:')||'';if(!catatan.trim()){toast('Alasan penolakan wajib diisi.');return;}}
+ if(!await askConfirmation(approved?'Sahkan pembayaran?':'Tolak pembayaran?',approved?'Tagihan terkait akan berubah menjadi Lunas.':'Pengajuan ditolak dan tagihan dapat diajukan kembali.',approved?'Sahkan':'Tolak'))return;
+ try{
+  const j=await sppApiPost(approved?'spp_verifikasi':'spp_tolak',{apiKey:String(key).trim(),idPembayaran:id,diverifikasiOleh:'Pengurus PUTRI',catatan});
+  if(!j.ok)throw new Error(j.error||'Status pembayaran gagal diperbarui.');
+  toast(j.message||'Status pembayaran diperbarui.');await sppLoadPending();
+  if(sppCurrentStudent){await sppLoadBills();await sppLoadHistory();}
+ }catch(e){toast(e.message);}
+}
+document.addEventListener('click',e=>{
+ const b=e.target&&e.target.closest?e.target.closest('#sppLoadPending,#sppVerificationPanel .spp-verify,#sppVerificationPanel .spp-reject'):null;
+ if(!b)return;
+ if(b.id==='sppLoadPending'){e.preventDefault();sppLoadPending();return;}
+ e.preventDefault();sppReviewPayment(b.dataset.id,b.classList.contains('spp-verify'));
+});
