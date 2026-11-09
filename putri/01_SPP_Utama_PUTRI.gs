@@ -23,7 +23,7 @@ function sppPutriStudent_(nis) {
   if(!row) return {ok:false,error:'NIS tidak ditemukan pada database PUTRI.'};
   const status=String(row[7]||'').trim();
   if(status && !['aktif','active'].includes(status.toLowerCase())) return {ok:false,error:'Santri tidak berstatus aktif.'};
-  return {ok:true,data:{nis:String(row[0]),nama:String(row[1]),kelas:String(row[2]),asrama:String(row[3]),wali:String(row[4]),noWaWali:String(row[5]),status:status||'Aktif'}};
+  return {ok:true,data:{nis:String(row[0]),nama:String(row[1]),kelas:String(row[2]),asrama:String(row[3]),wali:String(row[4]),noWaWali:String(row[5]),fotoUrl:String(row[17]||''),status:status||'Aktif'}};
 }
 function sppPutriDoPost_(body) {
   const action=String(body.action||'').toLowerCase(), data=body.data||{};
