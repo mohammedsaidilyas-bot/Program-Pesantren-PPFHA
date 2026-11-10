@@ -51,7 +51,7 @@
      <div><span>Asrama</span><b id="sppPortalDorm">—</b></div>
      <div><span>Wali Santri</span><b id="sppPortalGuardian">—</b></div>
      <div><span>No. Telepon</span><b id="sppPortalPhone">—</b></div>
-     <div><span>Nominal SPP / Bulan</span><b class="spp-portal-fee">Rp150.000</b></div>
+     <div><span>Nominal SPP / Bulan</span><b class="spp-portal-fee" id="sppPortalFee">Menyesuaikan pengaturan</b></div>
     </div>
     <div class="spp-portal-month-heading">PILIH BULAN TAGIHAN (BISA LEBIH DARI SATU)</div>
     <div id="sppPortalMonths" class="spp-portal-months"><p>Memuat tagihan…</p></div>
@@ -101,8 +101,8 @@
   <div class="spp-toolbar"><button class="secondary" id="sppLoadPending" type="button">↻ Muat Pembayaran Menunggu</button><span id="sppPendingCount" class="spp-count-chip">Belum dimuat</span></div>
   <div id="sppPendingList" class="spp-empty-state">Tekan “Muat Pembayaran Menunggu” untuk melihat pengajuan.</div>
  </section>
- <section class="spp-list-panel"><div class="spp-list-heading"><div><h3>Administrasi Tagihan</h3><p>Buat tagihan untuk seluruh santri PUTRI aktif.</p></div><span class="spp-count-chip">PENGURUS</span></div>
- <div class="spp-toolbar"><label>Periode <input id="sppCreatePeriod" type="month"/></label><label>Nominal (Rp) <input id="sppCreateAmount" type="number" min="1" placeholder="Nominal SPP"/></label><button class="primary" id="sppCreateBills" type="button">Buat Tagihan Periode</button></div></section>
+ <section class="spp-list-panel"><div class="spp-list-heading"><div><h3>Verifikasi & Administrasi SPP</h3><p>Tagihan dibuat otomatis saat NIS santri dicari. Pengurus cukup memeriksa pembayaran.</p></div><span class="spp-count-chip">OTOMATIS</span></div></section>
+
 
   <div class="spp-list-heading"><div><h3>Daftar Pembayaran Santri</h3><p>Daftar tagihan dan status pembayaran per santri.</p></div><span class="spp-count-chip">Data PUTRI</span></div>
   <div class="spp-toolbar"><div class="spp-searchbox"><span>⌕</span><input type="search" placeholder="Cari nama atau NIS santri..." disabled aria-label="Pencarian santri belum diaktifkan"/></div><div class="spp-filter-placeholder">Semua status　⌄</div><button class="spp-export-placeholder" type="button" disabled>↓ Ekspor</button></div>
