@@ -398,31 +398,5 @@
 </style>
 <script>
 /* Muat modul utama PUTRI agar fungsi cek NIS dan pembayaran tersedia. */
-</script><script src="app_PUTRI.js?v=putri-clickfix-20261111d"></script><script>
-/* Handler pencarian NIS pada fase capture agar tidak tertahan handler/elemen lain. */
-(function(){
- function bind(){
-  var btn=document.getElementById('sppPortalFind');
-  var input=document.getElementById('sppPortalNis');
-  if(!btn||!input)return;
-  btn.disabled=false;
-  btn.style.pointerEvents='auto';
-  btn.addEventListener('click',function(e){
-   e.preventDefault();
-   e.stopImmediatePropagation();
-   var run=window.sppPortalFindStudent;
-   if(typeof run==='function') run(input.value);
-   else {
-    var msg=document.getElementById('sppPortalResult');
-    if(msg){msg.hidden=false;msg.textContent='Fungsi pencarian belum siap. Muat ulang halaman.';}
-   }
-  },true);
-  input.addEventListener('keydown',function(e){
-   if(e.key==='Enter'){e.preventDefault();btn.click();}
-  },true);
- }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});
- else bind();
-})();
-</script>
+</script><script src="app_PUTRI.js?v=putri-portal-single-handler-20261111f"></script>
 </body></html>
