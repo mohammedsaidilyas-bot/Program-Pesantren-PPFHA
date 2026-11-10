@@ -270,55 +270,7 @@
  </div>
 </section><footer>© Pondok Pesantren Fathul Huda Al-Qorrobiyah · Program Pesantren PPFHA</footer></main><div id="toast" role="status" aria-live="polite"></div><div id="adminKeyModal" class="qr-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminKeyTitle"><div class="qr-box admin-key-box"><div class="qr-head"><div><h3 id="adminKeyTitle">Verifikasi Pengurus</h3><p id="adminKeyDescription">Masukkan kunci pengurus untuk melanjutkan.</p></div></div><form id="adminKeyForm"><label>Kunci pengurus<input id="adminKeyInput" type="password" autocomplete="current-password" placeholder="Masukkan kunci pengurus" required></label><p class="key-note">Kunci disimpan hanya selama sesi browser ini.</p><div class="actions"><button type="button" class="secondary" id="cancelAdminKey">Batal</button><button type="submit" class="primary">Lanjutkan</button></div></form></div></div><div id="qrModal" class="qr-modal hidden" role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="qr-box"><div class="qr-head"><div><h3 id="qrTitle">Pindai QR Santri</h3><p>Arahkan kamera ke QR pada kartu santri.</p></div><button id="closeQr" class="secondary" type="button">Tutup</button></div><div id="qrReader"></div><p id="qrMessage" class="qr-message">Izinkan akses kamera jika diminta.</p></div></div>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script><!-- app_PUTRI_monthlabel.js dilepas: duplikat app_PUTRI.js menyebabkan benturan deklarasi global -->
-<script>
-/* Handler mandiri portal SPP PUTRI: dipasang pada capture agar tidak tertahan handler lain. */
-(function(){
- const API='https://script.google.com/macros/s/AKfycbxyn0OdDg-sVCIMS1DDjzVi5N0fTwD4fJcPDMa-2CtMYgWhhHWpwSc2YRFEomLcGFfcnA/exec';
- const $=id=>document.getElementById(id);
- const money=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0);
- const periodParts=p=>{const raw=String(p??'').trim();let m=raw.match(/^(\d{4})-(\d{1,2})(?:-|T|$)/);if(m){let y=Number(m[1]),n=Number(m[2]);if(n>=1&&n<=12){if(/T\d{2}:\d{2}/.test(raw)){const d=new Date(raw);if(Number.isFinite(d.getTime())){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'numeric'}).formatToParts(d);y=Number(parts.find(x=>x.type==='year')?.value);n=Number(parts.find(x=>x.type==='month')?.value);}}return {year:y,month:n};}}const d=new Date(raw);if(raw&&Number.isFinite(d.getTime())){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'numeric'}).formatToParts(d);return {year:Number(parts.find(x=>x.type==='year')?.value),month:Number(parts.find(x=>x.type==='month')?.value)};}return null;};\n const month=p=>{const v=periodParts(p),names=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];return v&&v.month>=1&&v.month<=12?names[v.month-1]+' '+v.year:String(p||'Periode');};
- async function find(){
-  const nis=String($('sppPortalNis')?.value||'').replace(/\D/g,'');
-  if(!nis){alert('Masukkan NIS santri PUTRI.');return;}
-  const btn=$('sppPortalFind');btn.disabled=true;btn.textContent='Mencari…';
-  try{
-   const u=new URL(API);u.searchParams.set('action','spp_student');u.searchParams.set('nis',nis);
-   const res=await fetch(u,{cache:'no-store'});const j=await res.json();
-   if(!j.ok||!j.data)throw new Error(j.error||'Data santri tidak ditemukan.');
-   const d=j.data;$('sppPortalResult').hidden=false;
-   $('sppPortalName').textContent=d.nama||'—';$('sppPortalNisValue').textContent=d.nis||nis;
-   $('sppPortalClass').textContent=d.kelas||'—';$('sppPortalDorm').textContent=d.asrama||'—';
-   $('sppPortalGuardian').textContent=d.wali||'—';$('sppPortalPhone').textContent=d.noWaWali||'—';
-   $('sppPortalAvatar').textContent=(d.nama||'FH').trim().charAt(0).toUpperCase();
-   if(d.fotoUrl)$('sppPortalAvatar').innerHTML='<img src="'+String(d.fotoUrl).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" alt="Foto santri">';
-   const q=new URL(API);q.searchParams.set('action','spp_tagihan');q.searchParams.set('nis',nis);
-   const br=await fetch(q,{cache:'no-store'});const bj=await br.json();if(!bj.ok)throw new Error(bj.error||'Gagal memuat tagihan.');
-   const bills=bj.data||[];bills.sort((a,b)=>{const x=periodParts(a.periode),y=periodParts(b.periode);if(!x&&!y)return 0;if(!x)return 1;if(!y)return -1;return (x.year-y.year)||(x.month-y.month);});$('sppPortalMonths').innerHTML=bills.length?bills.map(b=>{
-    const paid=b.status==='Lunas',pending=b.status==='Menunggu Verifikasi',can=b.status==='Belum Lunas'||b.status==='Ditolak';
-    return '<label class="spp-portal-month '+(paid?'is-paid':pending?'is-pending':'')+'"><span><b>'+month(b.periode)+'</b><small>'+b.status+'</small></span>'+(can?'<input class="spp-portal-check" type="checkbox" value="'+String(b.idTagihan).replace(/"/g,'&quot;')+'" data-amount="'+Number(b.nominal||0)+'">':'<span class="spp-portal-status">'+(paid?'✓':'◷')+'</span>')+'</label>';
-   }).join(''):'<div class="spp-portal-no-bills">Belum ada tagihan SPP untuk santri ini.</div>';
-   $('sppPortalTotal').textContent=money(0);
-   $('sppPortalHistory').innerHTML='<h3>Riwayat Pembayaran</h3><p>Riwayat dapat dilihat setelah tagihan dimuat.</p>';
-   $('sppPortalResult').scrollIntoView({behavior:'smooth',block:'start'});
-  }catch(e){alert(e.message);}
-  finally{btn.disabled=false;btn.textContent='Cek';}
- }
- document.addEventListener('click',function(e){
-  const b=e.target.closest&&e.target.closest('#sppPortalFind,#sppPortalScan');
-  if(!b)return;
-  e.preventDefault();e.stopImmediatePropagation();
-  if(b.id==='sppPortalFind')find();
-  else if(typeof window.openQr==='function')window.openQr('spp-portal');
-  else alert('Pemindai belum termuat. Muat ulang halaman dan coba kembali.');
- },true);
- document.addEventListener('change',function(e){
-  if(!e.target.classList.contains('spp-portal-check'))return;
-  const sum=[...document.querySelectorAll('.spp-portal-check:checked')].reduce((n,x)=>n+Number(x.dataset.amount||0),0);
-  $('sppPortalTotal').textContent=money(sum);
- },true);
- document.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.id==='sppPortalNis'){e.preventDefault();find();}},true);
-})();
-</script>
+
 <script>
 /* Pemulihan tabel raport: pastikan daftar mata pelajaran tampil meskipun inisialisasi utama terhenti. */
 (function(){
@@ -439,7 +391,7 @@
 </style>
 <script>
 /* Muat modul utama PUTRI agar fungsi cek NIS dan pembayaran tersedia. */
-</script><script src="app_PUTRI.js?v=putri-fix-months-20261111b"></script><script>
+</script><script src="app_PUTRI.js?v=putri-payment-fix-20261111c"></script><script>
 /* Handler pencarian NIS pada fase capture agar tidak tertahan handler/elemen lain. */
 (function(){
  function bind(){
