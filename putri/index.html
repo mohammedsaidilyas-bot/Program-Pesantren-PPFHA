@@ -276,7 +276,7 @@
  const API='https://script.google.com/macros/s/AKfycbxyn0OdDg-sVCIMS1DDjzVi5N0fTwD4fJcPDMa-2CtMYgWhhHWpwSc2YRFEomLcGFfcnA/exec';
  const $=id=>document.getElementById(id);
  const money=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0);
- const month=p=>{const m=String(p||'').match(/^(\d{4})-(\d{2})$/);return m?['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][+m[2]-1]+' '+m[1]:p;};
+ const month=p=>{const raw=String(p??'').trim();const names=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];const ym=raw.match(/^(\d{4})-(\d{1,2})$/);if(ym){const n=Number(ym[2]);return n>=1&&n<=12?names[n-1]+' '+ym[1]:raw;}const d=new Date(raw);if(raw&&Number.isFinite(d.getTime())){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'numeric'}).formatToParts(d);const y=parts.find(x=>x.type==='year')?.value,m=Number(parts.find(x=>x.type==='month')?.value);if(y&&m>=1&&m<=12)return names[m-1]+' '+y;}return raw||'Periode';};
  async function find(){
   const nis=String($('sppPortalNis')?.value||'').replace(/\D/g,'');
   if(!nis){alert('Masukkan NIS santri PUTRI.');return;}
