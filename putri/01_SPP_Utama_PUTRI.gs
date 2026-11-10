@@ -77,3 +77,23 @@ function sppPutriRows_(sheetName) {
   const v=sh.getDataRange().getValues(), h=v[0].map(String);
   return v.slice(1).filter(r=>r.some(x=>x!==''&&x!==null)).map(r=>{const o={};h.forEach((k,i)=>o[k]=r[i] instanceof Date?r[i].toISOString():r[i]);return o;});
 }
+
+
+/** Tes manual akses folder dan pencarian foto PUTRI. Jalankan dari editor Apps Script. */
+function testSPPPutriPhoto() {
+  const nis='202600001';
+  const url=sppPutriFindPhotoByNis_(nis);
+  Logger.log('NIS: '+nis);
+  Logger.log('URL FOTO: '+(url||'TIDAK DITEMUKAN'));
+  const folder=DriveApp.getFolderById('1xeLy2w5qFMkMSgh3XLdBqOZbFGU_LMtn');
+  Logger.log('FOLDER: '+folder.getName());
+  const files=folder.getFiles();
+  let count=0;
+  while(files.hasNext()) {
+    const f=files.next();
+    count++;
+    if(count<=30) Logger.log('FILE: '+f.getName());
+  }
+  Logger.log('JUMLAH FILE DI FOLDER: '+count);
+  return url || 'Foto tidak ditemukan; periksa nama file dan ekstensi.';
+}
