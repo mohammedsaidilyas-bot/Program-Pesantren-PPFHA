@@ -376,3 +376,13 @@ button.education-tile:hover{transform:translateY(-2px);border-color:#b8d8c5;box-
 .spp-portal-reset{display:block;margin:20px auto 0;border:0;background:none;color:#84928a;font-weight:600;cursor:pointer;padding:10px}
 .spp-portal-admin{border:1px solid #39876e;background:#07533f;color:#d6f0e4;border-radius:30px;padding:12px 22px;font-weight:700;cursor:pointer}
 @media(max-width:650px){.spp-portal-shell{margin:-10px -6px;padding:18px 10px;border-radius:15px}.spp-portal-search,.spp-portal-result{padding-left:18px;padding-right:18px}.spp-portal-brand{padding:25px 15px}.spp-portal-search-row{grid-template-columns:minmax(0,1fr) auto auto;gap:7px}.spp-portal-search-row input{padding:13px 12px;font-size:14px}.spp-portal-search-row button{padding:0 14px;min-height:50px}.spp-portal-months{gap:7px}.spp-portal-month{padding:10px;min-height:80px}.spp-portal-profile{padding:13px;gap:12px}.spp-portal-avatar{width:68px;height:68px;flex-basis:68px}.spp-portal-profile h3{font-size:18px}.spp-portal-payment-options{grid-template-columns:1fr}.spp-portal-details>div{font-size:13px}}
+
+
+/* Tombol portal PUTRI: pastikan lapisan interaksi berada di atas dekorasi kartu */
+#spp-portal .spp-portal-card{position:relative;isolation:isolate}
+#spp-portal .spp-portal-search{position:relative;z-index:100;pointer-events:auto}
+#spp-portal .spp-portal-search-row{position:relative;z-index:101;pointer-events:auto}
+#spp-portal .spp-portal-search-row>*{position:relative;z-index:102;pointer-events:auto!important;touch-action:manipulation;cursor:pointer}
+#spp-portal .spp-portal-search-row input{cursor:text}
+#spp-portal .spp-portal-payment-options{position:relative;z-index:100;pointer-events:auto}
+#spp-portal .spp-portal-payment-options button{pointer-events:auto!important;touch-action:manipulation;cursor:pointer}
