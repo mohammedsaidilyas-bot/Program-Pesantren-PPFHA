@@ -10,6 +10,10 @@ function sppPutriDoGet_(e) {
     if(!sppPutriAuthorized_(p.key)) return output_({ok:false,error:'Akses daftar verifikasi ditolak.'});
     return output_(sppPutriPending_());
   }
+  if(action==='spp_pengaturan') {
+    if(!sppPutriAuthorized_(p.key)) return output_({ok:false,error:'Akses pengaturan SPP PUTRI ditolak.'});
+    return output_(sppPutriGetSettings_());
+  }
   return output_({ok:false,error:'Aksi SPP PUTRI tidak dikenal.'});
 }
 function sppPutriStudent_(nis) {
@@ -57,6 +61,7 @@ function sppPutriFindPhotoByNis_(nis) {
 function sppPutriDoPost_(body) {
   const action=String(body.action||'').toLowerCase(), data=body.data||{};
   if(action==='spp_buat_tagihan') return sppPutriCreateBills_(data);
+  if(action==='spp_simpan_pengaturan') return sppPutriSaveSettings_(data);
   if(action==='spp_ajukan_pembayaran') return sppPutriSubmitPayment_(data);
   if(action==='spp_verifikasi') return sppPutriVerifyPayment_(data);
   if(action==='spp_tolak') return sppPutriRejectPayment_(data);
