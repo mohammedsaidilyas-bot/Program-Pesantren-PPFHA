@@ -428,4 +428,40 @@
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
  else init();
 })();
-</script></body></html>
+</script>
+<style>
+/* Perbaikan area interaksi pencarian NIS pada portal SPP PUTRI */
+#spp-portal .spp-portal-search{position:relative;z-index:20;isolation:isolate}
+#spp-portal .spp-portal-search-row{position:relative;z-index:21;display:grid;pointer-events:auto}
+#spp-portal .spp-portal-search-row input,
+#spp-portal .spp-portal-search-row button{position:relative;z-index:22;pointer-events:auto;touch-action:manipulation}
+#spp-portal #sppPortalFind{cursor:pointer;-webkit-tap-highlight-color:transparent}
+</style>
+<script>
+/* Handler pencarian NIS pada fase capture agar tidak tertahan handler/elemen lain. */
+(function(){
+ function bind(){
+  var btn=document.getElementById('sppPortalFind');
+  var input=document.getElementById('sppPortalNis');
+  if(!btn||!input)return;
+  btn.disabled=false;
+  btn.style.pointerEvents='auto';
+  btn.addEventListener('click',function(e){
+   e.preventDefault();
+   e.stopImmediatePropagation();
+   var run=window.sppPortalFindStudent;
+   if(typeof run==='function') run(input.value);
+   else {
+    var msg=document.getElementById('sppPortalResult');
+    if(msg){msg.hidden=false;msg.textContent='Fungsi pencarian belum siap. Muat ulang halaman.';}
+   }
+  },true);
+  input.addEventListener('keydown',function(e){
+   if(e.key==='Enter'){e.preventDefault();btn.click();}
+  },true);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});
+ else bind();
+})();
+</script>
+</body></html>
