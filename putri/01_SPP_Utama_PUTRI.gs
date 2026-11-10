@@ -34,24 +34,23 @@ function sppPutriStudent_(nis) {
  */
 function sppPutriFindPhotoByNis_(nis) {
   try {
-    const folders=DriveApp.getFoldersByName('foto santri putri');
-    if(!folders.hasNext()) return '';
-    const folder=folders.next();
+    // Folder khusus foto santri PUTRI yang diberikan pengelola.
+    const folder=DriveApp.getFolderById('1xeLy2w5qFMkMSgh3XLdBqOZbFGU_LMtn');
     const files=folder.getFiles();
     const allowed=['jpg','jpeg','png','webp'];
     while(files.hasNext()) {
       const file=files.next();
       const name=String(file.getName()||'').trim();
-      const parts=name.split('.');
-      const ext=parts.length>1?parts.pop().toLowerCase():'';
-      const base=parts.join('.');
-      if(base===String(nis) && (!ext || allowed.includes(ext))) {
+      const dot=name.lastIndexOf('.');
+      const base=dot>=0?name.substring(0,dot):name;
+      const ext=dot>=0?name.substring(dot+1).toLowerCase():'';
+      if(base===String(nis) && allowed.includes(ext)) {
         return 'https://drive.google.com/thumbnail?id='+encodeURIComponent(file.getId())+'&sz=w500';
       }
     }
     return '';
   } catch(err) {
-    console.error('Gagal mencari foto santri PUTRI: '+err);
+    console.error('Gagal mencari foto santri PUTRI di folder Drive: '+err);
     return '';
   }
 }
