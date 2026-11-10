@@ -101,7 +101,18 @@
   <div class="spp-toolbar"><button class="secondary" id="sppLoadPending" type="button">↻ Muat Pembayaran Menunggu</button><span id="sppPendingCount" class="spp-count-chip">Belum dimuat</span></div>
   <div id="sppPendingList" class="spp-empty-state">Tekan “Muat Pembayaran Menunggu” untuk melihat pengajuan.</div>
  </section>
- <section class="spp-list-panel"><div class="spp-list-heading"><div><h3>Verifikasi & Administrasi SPP</h3><p>Tagihan dibuat otomatis saat NIS santri dicari. Pengurus cukup memeriksa pembayaran.</p></div><span class="spp-count-chip">OTOMATIS</span></div></section>
+ <section class="spp-list-panel" id="sppSettingsPanel">
+  <div class="spp-list-heading"><div><h3>Pengaturan Nominal SPP PUTRI</h3><p>Tetapkan nominal bulanan yang digunakan untuk membuat tagihan otomatis seluruh santri PUTRI.</p></div><span class="spp-count-chip">BENDAHARA</span></div>
+  <div class="spp-toolbar" style="align-items:end;flex-wrap:wrap">
+   <label style="min-width:240px;flex:1">Nominal SPP per bulan (Rupiah)
+    <input id="sppPutriNominal" type="number" min="1" step="1" inputmode="numeric" placeholder="Contoh: 150000" style="display:block;width:100%;margin-top:7px">
+   </label>
+   <button class="secondary" id="sppLoadSettings" type="button">↻ Muat Nominal</button>
+   <button class="primary" id="sppSaveSettings" type="button">Simpan Pengaturan</button>
+  </div>
+  <p id="sppSettingsInfo" class="spp-empty-state" aria-live="polite">Nominal SPP PUTRI belum dimuat. Tekan “Muat Nominal” untuk melihat pengaturan saat ini.</p>
+  <small class="spp-summary-caption">Perubahan nominal berlaku untuk tagihan baru yang dibuat setelah penyimpanan. Tagihan lama tidak diubah.</small>
+ </section>
 
 
   <div class="spp-list-heading"><div><h3>Daftar Pembayaran Santri</h3><p>Daftar tagihan dan status pembayaran per santri.</p></div><span class="spp-count-chip">Data PUTRI</span></div>
