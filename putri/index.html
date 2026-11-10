@@ -276,7 +276,7 @@
  const API='https://script.google.com/macros/s/AKfycbxyn0OdDg-sVCIMS1DDjzVi5N0fTwD4fJcPDMa-2CtMYgWhhHWpwSc2YRFEomLcGFfcnA/exec';
  const $=id=>document.getElementById(id);
  const money=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0);
- const month=p=>{const raw=String(p??'').trim();const names=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];const ym=raw.match(/^(\d{4})-(\d{1,2})$/);if(ym){const n=Number(ym[2]);return n>=1&&n<=12?names[n-1]+' '+ym[1]:raw;}const d=new Date(raw);if(raw&&Number.isFinite(d.getTime())){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'numeric'}).formatToParts(d);const y=parts.find(x=>x.type==='year')?.value,m=Number(parts.find(x=>x.type==='month')?.value);if(y&&m>=1&&m<=12)return names[m-1]+' '+y;}return raw||'Periode';};
+ const periodParts=p=>{const raw=String(p??'').trim();let m=raw.match(/^(\d{4})-(\d{1,2})(?:-|T|$)/);if(m){let y=Number(m[1]),n=Number(m[2]);if(n>=1&&n<=12){if(/T\d{2}:\d{2}/.test(raw)){const d=new Date(raw);if(Number.isFinite(d.getTime())){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'numeric'}).formatToParts(d);y=Number(parts.find(x=>x.type==='year')?.value);n=Number(parts.find(x=>x.type==='month')?.value);}}return {year:y,month:n};}}const d=new Date(raw);if(raw&&Number.isFinite(d.getTime())){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'numeric'}).formatToParts(d);return {year:Number(parts.find(x=>x.type==='year')?.value),month:Number(parts.find(x=>x.type==='month')?.value)};}return null;};\n const month=p=>{const v=periodParts(p),names=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];return v&&v.month>=1&&v.month<=12?names[v.month-1]+' '+v.year:String(p||'Periode');};
  async function find(){
   const nis=String($('sppPortalNis')?.value||'').replace(/\D/g,'');
   if(!nis){alert('Masukkan NIS santri PUTRI.');return;}
@@ -293,7 +293,7 @@
    if(d.fotoUrl)$('sppPortalAvatar').innerHTML='<img src="'+String(d.fotoUrl).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" alt="Foto santri">';
    const q=new URL(API);q.searchParams.set('action','spp_tagihan');q.searchParams.set('nis',nis);
    const br=await fetch(q,{cache:'no-store'});const bj=await br.json();if(!bj.ok)throw new Error(bj.error||'Gagal memuat tagihan.');
-   const bills=bj.data||[];$('sppPortalMonths').innerHTML=bills.length?bills.map(b=>{
+   const bills=bj.data||[];bills.sort((a,b)=>{const x=periodParts(a.periode),y=periodParts(b.periode);if(!x&&!y)return 0;if(!x)return 1;if(!y)return -1;return (x.year-y.year)||(x.month-y.month);});$('sppPortalMonths').innerHTML=bills.length?bills.map(b=>{
     const paid=b.status==='Lunas',pending=b.status==='Menunggu Verifikasi',can=b.status==='Belum Lunas'||b.status==='Ditolak';
     return '<label class="spp-portal-month '+(paid?'is-paid':pending?'is-pending':'')+'"><span><b>'+month(b.periode)+'</b><small>'+b.status+'</small></span>'+(can?'<input class="spp-portal-check" type="checkbox" value="'+String(b.idTagihan).replace(/"/g,'&quot;')+'" data-amount="'+Number(b.nominal||0)+'">':'<span class="spp-portal-status">'+(paid?'✓':'◷')+'</span>')+'</label>';
    }).join(''):'<div class="spp-portal-no-bills">Belum ada tagihan SPP untuk santri ini.</div>';
