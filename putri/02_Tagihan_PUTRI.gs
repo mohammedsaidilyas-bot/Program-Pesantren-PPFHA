@@ -72,6 +72,11 @@ function sppPutriGetBills_(nis,periode) {
   nis=String(nis||'').replace(/\D/g,''); if(!nis)return {ok:false,error:'NIS wajib diisi.'};
   const generated=sppPutriEnsureStudentBills_(nis);
   if(!generated.ok)return generated;
-  const data=sppPutriRows_(SPP_PUTRI_SHEETS.BILLING).filter(x=>String(x.nis).replace(/\D/g,'')===nis&&(!periode||String(x.periode)===String(periode)));
+  const raw=sppPutriRows_(SPP_PUTRI_SHEETS.BILLING).filter(x=>String(x.nis).replace(/\D/g,'')===nis&&(!periode||String(x.periode)===sppPutriNormalizePeriod_(periode)));
+  // Satu kartu per bulan. Jika data lama terlanjur ganda, pertahankan status paling kuat.
+  const rank=status=>{const v=String(status||'').toLowerCase();return v==='lunas'?3:(v==='menunggu verifikasi'?2:(v==='ditolak'?1:0));};
+  const byPeriod=new Map();
+  raw.forEach(x=>{const key=sppPutriNormalizePeriod_(x.periode);if(!key)return;const old=byPeriod.get(key);if(!old||rank(x.status)>rank(old.status))byPeriod.set(key,x);});
+  const data=Array.from(byPeriod.values()).sort((a,b)=>String(a.periode).localeCompare(String(b.periode)));
   return {ok:true,data:data,nominal:generated.amount,admissionPeriod:generated.admissionPeriod,created:generated.created};
 }
