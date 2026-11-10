@@ -894,6 +894,33 @@ async function sppSubmitPayment(){
  toast(j.message||'Pembayaran diajukan.');$('#sppProof').value='';await sppLoadBills();await sppLoadHistory();
  }catch(e){toast(e.message)}
 }
+async function sppLoadSettings(){
+ const info=$('#sppSettingsInfo'),field=$('#sppPutriNominal');
+ info.textContent='Memuat pengaturan nominal SPP PUTRI…';
+ const key=await requestAdminKey('Melihat pengaturan nominal SPP PUTRI');
+ if(!key){info.textContent='Akses bendahara diperlukan untuk melihat nominal.';return;}
+ try{
+  const j=await sppApiGet('spp_pengaturan',{key:String(key).trim()});
+  if(!j.ok)throw new Error(j.error||'Pengaturan gagal dimuat.');
+  field.value=j.nominalSpp||'';
+  info.textContent=j.nominalSpp?'Nominal aktif saat ini: '+sppMoney(j.nominalSpp):'Nominal SPP PUTRI belum ditetapkan. Isi nominal lalu tekan Simpan Pengaturan.';
+ }catch(e){info.textContent=e.message;toast(e.message);}
+}
+async function sppSaveSettings(){
+ const field=$('#sppPutriNominal'),amount=Number(field.value);
+ if(!Number.isSafeInteger(amount)||amount<=0){toast('Masukkan nominal SPP berupa angka bulat lebih dari Rp0.');field.focus();return;}
+ const key=await requestAdminKey('Menyimpan nominal SPP PUTRI');
+ if(!key)return;
+ if(!await askConfirmation('Simpan nominal SPP PUTRI','Nominal bulanan akan diubah menjadi '+sppMoney(amount)+'. Tagihan lama tidak berubah; tagihan baru memakai nominal ini.','Simpan Nominal'))return;
+ const btn=$('#sppSaveSettings'),old=btn.textContent;btn.disabled=true;btn.textContent='Menyimpan…';
+ try{
+  const j=await sppApiPost('spp_simpan_pengaturan',{apiKey:String(key).trim(),nominalSpp:amount});
+  if(!j.ok)throw new Error(j.error||'Pengaturan gagal disimpan.');
+  $('#sppSettingsInfo').textContent='Nominal SPP PUTRI aktif: '+sppMoney(j.nominalSpp)+'.';
+  toast(j.message||'Nominal SPP PUTRI berhasil disimpan.');
+ }catch(e){toast(e.message);$('#sppSettingsInfo').textContent=e.message;}
+ finally{btn.disabled=false;btn.textContent=old;}
+}
 async function sppCreateBills(){
  const periode=$('#sppCreatePeriod').value,nominal=Number($('#sppCreateAmount').value);
  if(!periode||!Number.isSafeInteger(nominal)||nominal<=0){toast('Periode dan nominal SPP wajib diisi.');return}
@@ -909,6 +936,8 @@ document.addEventListener('click',e=>{
  if(id==='sppLoadBills'){e.preventDefault();sppLoadBills();}
  if(id==='sppSubmit'){e.preventDefault();sppSubmitPayment();}
  if(id==='sppCreateBills'){e.preventDefault();sppCreateBills();}
+ if(id==='sppLoadSettings'){e.preventDefault();sppLoadSettings();}
+ if(id==='sppSaveSettings'){e.preventDefault();sppSaveSettings();}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='sppNis'){e.preventDefault();sppFindStudent();}});
 
