@@ -25,7 +25,7 @@ function sppPutriStudent_(nis) {
   if(status && !['aktif','active'].includes(status.toLowerCase())) return {ok:false,error:'Santri tidak berstatus aktif.'};
   const fotoSheet=String(row[17]||'').trim();
   const fotoUrl=fotoSheet || sppPutriFindPhotoByNis_(nis);
-  return {ok:true,data:{nis:String(row[0]),nama:String(row[1]),kelas:String(row[2]),asrama:String(row[3]),wali:String(row[4]),noWaWali:String(row[5]),fotoUrl:fotoUrl,status:status||'Aktif'}};
+  return {ok:true,data:{nis:String(row[0]),nama:String(row[1]),kelas:String(row[2]),asrama:String(row[3]),wali:String(row[4]),noWaWali:String(row[5]),fotoUrl:fotoUrl,status:status||'Aktif',tanggalMasuk:String(row[15]||'').trim()}};
 }
 
 /**
