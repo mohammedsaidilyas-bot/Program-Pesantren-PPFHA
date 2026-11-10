@@ -1,4 +1,19 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+/* Handler prioritas tombol pengaturan nominal SPP PUTRI.
+   Gunakan closest() agar klik pada teks/elemen di dalam tombol tetap tertangkap. */
+document.addEventListener('click',function(event){
+ const button=event.target&&event.target.closest?event.target.closest('#sppLoadSettings, #sppSaveSettings'):null;
+ if(!button)return;
+ event.preventDefault();
+ event.stopImmediatePropagation();
+ if(button.id==='sppLoadSettings'){
+  if(typeof sppLoadSettings==='function') sppLoadSettings();
+  else console.error('sppLoadSettings belum tersedia');
+ }else if(button.id==='sppSaveSettings'){
+  if(typeof sppSaveSettings==='function') sppSaveSettings();
+  else console.error('sppSaveSettings belum tersedia');
+ }
+},true);
 /* Jalur tombol khusus Hafalan/Nadzom: capture di tingkat dokumen agar klik selalu tertangkap. */
 document.addEventListener('click',function(event){
  const button=event.target&&event.target.closest?event.target.closest('#findHafalan, #scanHafalan'):null;
