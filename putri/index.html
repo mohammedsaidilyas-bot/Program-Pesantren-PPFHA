@@ -388,10 +388,17 @@
 #spp-portal .spp-portal-search-row input,
 #spp-portal .spp-portal-search-row button{position:relative;z-index:22;pointer-events:auto;touch-action:manipulation}
 #spp-portal #sppPortalFind{cursor:pointer;-webkit-tap-highlight-color:transparent}
+
+/* FIX FINAL: area tombol pembayaran selalu menerima sentuhan di perangkat mobile */
+#spp-portal .spp-portal-result{position:relative;z-index:2;isolation:isolate}
+#spp-portal .spp-portal-payment-options{position:relative;z-index:50;display:grid;pointer-events:auto;isolation:isolate}
+#spp-portal .spp-portal-payment-options button{position:relative;z-index:51;display:block;min-height:58px;pointer-events:auto!important;touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,120,85,.2)}
+#spp-portal .spp-portal-proof[hidden]{display:none!important}
+#spp-portal .spp-portal-proof:not([hidden]){position:relative;z-index:40;display:block;pointer-events:auto}
 </style>
 <script>
 /* Muat modul utama PUTRI agar fungsi cek NIS dan pembayaran tersedia. */
-</script><script src="app_PUTRI.js?v=putri-payment-fix-20261111h"></script><script>
+</script><script src="app_PUTRI.js?v=putri-payment-clickfix-20261111b"></script><script>
 /* Handler pencarian NIS pada fase capture agar tidak tertahan handler/elemen lain. */
 (function(){
  function bind(){
