@@ -23,7 +23,37 @@ function sppPutriStudent_(nis) {
   if(!row) return {ok:false,error:'NIS tidak ditemukan pada database PUTRI.'};
   const status=String(row[7]||'').trim();
   if(status && !['aktif','active'].includes(status.toLowerCase())) return {ok:false,error:'Santri tidak berstatus aktif.'};
-  return {ok:true,data:{nis:String(row[0]),nama:String(row[1]),kelas:String(row[2]),asrama:String(row[3]),wali:String(row[4]),noWaWali:String(row[5]),fotoUrl:String(row[17]||''),status:status||'Aktif'}};
+  const fotoSheet=String(row[17]||'').trim();
+  const fotoUrl=fotoSheet || sppPutriFindPhotoByNis_(nis);
+  return {ok:true,data:{nis:String(row[0]),nama:String(row[1]),kelas:String(row[2]),asrama:String(row[3]),wali:String(row[4]),noWaWali:String(row[5]),fotoUrl:fotoUrl,status:status||'Aktif'}};
+}
+
+/**
+ * Mencari foto santri PUTRI di folder Google Drive "foto santri putri".
+ * Nama file harus sama dengan NIS, boleh memakai ekstensi jpg/jpeg/png/webp.
+ */
+function sppPutriFindPhotoByNis_(nis) {
+  try {
+    const folders=DriveApp.getFoldersByName('foto santri putri');
+    if(!folders.hasNext()) return '';
+    const folder=folders.next();
+    const files=folder.getFiles();
+    const allowed=['jpg','jpeg','png','webp'];
+    while(files.hasNext()) {
+      const file=files.next();
+      const name=String(file.getName()||'').trim();
+      const parts=name.split('.');
+      const ext=parts.length>1?parts.pop().toLowerCase():'';
+      const base=parts.join('.');
+      if(base===String(nis) && (!ext || allowed.includes(ext))) {
+        return 'https://drive.google.com/thumbnail?id='+encodeURIComponent(file.getId())+'&sz=w500';
+      }
+    }
+    return '';
+  } catch(err) {
+    console.error('Gagal mencari foto santri PUTRI: '+err);
+    return '';
+  }
 }
 function sppPutriDoPost_(body) {
   const action=String(body.action||'').toLowerCase(), data=body.data||{};
