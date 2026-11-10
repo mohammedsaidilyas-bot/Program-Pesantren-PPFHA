@@ -76,11 +76,25 @@ function sppPutriEnsureSheet_(key) {
   Object.keys(map).forEach(k=>{let sh=ss.getSheetByName(map[k]);if(!sh){sh=ss.insertSheet(map[k]);sh.getRange(1,1,1,SPP_PUTRI_HEADERS[k].length).setValues([SPP_PUTRI_HEADERS[k]]);sh.setFrozenRows(1);}else if(sh.getLastRow()===0){sh.getRange(1,1,1,SPP_PUTRI_HEADERS[k].length).setValues([SPP_PUTRI_HEADERS[k]]);sh.setFrozenRows(1);}});
   return ss;
 }
+function sppPutriNormalizePeriod_(value) {
+  if(value instanceof Date && !isNaN(value.getTime())) return Utilities.formatDate(value,'Asia/Jakarta','yyyy-MM');
+  const raw=String(value==null?'':value).trim();
+  if(!raw) return '';
+  let m=raw.match(/^(\\d{4})-(\\d{1,2})(?:-(\\d{1,2}))?(?:T(.+))?$/);
+  if(m) {
+    if(m[4]) { const d=new Date(raw); if(!isNaN(d.getTime())) return Utilities.formatDate(d,'Asia/Jakarta','yyyy-MM'); }
+    const y=Number(m[1]),mo=Number(m[2]);
+    if(y>=1900&&mo>=1&&mo<=12) return y+'-'+String(mo).padStart(2,'0');
+  }
+  m=raw.match(/^(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})$/);
+  if(m) { const mo=Number(m[2]),y=Number(m[3]); if(mo>=1&&mo<=12)return y+'-'+String(mo).padStart(2,'0'); }
+  return raw;
+}
 function sppPutriRows_(sheetName) {
   const sh=SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
   if(!sh||sh.getLastRow()<2)return [];
   const v=sh.getDataRange().getValues(), h=v[0].map(String);
-  return v.slice(1).filter(r=>r.some(x=>x!==''&&x!==null)).map(r=>{const o={};h.forEach((k,i)=>o[k]=r[i] instanceof Date?r[i].toISOString():r[i]);return o;});
+  return v.slice(1).filter(r=>r.some(x=>x!==''&&x!==null)).map(r=>{const o={};h.forEach((k,i)=>o[k]=k==='periode'?sppPutriNormalizePeriod_(r[i]):(r[i] instanceof Date?r[i].toISOString():r[i]));return o;});
 }
 
 
