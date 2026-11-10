@@ -992,7 +992,7 @@ document.addEventListener('click',e=>{
 
 
 /* PORTAL PEMBAYARAN MANDIRI SPP PUTRI */
-let sppPortalStudent=null,sppPortalBills=[];
+var sppPortalStudent=null,sppPortalBills=[]; // var di-hoist agar handler klik tidak terkena temporal dead zone.
 const sppMonthNames=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 function sppPortalFormatPeriod(p){const raw=String(p??'').trim();const m=raw.match(/^(\d{4})-(\d{1,2})(?:-|T|$)/i);if(m){const month=Number(m[2]);if(month>=1&&month<=12)return sppMonthNames[month-1]+' '+m[1];}const d=new Date(raw);if(raw&&Number.isFinite(d.getTime()))return sppMonthNames[d.getUTCMonth()]+' '+d.getUTCFullYear();return raw||'Periode';}
 function sppPortalUpdateTotal(){const chosen=$$('#sppPortalMonths .spp-portal-check:checked').map(x=>sppPortalBills.find(b=>String(b.idTagihan)===x.value)).filter(Boolean);$('#sppPortalTotal').textContent=sppMoney(chosen.reduce((n,x)=>n+Number(x.nominal||0),0));}
