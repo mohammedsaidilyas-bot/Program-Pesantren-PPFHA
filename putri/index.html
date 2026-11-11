@@ -61,9 +61,9 @@
      <button class="spp-portal-cash" id="sppPortalCash" type="button" onclick="(function(){var p=document.getElementById('sppPortalProofBox'),c=document.getElementById('sppPortalCashBox');if(c){c.hidden=false;c.style.setProperty('display','block','important');c.scrollIntoView({behavior:'smooth',block:'center'});}if(p){p.hidden=true;p.style.setProperty('display','none','important');}})()">💵 Tunai ke Bendahara</button>
     </div>
     <div id="sppPortalProofBox" class="spp-portal-proof" hidden>
-     <label for="sppPortalProof">TAUTAN BUKTI TRANSFER</label>
-     <input id="sppPortalProof" type="url" placeholder="Tempel tautan bukti transfer yang dapat dibuka bendahara">
-     <small>Untuk tahap ini, pembayaran online menggunakan transfer bank dan tautan bukti transfer. QRIS otomatis belum diaktifkan.</small>
+     <label for="sppPortalProofFile">UNGGAH FOTO BUKTI TRANSFER</label>
+     <input id="sppPortalProofFile" type="file" accept="image/jpeg,image/png,image/webp" capture="environment">
+     <small>Pilih foto bukti transfer dari kamera atau galeri (JPG, PNG, WEBP; maksimal 4 MB). Foto disimpan ke Google Drive untuk diperiksa bendahara.</small>
      <button class="primary" id="sppPortalSubmitOnline" type="button" onclick="sppPortalSubmit('transfer')">Kirim Bukti & Ajukan Pembayaran</button>
     </div>
     <div id="sppPortalCashBox" class="spp-portal-proof" hidden>
@@ -402,5 +402,5 @@
 </style>
 <script>
 /* Muat modul utama PUTRI agar fungsi cek NIS dan pembayaran tersedia. */
-</script><script src="app_PUTRI.js?v=putri-verify-statefix-20261112h"></script>
+</script><script src="app_PUTRI.js?v=putri-upload-photo-20261112i"></script>
 </body></html>
