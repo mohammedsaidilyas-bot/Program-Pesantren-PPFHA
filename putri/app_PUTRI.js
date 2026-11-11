@@ -1022,8 +1022,6 @@ window.sppPortalSubmit=(method)=>sppPortalSubmit(method);
    catch(err){console.error('SPP PUTRI '+id,err);toast(err.message||'Tombol belum dapat diproses.');}
   });
  };
- bind('sppPortalFind',()=>sppPortalFindStudent(document.getElementById('sppPortalNis')?.value||''));
- bind('sppPortalScan',()=>openQr('spp-portal'));
  bind('sppPortalOnline',()=>sppPortalShowPayment('online'));
  bind('sppPortalCash',()=>sppPortalShowPayment('cash'));
  bind('sppPortalSubmitOnline',()=>sppPortalSubmit('transfer'));
