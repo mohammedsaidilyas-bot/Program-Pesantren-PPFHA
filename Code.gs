@@ -76,8 +76,6 @@ function testDatabase() {
 function doGet(e) {
   try {
     const action = String((e && e.parameter && e.parameter.action) || 'health').toLowerCase();
-    // API SPP PUTRI harus diarahkan ke modul khusus sebelum router umum.
-    if (action.indexOf('spp_') === 0) return sppPutriDoGet_(e);
     if (action === 'health') return output_({ok:true,app:'Program Pesantren PPFHA',message:'Endpoint aktif',actions:['izin','pengumuman','kegiatan','student','educationrecords','saveeducationraport','saveeducationalbab','saveeducationhafalan']});
     if (action === 'student') {
       const nis = String((e && e.parameter && e.parameter.nis) || '').trim().replace(/\D/g, '');
@@ -152,13 +150,11 @@ function doGet(e) {
 function doPost(e) {
   try {
     const body = parseBody_(e);
-    const action = String(body.action || '').toLowerCase();
-    // Pengajuan pembayaran wali santri adalah endpoint publik; otorisasi verifikasi tetap di modul SPP.
-    if (action.indexOf('spp_') === 0) return output_(sppPutriDoPost_(body));
     const savedKey = PropertiesService.getScriptProperties().getProperty('ADMIN_API_KEY');
     if (!savedKey) return output_({ok:false,error:'ADMIN_API_KEY belum disetel di Script Properties; penulisan dinonaktifkan.'});
     if (!body.apiKey || !constantTimeEquals_(String(body.apiKey),savedKey))
       return output_({ok:false,error:'Akses ditolak: kunci pengurus tidak valid.'});
+    const action = String(body.action||'').toLowerCase();
     if (action === 'saveeducationraport') {
       const records = Array.isArray(body.records) ? body.records : [];
       if (!records.length) return output_({ok:false,error:'Tidak ada nilai raport untuk disimpan.'});
