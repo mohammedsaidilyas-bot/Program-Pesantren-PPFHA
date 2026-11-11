@@ -62,6 +62,7 @@ function sppPutriDoPost_(body) {
   const action=String(body.action||'').toLowerCase(), data=body.data||{};
   if(action==='spp_buat_tagihan') return sppPutriCreateBills_(data);
   if(action==='spp_simpan_pengaturan') return sppPutriSaveSettings_(data);
+  if(action==='spp_upload_bukti') return sppPutriUploadProof_(data);
   if(action==='spp_ajukan_pembayaran') return sppPutriSubmitPayment_(data);
   if(action==='spp_verifikasi') return sppPutriVerifyPayment_(data);
   if(action==='spp_tolak') return sppPutriRejectPayment_(data);
