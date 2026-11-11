@@ -1,3 +1,22 @@
+/** Upload foto bukti transfer PUTRI ke Google Drive. */
+function sppPutriUploadProof_(data) {
+ const nis=String(data.nis||'').replace(/\D/g,'');
+ const name=String(data.fileName||'bukti-transfer').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,100);
+ const mime=String(data.mimeType||'').toLowerCase(), raw=String(data.base64||'').replace(/^data:[^;]+;base64,/,'');
+ if(!nis||!raw)return {ok:false,error:'Data santri atau foto bukti kosong.'};
+ if(!['image/jpeg','image/png','image/webp'].includes(mime))return {ok:false,error:'Format foto harus JPG, PNG, atau WEBP.'};
+ if(raw.length>5600000)return {ok:false,error:'Ukuran foto maksimal 4 MB.'};
+ try {
+  const bytes=Utilities.base64Decode(raw);
+  if(bytes.length>4*1024*1024)return {ok:false,error:'Ukuran foto maksimal 4 MB.'};
+  const props=PropertiesService.getScriptProperties(), folderId=props.getProperty('SPP_PUTRI_PROOF_FOLDER_ID');
+  const folder=folderId?DriveApp.getFolderById(folderId):DriveApp.createFolder('SPP_PUTRI_Bukti_Transfer');
+  if(!folderId)props.setProperty('SPP_PUTRI_PROOF_FOLDER_ID',folder.getId());
+  const file=folder.createFile(Utilities.newBlob(bytes,mime,'PUTRI_'+nis+'_'+Date.now()+'_'+name));
+  return {ok:true,url:file.getUrl(),message:'Foto bukti berhasil diunggah.'};
+ } catch(err) {return {ok:false,error:'Gagal menyimpan foto ke Google Drive: '+err.message};}
+}
+
 /** Pembayaran transfer menunggu verifikasi; tunai juga tercatat sebagai menunggu konfirmasi bendahara. */
 function sppPutriSubmitPayment_(data) {
   const nis=String(data.nis||'').trim().replace(/\D/g,''), ids=Array.isArray(data.tagihanIds)?data.tagihanIds.map(String):[];
