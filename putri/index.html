@@ -57,8 +57,8 @@
     <div id="sppPortalMonths" class="spp-portal-months"><p>Memuat tagihan…</p></div>
     <div class="spp-portal-total"><span>Total Tagihan Dipilih</span><b id="sppPortalTotal">Rp0</b></div>
     <div class="spp-portal-payment-options">
-     <button class="spp-portal-online" id="sppPortalOnline" type="button" onclick="sppPortalShowPayment('online')">🌐 Bayar Online</button>
-     <button class="spp-portal-cash" id="sppPortalCash" type="button" onclick="sppPortalShowPayment('cash')">💵 Tunai ke Bendahara</button>
+     <button class="spp-portal-online" id="sppPortalOnline" type="button" onclick="(function(){var p=document.getElementById('sppPortalProofBox'),c=document.getElementById('sppPortalCashBox');if(p){p.hidden=false;p.style.setProperty('display','block','important');p.scrollIntoView({behavior:'smooth',block:'center'});}if(c){c.hidden=true;c.style.setProperty('display','none','important');}})()">🌐 Bayar Online</button>
+     <button class="spp-portal-cash" id="sppPortalCash" type="button" onclick="(function(){var p=document.getElementById('sppPortalProofBox'),c=document.getElementById('sppPortalCashBox');if(c){c.hidden=false;c.style.setProperty('display','block','important');c.scrollIntoView({behavior:'smooth',block:'center'});}if(p){p.hidden=true;p.style.setProperty('display','none','important');}})()">💵 Tunai ke Bendahara</button>
     </div>
     <div id="sppPortalProofBox" class="spp-portal-proof" hidden>
      <label for="sppPortalProof">TAUTAN BUKTI TRANSFER</label>
@@ -402,5 +402,5 @@
 </style>
 <script>
 /* Muat modul utama PUTRI agar fungsi cek NIS dan pembayaran tersedia. */
-</script><script src="app_PUTRI.js?v=putri-payment-inline-20261112c"></script>
+</script><script src="app_PUTRI.js?v=putri-payment-dom-toggle-20261112d"></script>
 </body></html>
