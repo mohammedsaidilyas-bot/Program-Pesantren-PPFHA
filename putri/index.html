@@ -37,7 +37,7 @@
    </div>
    <div class="spp-portal-search">
     <label for="sppPortalNis">NOMOR INDUK SANTRI (NIS)</label>
-    <div class="spp-portal-search-row"><input id="sppPortalNis" inputmode="numeric" autocomplete="off" placeholder="Masukkan NIS santri PUTRI"><button class="primary" id="sppPortalFind" type="button">Cek</button><button class="spp-portal-scan" id="sppPortalScan" type="button">▦ Scan</button></div>
+    <div class="spp-portal-search-row"><input id="sppPortalNis" inputmode="numeric" autocomplete="off" placeholder="Masukkan NIS santri PUTRI"><button class="primary" id="sppPortalFind" type="button" onclick="sppPortalFindStudent(document.getElementById('sppPortalNis').value)">Cek</button><button class="spp-portal-scan" id="sppPortalScan" type="button" onclick="openQr('spp-portal')">▦ Scan</button></div>
     <p class="spp-portal-hint">Masukkan NIS atau pindai QR KTS PUTRI untuk melihat tagihan.</p>
    </div>
    <div id="sppPortalResult" class="spp-portal-result" hidden>
@@ -402,5 +402,5 @@
 </style>
 <script>
 /* Muat modul utama PUTRI agar fungsi cek NIS dan pembayaran tersedia. */
-</script><script src="app_PUTRI.js?v=putri-spp-direct-bind-20261112a"></script>
+</script><script src="app_PUTRI.js?v=putri-spp-inline-fallback-20261112b"></script>
 </body></html>
