@@ -1008,39 +1008,31 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.i
 /* Tombol portal ditangani oleh onclick langsung pada elemen; hindari listener klik ganda. */
 window.sppPortalFindStudent=sppPortalFindStudent;
 window.sppPortalOpenScanner=()=>openQr('spp-portal');
-/* HOTFIX PORTAL SPP PUTRI: event capture tunggal agar tombol tetap merespons di mobile. */
+window.sppPortalSubmit=(method)=>sppPortalSubmit(method);
+/* HANDLER TOMBOL PORTAL SPP PUTRI — binding langsung setelah seluruh elemen HTML tersedia. */
 (function(){
- if(window.__sppPutriPortalCaptureBound)return;
- window.__sppPutriPortalCaptureBound=true;
- document.addEventListener('click',function(e){
-  var button=e.target&&e.target.closest&&e.target.closest('#sppPortalFind,#sppPortalScan,#sppPortalOnline,#sppPortalCash,#sppPortalSubmitOnline,#sppPortalSubmitCash,#sppPortalReset');
-  if(!button)return;
-  e.preventDefault();
-  e.stopPropagation();
-  if(typeof e.stopImmediatePropagation==='function')e.stopImmediatePropagation();
-  var id=button.id;
-  try{
-   if(id==='sppPortalFind'){
-    var input=document.getElementById('sppPortalNis');
-    if(typeof window.sppPortalFindStudent==='function')window.sppPortalFindStudent(input?input.value:'');
-    else toast('Fungsi pencarian belum siap. Muat ulang halaman.');
-   }else if(id==='sppPortalScan'){
-    if(typeof openQr==='function')openQr('spp-portal');
-    else toast('Pemindai QR belum siap.');
-   }else if(id==='sppPortalOnline'||id==='sppPortalCash'){
-    if(typeof window.sppPortalShowPayment==='function')window.sppPortalShowPayment(id==='sppPortalOnline'?'online':'cash');
-   }else if(id==='sppPortalSubmitOnline'){
-    if(typeof sppPortalSubmit==='function')sppPortalSubmit('transfer');
-   }else if(id==='sppPortalSubmitCash'){
-    if(typeof sppPortalSubmit==='function')sppPortalSubmit('tunai');
-   }else if(id==='sppPortalReset'){
-    sppPortalStudent=null;sppPortalBills=[];
-    var nis=document.getElementById('sppPortalNis');
-    var result=document.getElementById('sppPortalResult');
-    if(nis){nis.value='';nis.focus();}
-    if(result)result.hidden=true;
-    window.scrollTo({top:0,behavior:'smooth'});
-   }
-  }catch(err){console.error('Portal SPP PUTRI:',err);toast(err.message||'Tombol belum dapat diproses.');}
- },true);
-})();
+ const bind=(id,handler)=>{
+  const el=document.getElementById(id);
+  if(!el||el.dataset.sppBound==='1')return;
+  el.dataset.sppBound='1';
+  el.addEventListener('click',function(ev){
+   ev.preventDefault();
+   if(el.disabled)return;
+   try{const result=handler();if(result&&typeof result.catch==='function')result.catch(err=>{console.error('SPP PUTRI '+id,err);toast(err.message||'Permintaan gagal.');});}
+   catch(err){console.error('SPP PUTRI '+id,err);toast(err.message||'Tombol belum dapat diproses.');}
+  });
+ };
+ bind('sppPortalFind',()=>sppPortalFindStudent(document.getElementById('sppPortalNis')?.value||''));
+ bind('sppPortalScan',()=>openQr('spp-portal'));
+ bind('sppPortalOnline',()=>sppPortalShowPayment('online'));
+ bind('sppPortalCash',()=>sppPortalShowPayment('cash'));
+ bind('sppPortalSubmitOnline',()=>sppPortalSubmit('transfer'));
+ bind('sppPortalSubmitCash',()=>sppPortalSubmit('tunai'));
+ bind('sppPortalReset',()=>{
+  sppPortalStudent=null;sppPortalBills=[];
+  const nis=document.getElementById('sppPortalNis'),result=document.getElementById('sppPortalResult');
+  if(nis){nis.value='';nis.focus();}
+  if(result)result.hidden=true;
+  window.scrollTo({top:0,behavior:'smooth'});
+ });
+})();;
