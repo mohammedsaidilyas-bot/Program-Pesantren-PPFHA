@@ -1004,7 +1004,32 @@ async function sppPortalLoadBills(){if(!sppPortalStudent)return;$('#sppPortalMon
 async function sppPortalFindStudent(nis){nis=String(nis||$('#sppPortalNis').value||'').replace(/\D/g,'');if(!nis){toast('Masukkan NIS santri PUTRI.');return;}$('#sppPortalFind').disabled=true;$('#sppPortalFind').textContent='Mencari…';try{const j=await sppApiGet('spp_student',{nis});if(!j.ok||!j.data)throw new Error(j.error||'Santri tidak ditemukan.');sppPortalStudent=j.data;$('#sppPortalResult').hidden=false;$('#sppPortalName').textContent=j.data.nama||'—';$('#sppPortalNisValue').textContent=j.data.nis||'—';$('#sppPortalClass').textContent=j.data.kelas||'—';$('#sppPortalDorm').textContent=j.data.asrama||'—';$('#sppPortalGuardian').textContent=j.data.wali||'—';$('#sppPortalPhone').textContent=j.data.noWaWali||'—';if(j.data.fotoUrl){$('#sppPortalAvatar').innerHTML='<img src="'+esc(j.data.fotoUrl)+'" alt="Foto santri">';}else{$('#sppPortalAvatar').textContent=(j.data.nama||'FH').trim().charAt(0).toUpperCase();}$('#sppPortalProofBox').hidden=true;$('#sppPortalCashBox').hidden=true;await sppPortalLoadBills();await sppPortalLoadHistory();$('#sppPortalResult').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){toast(e.message);$('#sppPortalResult').hidden=true;}finally{$('#sppPortalFind').disabled=false;$('#sppPortalFind').textContent='Cek';}}
 function sppPortalSelectedIds(){return Array.from(document.querySelectorAll('#sppPortalMonths .spp-portal-check:checked')).map(input=>String(input.value));}
 window.sppPortalShowPayment=function(method){try{const ids=sppPortalSelectedIds();if(!ids.length){toast('Pilih minimal satu bulan tagihan yang belum lunas.');return false;}const proof=document.getElementById('sppPortalProofBox'),cash=document.getElementById('sppPortalCashBox');if(proof){proof.hidden=method!=='online';proof.style.setProperty('display',method==='online'?'block':'none','important');}if(cash){cash.hidden=method!=='cash';cash.style.setProperty('display',method==='cash'?'block':'none','important');}const target=method==='online'?proof:cash;if(target){target.setAttribute('aria-live','polite');target.scrollIntoView({behavior:'smooth',block:'center'});}return true;}catch(err){console.error('SPP PUTRI tampilkan pembayaran:',err);toast('Bagian pembayaran gagal dibuka: '+(err.message||err));return false;}};
-async function sppPortalSubmit(method){if(!sppPortalStudent)return;const ids=sppPortalSelectedIds();if(!ids.length){toast('Pilih minimal satu bulan tagihan yang belum lunas.');return;}const proof=method==='transfer'?$('#sppPortalProof').value.trim():'';if(method==='transfer'&&!proof){toast('Masukkan tautan bukti transfer terlebih dahulu.');return;}if(!await askConfirmation('Ajukan pembayaran SPP','Total pembayaran '+$('#sppPortalTotal').textContent+'. Pengajuan akan menunggu verifikasi bendahara PUTRI.', 'Ya, Ajukan'))return;try{const j=await sppApiPost('spp_ajukan_pembayaran',{nis:sppPortalStudent.nis,tagihanIds:ids,metode:method,referensiBukti:proof});if(!j.ok)throw new Error(j.error||'Pengajuan pembayaran gagal.');toast(j.message||'Pembayaran berhasil diajukan.');$('#sppPortalProof').value='';$('#sppPortalProofBox').hidden=true;$('#sppPortalCashBox').hidden=true;await sppPortalLoadBills();await sppPortalLoadHistory();}catch(e){toast(e.message);}}
+async function sppPortalSubmit(method){
+ if(!sppPortalStudent)return;
+ const ids=sppPortalSelectedIds();if(!ids.length){toast('Pilih minimal satu bulan tagihan yang belum lunas.');return;}
+ let proof='',file=null;
+ if(method==='transfer'){
+  file=$('#sppPortalProofFile').files[0];
+  if(!file){toast('Pilih foto bukti transfer terlebih dahulu.');return;}
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)){toast('Foto harus JPG, PNG, atau WEBP.');return;}
+  if(file.size>4*1024*1024){toast('Ukuran foto maksimal 4 MB.');return;}
+ }
+ if(!await askConfirmation('Ajukan pembayaran SPP','Total pembayaran '+$('#sppPortalTotal').textContent+'. Pengajuan akan menunggu verifikasi bendahara PUTRI.','Ya, Ajukan'))return;
+ try{
+  if(method==='transfer'){
+   const reader=new FileReader();
+   const base64=await new Promise((resolve,reject)=>{reader.onload=()=>resolve(String(reader.result).split(',')[1]||'');reader.onerror=()=>reject(new Error('Foto gagal dibaca.'));reader.readAsDataURL(file);});
+   const up=await sppApiPost('spp_upload_bukti',{nis:sppPortalStudent.nis,fileName:file.name,mimeType:file.type,base64});
+   if(!up.ok||!up.url)throw new Error(up.error||'Foto bukti gagal diunggah.');
+   proof=up.url;
+  }
+  const j=await sppApiPost('spp_ajukan_pembayaran',{nis:sppPortalStudent.nis,tagihanIds:ids,metode:method,referensiBukti:proof});
+  if(!j.ok)throw new Error(j.error||'Pengajuan pembayaran gagal.');
+  toast(j.message||'Pembayaran berhasil diajukan.');
+  $('#sppPortalProofFile').value='';$('#sppPortalProofBox').hidden=true;$('#sppPortalCashBox').hidden=true;
+  await sppPortalLoadBills();await sppPortalLoadHistory();
+ }catch(e){toast(e.message);}
+}
 document.addEventListener('change',e=>{if(e.target&&e.target.classList.contains('spp-portal-check'))sppPortalUpdateTotal();});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='sppPortalNis'){e.preventDefault();sppPortalFindStudent();}});
 
