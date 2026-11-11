@@ -64,11 +64,11 @@
      <label for="sppPortalProof">TAUTAN BUKTI TRANSFER</label>
      <input id="sppPortalProof" type="url" placeholder="Tempel tautan bukti transfer yang dapat dibuka bendahara">
      <small>Untuk tahap ini, pembayaran online menggunakan transfer bank dan tautan bukti transfer. QRIS otomatis belum diaktifkan.</small>
-     <button class="primary" id="sppPortalSubmitOnline" type="button">Kirim Bukti & Ajukan Pembayaran</button>
+     <button class="primary" id="sppPortalSubmitOnline" type="button" onclick="sppPortalSubmit('transfer')">Kirim Bukti & Ajukan Pembayaran</button>
     </div>
     <div id="sppPortalCashBox" class="spp-portal-proof" hidden>
      <p>Silakan serahkan pembayaran tunai kepada bendahara PUTRI. Pengajuan akan menunggu konfirmasi bendahara sebelum status menjadi lunas.</p>
-     <button class="primary" id="sppPortalSubmitCash" type="button">Konfirmasi Pembayaran Tunai</button>
+     <button class="primary" id="sppPortalSubmitCash" type="button" onclick="sppPortalSubmit('tunai')">Konfirmasi Pembayaran Tunai</button>
     </div>
     <div id="sppPortalHistory" class="spp-portal-history"></div>
     <button class="spp-portal-reset" id="sppPortalReset" type="button">← Cari Santri Lain</button>
@@ -402,5 +402,5 @@
 </style>
 <script>
 /* Muat modul utama PUTRI agar fungsi cek NIS dan pembayaran tersedia. */
-</script><script src="app_PUTRI.js?v=putri-payment-dom-toggle-20261112d"></script>
+</script><script src="app_PUTRI.js?v=putri-submit-inline-20261112e"></script>
 </body></html>
