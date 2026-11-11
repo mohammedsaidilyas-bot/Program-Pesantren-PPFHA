@@ -1,3 +1,12 @@
+/* HOTFIX: tombol muat pembayaran menunggu ditangani pada fase capture. */
+document.addEventListener('click',function(event){
+ const button=event.target&&event.target.closest?event.target.closest('#sppLoadPending'):null;
+ if(!button)return;
+ event.preventDefault();
+ event.stopImmediatePropagation();
+ if(typeof sppLoadPending==='function')sppLoadPending();
+ else toast('Fungsi pemuatan pembayaran belum siap. Muat ulang halaman.');
+},true);
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 /* Handler prioritas tombol pengaturan nominal SPP PUTRI.
    Gunakan closest() agar klik pada teks/elemen di dalam tombol tetap tertangkap. */
