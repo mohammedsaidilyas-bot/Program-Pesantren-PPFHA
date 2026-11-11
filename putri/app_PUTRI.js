@@ -977,7 +977,7 @@ async function sppLoadPending(){
   const rows=j.data||[];count.textContent=rows.length+' menunggu';
   if(!rows.length){body.innerHTML='<div class="spp-empty-state">Tidak ada pembayaran yang menunggu verifikasi.</div>';return;}
   body.innerHTML='<div class="spp-table-wrap"><table class="spp-table"><thead><tr><th>TANGGAL</th><th>SANTRI / NIS</th><th>PERIODE</th><th>NOMINAL</th><th>METODE</th><th>BUKTI</th><th>AKSI</th></tr></thead><tbody>'+
-   rows.map(x=>'<tr><td>'+dateOnly(x.tanggalAjukan)+'</td><td><b>'+esc(x.nama||'—')+'</b><br><small>'+esc(x.nis||'—')+'</small></td><td>'+esc(x.periode||'—')+'</td><td>'+sppMoney(x.nominal)+'</td><td>'+esc(x.metode||'—')+'</td><td>'+(x.referensiBukti?'<a href="'+esc(x.referensiBukti)+'" target="_blank" rel="noopener">Lihat bukti ↗</a>':'—')+'</td><td><button type="button" class="primary spp-verify" data-id="'+esc(x.idPembayaran)+'">Sahkan</button> <button type="button" class="secondary spp-reject" data-id="'+esc(x.idPembayaran)+'">Tolak</button></td></tr>').join('')+'</tbody></table></div>';
+   rows.map(x=>'<tr><td>'+dateOnly(x.tanggalAjukan)+'</td><td><b>'+esc(x.nama||'—')+'</b><br><small>'+esc(x.nis||'—')+'</small></td><td>'+esc(x.periode||'—')+'</td><td>'+sppMoney(x.nominal)+'</td><td>'+esc(x.metode||'—')+'</td><td>'+(x.referensiBukti?'<a href="'+esc(x.referensiBukti)+'" target="_blank" rel="noopener">Lihat bukti ↗</a>':'—')+'</td><td><button type="button" class="primary spp-verify" data-id="'+esc(x.idPembayaran)+'" onclick="sppReviewPayment(this.dataset.id,true)">Sahkan</button> <button type="button" class="secondary spp-reject" data-id="'+esc(x.idPembayaran)+'" onclick="sppReviewPayment(this.dataset.id,false)">Tolak</button></td></tr>').join('')+'</tbody></table></div>';
  }catch(e){body.textContent=e.message;toast(e.message);}
 }
 async function sppReviewPayment(id,approved){
@@ -992,12 +992,7 @@ async function sppReviewPayment(id,approved){
   if(sppCurrentStudent){await sppLoadBills();await sppLoadHistory();}
  }catch(e){toast(e.message);}
 }
-document.addEventListener('click',e=>{
- const b=e.target&&e.target.closest?e.target.closest('#sppLoadPending,#sppVerificationPanel .spp-verify,#sppVerificationPanel .spp-reject'):null;
- if(!b)return;
- if(b.id==='sppLoadPending'){e.preventDefault();sppLoadPending();return;}
- e.preventDefault();sppReviewPayment(b.dataset.id,b.classList.contains('spp-verify'));
-});
+window.sppReviewPayment=sppReviewPayment;
 
 
 /* PORTAL PEMBAYARAN MANDIRI SPP PUTRI */
