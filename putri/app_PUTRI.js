@@ -989,7 +989,7 @@ async function sppReviewPayment(id,approved){
   const j=await sppApiPost(approved?'spp_verifikasi':'spp_tolak',{apiKey:String(key).trim(),idPembayaran:id,diverifikasiOleh:'Pengurus PUTRI',catatan});
   if(!j.ok)throw new Error(j.error||'Status pembayaran gagal diperbarui.');
   toast(j.message||'Status pembayaran diperbarui.');await sppLoadPending();
-  if(sppCurrentStudent){await sppLoadBills();await sppLoadHistory();}
+  /* Portal PUTRI memiliki state terpisah; jangan membaca state SPP internal di sini. */
  }catch(e){toast(e.message);}
 }
 window.sppReviewPayment=sppReviewPayment;
