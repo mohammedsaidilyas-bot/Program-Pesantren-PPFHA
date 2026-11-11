@@ -37,7 +37,7 @@
    </div>
    <div class="spp-portal-search">
     <label for="sppPortalNis">NOMOR INDUK SANTRI (NIS)</label>
-    <div class="spp-portal-search-row"><input id="sppPortalNis" inputmode="numeric" autocomplete="off" placeholder="Masukkan NIS santri PUTRI"><button class="primary" id="sppPortalFind" type="button" onclick="window.sppPortalFindStudent(document.getElementById('sppPortalNis').value)">Cek</button><button class="spp-portal-scan" id="sppPortalScan" type="button" onclick="window.sppPortalOpenScanner()">▦ Scan</button></div>
+    <div class="spp-portal-search-row"><input id="sppPortalNis" inputmode="numeric" autocomplete="off" placeholder="Masukkan NIS santri PUTRI"><button class="primary" id="sppPortalFind" type="button">Cek</button><button class="spp-portal-scan" id="sppPortalScan" type="button">▦ Scan</button></div>
     <p class="spp-portal-hint">Masukkan NIS atau pindai QR KTS PUTRI untuk melihat tagihan.</p>
    </div>
    <div id="sppPortalResult" class="spp-portal-result" hidden>
@@ -57,18 +57,18 @@
     <div id="sppPortalMonths" class="spp-portal-months"><p>Memuat tagihan…</p></div>
     <div class="spp-portal-total"><span>Total Tagihan Dipilih</span><b id="sppPortalTotal">Rp0</b></div>
     <div class="spp-portal-payment-options">
-     <button class="spp-portal-online" id="sppPortalOnline" type="button" onclick="window.sppPortalShowPayment('online')">🌐 Bayar Online</button>
-     <button class="spp-portal-cash" id="sppPortalCash" type="button" onclick="window.sppPortalShowPayment('cash')">💵 Tunai ke Bendahara</button>
+     <button class="spp-portal-online" id="sppPortalOnline" type="button">🌐 Bayar Online</button>
+     <button class="spp-portal-cash" id="sppPortalCash" type="button">💵 Tunai ke Bendahara</button>
     </div>
     <div id="sppPortalProofBox" class="spp-portal-proof" hidden>
      <label for="sppPortalProof">TAUTAN BUKTI TRANSFER</label>
      <input id="sppPortalProof" type="url" placeholder="Tempel tautan bukti transfer yang dapat dibuka bendahara">
      <small>Untuk tahap ini, pembayaran online menggunakan transfer bank dan tautan bukti transfer. QRIS otomatis belum diaktifkan.</small>
-     <button class="primary" id="sppPortalSubmitOnline" type="button" onclick="sppPortalSubmit('transfer')">Kirim Bukti & Ajukan Pembayaran</button>
+     <button class="primary" id="sppPortalSubmitOnline" type="button">Kirim Bukti & Ajukan Pembayaran</button>
     </div>
     <div id="sppPortalCashBox" class="spp-portal-proof" hidden>
      <p>Silakan serahkan pembayaran tunai kepada bendahara PUTRI. Pengajuan akan menunggu konfirmasi bendahara sebelum status menjadi lunas.</p>
-     <button class="primary" id="sppPortalSubmitCash" type="button" onclick="sppPortalSubmit('tunai')">Konfirmasi Pembayaran Tunai</button>
+     <button class="primary" id="sppPortalSubmitCash" type="button">Konfirmasi Pembayaran Tunai</button>
     </div>
     <div id="sppPortalHistory" class="spp-portal-history"></div>
     <button class="spp-portal-reset" id="sppPortalReset" type="button">← Cari Santri Lain</button>
@@ -402,5 +402,5 @@
 </style>
 <script>
 /* Muat modul utama PUTRI agar fungsi cek NIS dan pembayaran tersedia. */
-</script><script src="app_PUTRI.js?v=putri-spp-buttons-20261111d"></script>
+</script><script src="app_PUTRI.js?v=putri-spp-direct-bind-20261112a"></script>
 </body></html>
