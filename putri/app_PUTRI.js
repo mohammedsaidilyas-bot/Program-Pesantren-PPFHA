@@ -903,10 +903,10 @@ async function sppLoadFinanceDashboard(){
   const expenseList=document.querySelector('#finance-dashboard .finance-dashboard-grid .finance-widget:nth-child(2) .finance-empty-list');
   if(expenseList) expenseList.innerHTML='<div><span>Belum ada transaksi pengeluaran SPP</span><b>—</b></div><div><span>Pengeluaran akan tampil setelah dicatat</span><b>—</b></div>';
   // Tampilkan riwayat pembayaran pada panel riwayat, jika panel tersedia di halaman.
-  const paymentHistory=document.querySelector('#finance-dashboard .spp-history-panel .spp-history-empty, #finance-dashboard .finance-payment-history');
+  const paymentHistory=document.querySelector('#finance-dashboard .finance-payment-history .spp-history-empty');
   if(paymentHistory){
    paymentHistory.innerHTML=(d.recent||[]).length
-    ? '<div class="finance-payment-history-list">'+d.recent.map(x=>'<div class="finance-payment-history-row"><span><b>'+esc(x.nama||x.nis||'Santri')+'</b><small>'+esc(x.periode||'')+' · '+esc(x.metode||'')+' · '+dateOnly(x.tanggal)+'</small></span><b>'+money(x.nominal)+'</b></div>').join('')+'</div>'
+    ? '<div class="finance-payment-history-list">'+d.recent.map(x=>'<div class="finance-payment-history-row"><span><b>'+esc(x.nama||x.nis||'Santri')+'</b><small>'+esc(x.periode||'')+' · '+esc(x.metode||'')+' · '+dateOnly(x.tanggal||x.tanggalAjukan)+'</small></span><b>'+money(x.nominal)+'</b></div>').join('')+'</div>'
     : '<div>Belum ada riwayat pembayaran pada periode ini.</div>';
   }
   if(status)status.innerHTML='<i></i> Data terhubung';
