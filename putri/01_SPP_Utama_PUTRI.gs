@@ -2,6 +2,7 @@
 function sppPutriDoGet_(e) {
   const p=(e&&e.parameter)||{}, action=String(p.action||'').toLowerCase();
   if(action==='spp_health') return output_({ok:true,app:'SPP PUTRI',database:'DATABASE SANTRI PUTRI PPFHA'});
+  if(action==='spp_dashboard') return output_(sppPutriDashboard_());
   if(action==='spp_student') return output_(sppPutriStudent_(p.nis));
   if(action==='spp_tagihan') return output_(sppPutriGetBills_(p.nis,p.periode));
   if(action==='spp_riwayat') return output_(sppPutriHistory_(p.nis));
