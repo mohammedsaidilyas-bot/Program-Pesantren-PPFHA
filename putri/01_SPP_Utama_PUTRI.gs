@@ -117,3 +117,43 @@ function testSPPPutriPhoto() {
   Logger.log('JUMLAH FILE DI FOLDER: '+count);
   return url || 'Foto tidak ditemukan; periksa nama file dan ekstensi.';
 }
+
+
+/** Ringkasan dashboard SPP PUTRI berdasarkan pembayaran yang sudah berstatus Lunas. */
+function sppPutriDashboard_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const students = ss.getSheetByName(SPP_PUTRI_SHEETS.STUDENTS);
+  if (!students) return {ok:false,error:'Tab database putri tidak ditemukan.'};
+  const studentRows = students.getDataRange().getDisplayValues();
+  const studentHeaders = (studentRows[0] || []).map(h => String(h).trim().toLowerCase());
+  const statusIndex = studentHeaders.findIndex(h => ['status','status santri','statussantri'].includes(h));
+  const nisIndex = studentHeaders.findIndex(h => ['nis','nomor induk','nomorinduksantri'].includes(h));
+  const active = studentRows.slice(1).filter(r => {
+    const status = String(r[statusIndex >= 0 ? statusIndex : 7] || '').trim().toLowerCase();
+    return !status || ['aktif','active'].includes(status);
+  });
+  const activeNis = new Set(active.map(r => String(r[nisIndex >= 0 ? nisIndex : 0] || '').replace(/\D/g,'' )).filter(Boolean));
+  const payments = sppPutriRows_(SPP_PUTRI_SHEETS.PAYMENTS);
+  const now = new Date();
+  const period = Utilities.formatDate(now, 'Asia/Jakarta', 'yyyy-MM');
+  let totalReceived = 0;
+  const paidNis = new Set();
+  const recent = [];
+  payments.forEach(p => {
+    if (String(p.status || '').trim().toLowerCase() !== String(SPP_PUTRI_STATUS.PAID).toLowerCase()) return;
+    const paidAt = p.tanggalVerifikasi || p.tanggalAjukan;
+    let paymentPeriod = '';
+    if (paidAt) {
+      const d = new Date(paidAt);
+      if (!isNaN(d.getTime())) paymentPeriod = Utilities.formatDate(d, 'Asia/Jakarta', 'yyyy-MM');
+    }
+    if (paymentPeriod !== period) return;
+    const amount = Number(String(p.nominal || 0).replace(/[^0-9.-]/g,'')) || 0;
+    totalReceived += amount;
+    const nis = String(p.nis || '').replace(/\D/g,'');
+    if (nis && activeNis.has(nis)) paidNis.add(nis);
+    recent.push({nama:String(p.nama || ''),nis:nis,nominal:amount,tanggal:paidAt,periode:String(p.periode || ''),metode:String(p.metode || '')});
+  });
+  recent.sort((a,b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+  return {ok:true,data:{periode:period,totalSantri:activeNis.size,paidCount:paidNis.size,unpaidCount:Math.max(0,activeNis.size-paidNis.size),totalReceived:totalReceived,expenseSPP:0,remainingSPP:totalReceived,recent:recent.slice(0,6)}};
+}
