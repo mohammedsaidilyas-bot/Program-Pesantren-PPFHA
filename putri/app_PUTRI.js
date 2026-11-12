@@ -102,6 +102,7 @@ let toastTimer;function toast(s){$('#toast').textContent=s;$('#toast').style.dis
 function askConfirmation(title,message,confirmLabel){return new Promise(resolve=>{const overlay=document.createElement('div');overlay.className='confirm-overlay';overlay.innerHTML='<section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle"><div class="confirm-icon" aria-hidden="true">☾</div><h3 id="confirmTitle"></h3><p class="confirm-message"></p><div class="confirm-actions"><button type="button" class="secondary confirm-cancel">Batal</button><button type="button" class="primary confirm-accept"></button></div></section>';const heading=overlay.querySelector('#confirmTitle'),body=overlay.querySelector('.confirm-message'),cancel=overlay.querySelector('.confirm-cancel'),accept=overlay.querySelector('.confirm-accept');heading.textContent=title;body.textContent=message;accept.textContent=confirmLabel||'Ya, Lanjutkan';const finish=value=>{overlay.remove();document.removeEventListener('keydown',onKey);resolve(value)};const onKey=e=>{if(e.key==='Escape')finish(false)};cancel.onclick=()=>finish(false);accept.onclick=()=>finish(true);overlay.addEventListener('click',e=>{if(e.target===overlay)finish(false)});document.addEventListener('keydown',onKey);document.body.appendChild(overlay);cancel.focus()})}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function dateOnly(s){if(!s)return'—';const d=new Date(s);return isNaN(d)?String(s):d.toLocaleDateString('id-ID')}
+function financeDateLabel(value){if(value===null||value===undefined||value==='')return'—';const d=new Date(value);if(Number.isNaN(d.getTime()))return String(value);return new Intl.DateTimeFormat('id-ID',{day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Jakarta'}).format(d);}
 function financePeriodLabel(value){if(value===null||value===undefined||value==='')return'—';const raw=String(value).trim();const ym=raw.match(/^(\d{4})-(\d{1,2})$/);if(ym){const d=new Date(Date.UTC(Number(ym[1]),Number(ym[2])-1,1));return new Intl.DateTimeFormat('id-ID',{month:'long',year:'numeric',timeZone:'UTC'}).format(d);}const d=new Date(raw);if(!Number.isNaN(d.getTime()))return new Intl.DateTimeFormat('id-ID',{day:'2-digit',month:'long',year:'numeric',timeZone:'Asia/Jakarta'}).format(d);return raw;}
 function dateTime(s){if(!s)return'—';const d=new Date(s);return isNaN(d)?String(s):d.toLocaleDateString('id-ID')+'<br><small>'+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+'</small>'}
 let lastStudentLookup='';
@@ -903,12 +904,15 @@ async function sppLoadFinanceDashboard(){
   // riwayat pembayaran pada widget "Pengeluaran Terakhir".
   const expenseList=document.querySelector('#finance-dashboard .finance-dashboard-grid .finance-widget:nth-child(2) .finance-empty-list');
   if(expenseList) expenseList.innerHTML='<div><span>Belum ada transaksi pengeluaran SPP</span><b>—</b></div><div><span>Pengeluaran akan tampil setelah dicatat</span><b>—</b></div>';
-  // Tampilkan riwayat pembayaran pada panel riwayat, jika panel tersedia di halaman.
+  // Riwayat pembayaran ditampilkan dalam tabel agar nama, periode, tanggal, dan nominal mudah dibaca.
   const paymentHistory=document.querySelector('#finance-dashboard .finance-payment-history .spp-history-empty');
   if(paymentHistory){
-   paymentHistory.innerHTML=(d.recent||[]).length
-    ? '<div class="finance-payment-history-list">'+d.recent.map(x=>'<div class="finance-payment-history-row"><span><b>'+esc(x.nama||x.nis||'Santri')+'</b><small>'+financePeriodLabel(x.periode)+' · '+esc(x.metode||'')+' · '+dateOnly(x.tanggal||x.tanggalAjukan)+'</small></span><b>'+money(x.nominal)+'</b></div>').join('')+'</div>'
-    : '<div>Belum ada riwayat pembayaran pada periode ini.</div>';
+   const recentPayments=Array.isArray(d.recent)?d.recent:[];
+   paymentHistory.innerHTML=recentPayments.length
+    ? '<div class="finance-payment-table-wrap"><table class="finance-payment-table"><thead><tr><th>Santri</th><th>Periode</th><th>Tanggal bayar</th><th class="amount">Nominal</th></tr></thead><tbody>'+
+      recentPayments.map(x=>'<tr><td><b>'+esc(x.nama||x.nis||'Santri')+'</b>'+(x.nis?'<small>NIS '+esc(x.nis)+'</small>':'')+'</td><td>'+financePeriodLabel(x.periode)+'</td><td>'+financeDateLabel(x.tanggal||x.tanggalAjukan)+'</td><td class="amount">'+money(x.nominal)+'</td></tr>').join('')+
+      '</tbody></table></div>'
+    : '<div class="finance-payment-empty">Belum ada riwayat pembayaran pada periode ini.</div>';
   }
   if(status)status.innerHTML='<i></i> Data terhubung';
   if(label)label.textContent='Data SPP PUTRI diperbarui';
