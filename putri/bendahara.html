@@ -412,6 +412,38 @@
       .container{padding-bottom:8px!important}
     }
 
+
+    /* FIX SCROLL DASHBOARD: halaman dan area konten harus bisa digeser sampai bawah */
+    html, body {
+      min-height:100% !important;
+      height:auto !important;
+      overflow-y:auto !important;
+      overflow-x:hidden !important;
+      -webkit-overflow-scrolling:touch !important;
+    }
+    .app-shell {
+      min-height:calc(100vh - 96px) !important;
+      height:auto !important;
+      align-items:stretch !important;
+    }
+    .main-area {
+      min-height:0 !important;
+      height:auto !important;
+      overflow-y:visible !important;
+      overflow-x:hidden !important;
+    }
+    .main-area > .container,
+    .main-area .container {
+      height:auto !important;
+      min-height:0 !important;
+      overflow:visible !important;
+      padding-bottom:100px !important;
+    }
+    @media (min-width:901px) {
+      .app-shell { min-height:calc(100vh - 96px) !important; }
+      .sidebar { position:sticky !important; top:0 !important; height:calc(100vh - 96px) !important; }
+    }
+
   </style>
 </head>
 
