@@ -73,6 +73,7 @@ function testDatabase() {
 function doGet(e) {
   try {
     const action = String((e && e.parameter && e.parameter.action) || 'health').toLowerCase();
+    if (action === 'spp_dashboard') return output_(sppPutriDashboard_());
     if (action === 'health') return output_({ok:true,app:'Program Pesantren PPFHA',message:'Endpoint aktif',actions:['izin','pengumuman','kegiatan','student','educationrecords','saveeducationraport','saveeducationalbab','saveeducationhafalan']});
     if (action === 'student') {
       const nis = String((e && e.parameter && e.parameter.nis) || '').trim().replace(/\D/g, '');
