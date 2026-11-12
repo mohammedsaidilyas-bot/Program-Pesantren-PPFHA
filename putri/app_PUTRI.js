@@ -68,7 +68,7 @@ function go(p){
  navs.forEach(el=>{const active=el.dataset.page===p;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
  const title=$('#title');if(title)title.textContent=names[p]||'Dashboard';
  window.scrollTo({top:0,behavior:'instant'});
- if(p==='izin')loadIzin();if(p==='liburan')loadLiburan();if(p==='kehadiran')loadAttendanceConfig();
+ if(p==='izin')loadIzin();if(p==='liburan')loadLiburan();if(p==='kehadiran')loadAttendanceConfig();if(p==='finance-dashboard')sppLoadFinanceDashboard();
 }
 
 function openEducationModule(module){
@@ -872,6 +872,40 @@ async function sppApiPost(action,data){
  return await r.json();
 }
 function sppMoney(n){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0)}
+
+async function sppLoadFinanceDashboard(){
+ const label=document.querySelector('.finance-refresh-label');
+ const status=document.querySelector('.finance-status');
+ if(label)label.textContent='Memuat data SPP PUTRI…';
+ try{
+  const j=await sppApiGet('spp_dashboard');
+  if(!j.ok||!j.data)throw new Error(j.error||'Ringkasan SPP gagal dimuat.');
+  const d=j.data, money=sppMoney;
+  const stats=document.querySelectorAll('#finance-dashboard .finance-stat strong');
+  if(stats[0])stats[0].textContent=money(d.totalReceived);
+  if(stats[2])stats[2].textContent=Number(d.paidCount||0).toLocaleString('id-ID')+' santri';
+  if(stats[3])stats[3].textContent=Number(d.unpaidCount||0).toLocaleString('id-ID')+' santri';
+  if(stats[4])stats[4].textContent=money(d.expenseSPP||0);
+  if(stats[5])stats[5].textContent=money(d.remainingSPP||0);
+  const period=document.querySelector('#finance-dashboard .finance-period b');
+  if(period)period.textContent=d.periode||'Periode aktif';
+  const progress=document.querySelector('#finance-dashboard .finance-progress-panel');
+  const pct=d.totalSantri?Math.round((d.paidCount/d.totalSantri)*100):0;
+  if(progress){
+   const strong=progress.querySelector('.finance-panel-heading strong');if(strong)strong.textContent=pct+'%';
+   const bar=progress.querySelector('.finance-progress-track span');if(bar)bar.style.width=pct+'%';
+   const note=progress.querySelector('.finance-muted');if(note)note.textContent=d.paidCount+' dari '+d.totalSantri+' santri aktif sudah membayar pada periode ini.';
+  }
+  const income=document.querySelector('#finance-dashboard .finance-income-widget');
+  if(income){const strong=income.querySelector(':scope > strong');if(strong)strong.textContent=money(d.totalReceived);const foot=income.querySelector('.finance-widget-foot b');if(foot)foot.textContent=(d.paidCount||0)+' santri';const bar=income.querySelector('.finance-progress-track span');if(bar)bar.style.width=pct+'%';}
+  const recent=document.querySelector('#finance-dashboard .finance-dashboard-grid .finance-widget:nth-child(2) .finance-empty-list');
+  if(recent)recent.innerHTML=(d.recent||[]).length?d.recent.map(x=>'<div><span>'+esc(x.nama||x.nis||'Pembayaran SPP')+' · '+esc(x.periode||'')+'</span><b>'+money(x.nominal)+'</b></div>').join(''):'<div><span>Belum ada pembayaran terverifikasi pada periode ini</span><b>—</b></div>';
+  if(status)status.innerHTML='<i></i> Data terhubung';
+  if(label)label.textContent='Data SPP PUTRI diperbarui';
+  const note=document.querySelector('#finance-dashboard .finance-preview-note');
+  if(note)note.textContent='Ringkasan pemasukan berdasarkan pembayaran SPP berstatus Lunas pada bulan berjalan. Pengeluaran SPP akan terhubung setelah modul pengeluaran PUTRI diaktifkan.';
+ }catch(e){if(label)label.textContent='Gagal memuat data';if(status)status.textContent='Koneksi database bermasalah';toast('Dashboard keuangan: '+e.message);}
+}
 function sppPeriodNow(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 async function sppFindStudent(nis){
  nis=String(nis||$('#sppNis')?.value||'').replace(/\D/g,'');
