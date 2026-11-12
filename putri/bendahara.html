@@ -1850,6 +1850,7 @@ function renderLaporanPengeluaran(){
 
       const belum = Number(status.belumBayar || 0);
       const periode = status.periode || "periode SPP saat ini";
+      const nominalSisa = Number(status.sisaSPP || 0);
 
       if (belum > 0) {
         alert(
@@ -1860,10 +1861,16 @@ function renderLaporanPengeluaran(){
         return;
       }
 
+      if (!Number.isFinite(nominalSisa) || nominalSisa <= 0) {
+        alert("Tidak ada sisa SPP yang dapat dipindahkan. Periksa kembali ringkasan keuangan.");
+        return;
+      }
+
       const yakin = confirm(
-        "Semua santri pada periode " + periode +
-        " sudah lunas.\\n\\n" +
-        "Pindahkan sisa SPP periode ini ke Kas Pondok sekarang?"
+        "KONFIRMASI PEMINDAHAN SPP\\n\\n" +
+        "Periode: " + periode + "\\n" +
+        "Nominal yang dipindahkan: " + rupiah(nominalSisa) + "\\n\\n" +
+        "Semua santri sudah lunas. Lanjutkan pemindahan ke Kas Pondok?"
       );
 
       if (!yakin) return;
