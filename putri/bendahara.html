@@ -1031,7 +1031,12 @@
 
       // Hitung saldo dari angka transaksi yang sama dengan kartu pengeluaran,
       // agar saldo tidak memakai agregat backend yang sudah tidak sinkron.
-      const sisaSPP = Math.max(0, sppMasuk - pengeluaranSPP - transferSPP);
+      // Backend menghitung transfer berdasarkan periode dan status SELESAI.
+      // Gunakan nilai backend sebagai sumber utama agar kartu saldo konsisten
+      // dengan transaksi TransferSPPKeKas yang sudah tersimpan.
+      const sisaSPP = sisaBackend !== null
+        ? Math.max(0, sisaBackend)
+        : Math.max(0, sppMasuk - pengeluaranSPP - transferSPP);
 
       window.pengeluaranSPPDashboard = pengeluaranSPP;
       if (elPengeluaran) elPengeluaran.textContent = rupiah(pengeluaranSPP);
