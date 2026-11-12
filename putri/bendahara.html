@@ -1005,8 +1005,22 @@
         transferSPP = transfers
           .filter(t => norm(val(t, ["jenis", "Jenis", "tipe", "type"])) === "transfer")
           .filter(t => {
-            const p = norm(val(t, ["periode", "Priode", "priode"]));
-            return !p || !periodeAktif || p.includes(periodeAktif) || periodeAktif.includes(p);
+            const status = norm(val(t, ["status", "Status"]));
+            if (status && !["selesai", "lunas", "berhasil", "aktif"].includes(status)) return false;
+            const toKey = value => {
+              const raw = norm(value);
+              let m = raw.match(/(\\d{4})[-/](\\d{1,2})/);
+              if (m) return m[1] + "-" + String(Number(m[2])).padStart(2,"0");
+              const names = ["januari","februari","maret","april","mei","juni","juli","agustus","september","oktober","november","desember"];
+              for (let n=0;n<names.length;n++) if(raw.includes(names[n])) {
+                const y=(raw.match(/\\d{4}/)||[])[0];
+                return y ? y+"-"+String(n+1).padStart(2,"0") : "";
+              }
+              return "";
+            };
+            const p = toKey(val(t, ["periode", "Priode", "priode"]));
+            const aktif = toKey(periodeAktif);
+            return !p || !aktif || p===aktif;
           })
           .reduce((sum, t) => sum + money(val(t, ["jumlah", "Jumlah", "nominal", "Nominal"])), 0);
       } catch (e) {
@@ -1879,7 +1893,10 @@ function renderLaporanPengeluaran(){
     try{
       const response=await fetch(API_URL+"?action=getPengeluaranTerbaru&_="+Date.now(),{cache:"no-store"});
       const data=await response.json();
-      const tx=data.transaksi||[];
+      if(!data || data.success===false) throw new Error(data?.message||"Respons pengeluaran tidak valid");
+      const tx=Array.isArray(data.transaksi)?data.transaksi:
+        Array.isArray(data.pengeluaran)?data.pengeluaran:
+        Array.isArray(data.data)?data.data:[];
       const recent=tx.slice(0,4);
       const renderRow=t=>'<div class="expense-item"><div class="expense-main"><div class="expense-name">'+(t.keterangan||"Pengeluaran")+'</div><div class="expense-meta">'+(t.tanggal||"-")+' • '+(t.sumber||"-")+'</div></div><div class="expense-amount">-'+rupiah(t.jumlah)+'</div></div>';
       if(list) list.innerHTML=recent.length?recent.map(renderRow).join(""):'<div class="empty-state">Belum ada transaksi.</div>';
