@@ -386,3 +386,17 @@ button.education-tile:hover{transform:translateY(-2px);border-color:#b8d8c5;box-
 #spp-portal .spp-portal-search-row input{cursor:text}
 #spp-portal .spp-portal-payment-options{position:relative;z-index:100;pointer-events:auto}
 #spp-portal .spp-portal-payment-options button{pointer-events:auto!important;touch-action:manipulation;cursor:pointer}
+
+/* Riwayat pembayaran dashboard PUTRI — tabel ringkas dan responsif */
+#finance-dashboard .finance-payment-history .spp-history-empty{padding:0;background:transparent;overflow:hidden}
+.finance-payment-table-wrap{width:100%;overflow-x:auto;border:1px solid #e7eeea;border-radius:12px;background:#fff}
+.finance-payment-table{width:100%;border-collapse:collapse;min-width:620px;text-align:left}
+.finance-payment-table th{padding:13px 16px;background:#f4f8f5;color:#718078;font-size:10px;font-weight:800;letter-spacing:.45px;text-transform:uppercase;white-space:nowrap}
+.finance-payment-table td{padding:14px 16px;border-top:1px solid #edf1ee;color:#52635a;font-size:12px;vertical-align:middle}
+.finance-payment-table tbody tr:hover{background:#fbfdfb}
+.finance-payment-table td:first-child b{display:block;color:#263b32;font-size:12px;font-weight:800}
+.finance-payment-table td:first-child small{display:block;margin-top:3px;color:#94a098;font-size:10px}
+.finance-payment-table td.amount,.finance-payment-table th.amount{text-align:right;white-space:nowrap}
+.finance-payment-table td.amount{color:#137e70;font-weight:800;font-variant-numeric:tabular-nums}
+.finance-payment-empty{padding:22px 14px;text-align:center;color:#8a968f;font-size:12px}
+@media(max-width:700px){.finance-payment-table{min-width:570px}.finance-payment-table th,.finance-payment-table td{padding:12px 11px}}
