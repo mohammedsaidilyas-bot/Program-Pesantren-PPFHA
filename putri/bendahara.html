@@ -1876,23 +1876,31 @@ function renderLaporanPengeluaran(){
       if (!yakin) return;
 
       const pinParam = keuanganPutriPinParam(); if (!pinParam) return;
-      const response = await fetch(
-        API_URL + "?action=pindahkanSisaSPPKeKas" + pinParam + "&_=" + Date.now(),
-        { cache: "no-store" }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert(data.message || "Sisa SPP berhasil dipindahkan ke Kas Pondok.");
-        loadDashboard();
-      } else {
-        alert(data.message || "Gagal memindahkan sisa SPP.");
+      const url = API_URL + "?action=pindahkanSisaSPPKeKas" + pinParam + "&_=" + Date.now();
+      const response = await fetch(url, { cache: "no-store" });
+      const raw = await response.text();
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch (_) {
+        throw new Error("Server tidak mengirim JSON. HTTP " + response.status + ". Respons: " + raw.slice(0,180));
       }
 
+      if (!response.ok) throw new Error("HTTP " + response.status + ": " + (data.message || "Permintaan gagal"));
+      if (!data || data.success !== true) {
+        alert((data && data.message) || "Backend menolak pemindahan SPP.");
+        return;
+      }
+
+      alert((data.message || "Sisa SPP berhasil dipindahkan ke Kas Pondok.") +
+        "\\nNominal: " + rupiah(data.jumlah || nominalSisa) +
+        "\\nPeriode: " + (data.periode || periode));
+      await Promise.all([loadDashboard(), loadKasPondok()]);
+
     } catch (error) {
-      alert("Terjadi kesalahan saat menghubungi server.");
-      console.error(error);
+      const message = error && error.message ? error.message : String(error);
+      alert("Pemindahan SPP belum terkonfirmasi.\\n\\nDetail: " + message);
+      console.error("Pindah Sisa SPP PUTRI:", error);
     }
   }
   
