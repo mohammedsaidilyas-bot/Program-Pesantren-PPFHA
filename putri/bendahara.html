@@ -1020,7 +1020,9 @@
             };
             const p = toKey(val(t, ["periode", "Priode", "priode"]));
             const aktif = toKey(periodeAktif);
-            return !p || !aktif || p===aktif;
+            // Transfer tanpa periode tidak boleh mengurangi saldo periode aktif.
+            // Hanya transfer yang periodenya sama persis yang dihitung.
+            return Boolean(aktif && p && p===aktif);
           })
           .reduce((sum, t) => sum + money(val(t, ["jumlah", "Jumlah", "nominal", "Nominal"])), 0);
       } catch (e) {
