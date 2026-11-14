@@ -2096,14 +2096,22 @@ async function bukaLaporanKeuanganPDF(){
       if(ix>=0 && /^\d{4}$/.test(parts[1]||"")) return parts[1]+"-"+String(ix+1).padStart(2,"0");
       return "";
     };
-    const trPeriode=transfers.filter(t=>{
+    let trPeriode=transfers.filter(t=>{
       const kode=kodePeriodeLaporan(t.periode??t.Priode??t.priode);
       return kode && kode===(periodeKodeAktif||kodePeriodeLaporan(periode));
     });
-    const totalTransfer=trPeriode.reduce((n,t)=>n+Number(t.jumlah||0),0);
+    let totalTransfer=trPeriode.reduce((n,t)=>n+Number(t.jumlah||t.nominal||0),0);
+    // Fallback: bila endpoint transfer tidak mengembalikan baris, turunkan nilai transfer periode
+    // dari rumus resmi backend: SPP diterima - pengeluaran SPP - sisa SPP.
+    const sisaSppResmi=Number(dash.sisaSPP ?? Math.max(0,diterima-totalSPP));
+    const transferTersirat=Math.max(0,diterima-totalSPP-sisaSppResmi);
+    if(totalTransfer===0 && transferTersirat>0){
+      totalTransfer=transferTersirat;
+      trPeriode=[{tanggal:"—",keterangan:"Transfer SPP ke Kas (berdasarkan ringkasan periode)",jumlah:totalTransfer,periode:periodeKodeAktif||periode,status:"SELESAI"}];
+    }
     // Gunakan saldo resmi dari ringkasan backend PUTRI, yang sudah memperhitungkan transfer SPP ke kas.
     const sisaSebelum=Math.max(0,diterima-totalSPP);
-    const sisaAkhir=Number(dash.sisaSPP ?? Math.max(0,diterima-totalSPP-totalTransfer));
+    const sisaAkhir=sisaSppResmi;
     const saldoAkhir=Number(dash.saldoKas ?? kas.saldoKas ?? 0);
     const pemasukanKas=Number(kas.pemasukanKas||0), pengeluaranKas=Number(kas.pengeluaranKas||0);
     const saldoAwal=saldoAkhir-pemasukanKas+pengeluaranKas-totalTransfer;
