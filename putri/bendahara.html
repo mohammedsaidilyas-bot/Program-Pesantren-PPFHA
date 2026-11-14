@@ -1011,11 +1011,11 @@
             if (status && !["selesai", "lunas", "berhasil", "aktif"].includes(status)) return false;
             const toKey = value => {
               const raw = norm(value);
-              let m = raw.match(/(\\d{4})[-/](\\d{1,2})/);
+              let m = raw.match(/(\d{4})[-/](\d{1,2})/);
               if (m) return m[1] + "-" + String(Number(m[2])).padStart(2,"0");
               const names = ["januari","februari","maret","april","mei","juni","juli","agustus","september","oktober","november","desember"];
               for (let n=0;n<names.length;n++) if(raw.includes(names[n])) {
-                const y=(raw.match(/\\d{4}/)||[])[0];
+                const y=(raw.match(/\d{4}/)||[])[0];
                 return y ? y+"-"+String(n+1).padStart(2,"0") : "";
               }
               return "";
@@ -2087,13 +2087,13 @@ async function bukaLaporanKeuanganPDF(){
     const periodeKodeAktif=String(dash.periodeKode||"").trim();
     const kodePeriodeLaporan=v=>{
       const raw=String(v??"").trim().toLowerCase();
-      let m=raw.match(/^(\\d{4})[-/](\\d{1,2})$/);
+      let m=raw.match(/^(\d{4})[-/](\d{1,2})$/);
       if(m) return m[1]+"-"+String(Number(m[2])).padStart(2,"0");
-      m=raw.match(/^(\\d{1,2})[-/](\\d{4})$/);
+      m=raw.match(/^(\d{1,2})[-/](\d{4})$/);
       if(m) return m[2]+"-"+String(Number(m[1])).padStart(2,"0");
       const bulan=["januari","februari","maret","april","mei","juni","juli","agustus","september","oktober","november","desember"];
-      const parts=raw.split(/\\s+/), ix=bulan.indexOf(parts[0]);
-      if(ix>=0 && /^\\d{4}$/.test(parts[1]||"")) return parts[1]+"-"+String(ix+1).padStart(2,"0");
+      const parts=raw.split(/\s+/), ix=bulan.indexOf(parts[0]);
+      if(ix>=0 && /^\d{4}$/.test(parts[1]||"")) return parts[1]+"-"+String(ix+1).padStart(2,"0");
       return "";
     };
     const trPeriode=transfers.filter(t=>{
