@@ -2083,7 +2083,23 @@ async function bukaLaporanKeuanganPDF(){
       ? angkaKartuDashboard
       : totalSPPCatatan);
     const transfers=(tr&&tr.success&&Array.isArray(tr.transaksi))?tr.transaksi:[];
-    const trPeriode=transfers.filter(t=>{const p=normalisasiPeriodeLaporan(t.periode??t.Priode??t.priode);return !p||p===pnorm;});
+    // Periode transfer memakai kode yyyy-MM, sedangkan laporan memakai nama bulan.
+    const periodeKodeAktif=String(dash.periodeKode||"").trim();
+    const kodePeriodeLaporan=v=>{
+      const raw=String(v??"").trim().toLowerCase();
+      let m=raw.match(/^(\\d{4})[-/](\\d{1,2})$/);
+      if(m) return m[1]+"-"+String(Number(m[2])).padStart(2,"0");
+      m=raw.match(/^(\\d{1,2})[-/](\\d{4})$/);
+      if(m) return m[2]+"-"+String(Number(m[1])).padStart(2,"0");
+      const bulan=["januari","februari","maret","april","mei","juni","juli","agustus","september","oktober","november","desember"];
+      const parts=raw.split(/\\s+/), ix=bulan.indexOf(parts[0]);
+      if(ix>=0 && /^\\d{4}$/.test(parts[1]||"")) return parts[1]+"-"+String(ix+1).padStart(2,"0");
+      return "";
+    };
+    const trPeriode=transfers.filter(t=>{
+      const kode=kodePeriodeLaporan(t.periode??t.Priode??t.priode);
+      return kode && kode===(periodeKodeAktif||kodePeriodeLaporan(periode));
+    });
     const totalTransfer=trPeriode.reduce((n,t)=>n+Number(t.jumlah||0),0);
     const sisaSebelum=Math.max(0,diterima-totalSPP), sisaAkhir=Math.max(0,diterima-totalSPP-totalTransfer);
     // saldoKas dari backend sudah mencakup pemasukan/pengeluaran kas reguler.
