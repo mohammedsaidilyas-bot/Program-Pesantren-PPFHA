@@ -495,7 +495,7 @@
     <div class="cards">
 
       <div class="card stat-card">
-        <div class="stat-icon">💳</div><div class="card-title">Dana SPP Tersedia</div>
+        <div class="stat-icon">💳</div><div class="card-title" id="danaSPPLabel">Dana SPP</div>
         <div class="card-value green" id="sppMasuk">
           Rp0
         </div>
@@ -745,6 +745,8 @@
       if(document.getElementById("periodeHeader")){
         document.getElementById("periodeHeader").textContent = data.periode || "-";
       }
+      const danaSPPLabel = document.getElementById("danaSPPLabel");
+      if (danaSPPLabel) danaSPPLabel.textContent = "Dana SPP · " + (data.periode || "Periode Aktif");
       loadDashboardRecent();
 
       document.getElementById("sppMasuk").textContent =
