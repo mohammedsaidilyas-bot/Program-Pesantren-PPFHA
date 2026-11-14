@@ -121,19 +121,46 @@ function saveAttendanceConfig_(data) {
   } finally { lock.releaseLock(); }
 }
 
+// Folder foto yang sama dengan aplikasi Uang Jajan Santri PPFHA.
+const ATTENDANCE_PHOTO_FOLDER_ID = '14N7q8LsBZBVZjfP0nvtqwuE21LRi0T2L';
+function attendancePhotoUrl_(nis) {
+  const key = String(nis || '').trim().replace(/\D/g,'');
+  if (!key) return '';
+  try {
+    const cache = CacheService.getScriptCache();
+    const cached = cache.get('attendance_photo_' + key);
+    if (cached !== null) return cached;
+    const folder = DriveApp.getFolderById(ATTENDANCE_PHOTO_FOLDER_ID);
+    const files = folder.getFiles();
+    while (files.hasNext()) {
+      const file = files.next();
+      const base = String(file.getName() || '').trim().replace(/\.[^.]+$/, '').replace(/\D/g,'');
+      if (base === key) {
+        const url = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(file.getId()) + '&sz=w320';
+        cache.put('attendance_photo_' + key, url, 21600);
+        return url;
+      }
+    }
+    cache.put('attendance_photo_' + key, '', 1800);
+  } catch (err) {
+    console.warn('Tidak dapat membaca foto santri dari Drive: ' + err.message);
+  }
+  return '';
+}
+
 function attendanceStudentRoster_() {
-  // Samakan persis dengan endpoint biodata santri yang sudah dipakai aplikasi:
-  // kolom A=NIS, B=Nama, H=Status. Hindari salah deteksi header yang
-  // menyebabkan NIS terbaca tetapi nama/status kosong.
+  // Kolom A=NIS, B=Nama, H=Status; foto dicari di folder Drive berdasarkan nama file=NIS.
   const ss = SpreadsheetApp.openById(STUDENT_DB_ID);
   const sh = ss.getSheetByName(STUDENT_SHEET_NAME);
   if (!sh || sh.getLastRow() < 2) throw new Error('Database santri uang jajan tidak ditemukan atau masih kosong.');
   const rows = sh.getDataRange().getDisplayValues();
   return rows.slice(1).map(function(row) {
+    const nis = String(row[0] || '').trim().replace(/\D/g,'');
     return {
-      nis:String(row[0] || '').trim().replace(/\D/g,''),
+      nis:nis,
       nama:String(row[1] || '').trim(),
-      status:String(row[7] || '').trim().toLowerCase()
+      status:String(row[7] || '').trim().toLowerCase(),
+      fotoUrl:attendancePhotoUrl_(nis)
     };
   }).filter(function(x){return x.nis && x.nama && x.status === 'aktif';});
 }
@@ -422,14 +449,14 @@ function recordAttendanceScan_(data) {
           const row=sh.getRange(r,1,1,6).getValues()[0];
           if(attendanceCellDate_(row[0])===date && normalizeAttendanceActivity_(row[1])===activity && String(row[2]||'Utama')===session && String(row[3]||'').trim().replace(/\D/g,'')===nis) {
             sh.getRange(r,6,1,4).setValues([['Hadir',time,new Date(),'Scan QR KTS (Uji Coba)']]);
-            return {ok:true,data:{nis:nis,nama:student.nama,status:'Hadir',time:time,activity:activity,session:session},message:'Status uji coba diperbarui menjadi Hadir.'};
+            return {ok:true,data:{nis:nis,nama:student.nama,fotoUrl:student.fotoUrl||'',status:'Hadir',time:time,activity:activity,session:session},message:'Status uji coba diperbarui menjadi Hadir.'};
           }
         }
       }
-      return {ok:true,duplicate:true,data:existing[key],message:'Santri sudah tercatat pada sesi '+session+' hari ini.'};
+      return {ok:true,duplicate:true,data:Object.assign({},existing[key],{fotoUrl:student.fotoUrl||''}),message:'Santri sudah tercatat pada sesi '+session+' hari ini.'};
     }
     sh.appendRow([date,activity,session,nis,student.nama,status,time,new Date(),testMode?'Scan QR KTS (Uji Coba)':'Scan QR KTS']);
-    return {ok:true,data:{nis:nis,nama:student.nama,status:status,time:time,activity:activity,session:session}};
+    return {ok:true,data:{nis:nis,nama:student.nama,fotoUrl:student.fotoUrl||'',status:status,time:time,activity:activity,session:session}};
   } finally { lock.releaseLock(); }
 }
 
