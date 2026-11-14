@@ -495,7 +495,7 @@
     <div class="cards">
 
       <div class="card stat-card">
-        <div class="stat-icon">💳</div><div class="card-title">Dana SPP</div>
+        <div class="stat-icon">💳</div><div class="card-title">Dana SPP Tersedia</div>
         <div class="card-value green" id="sppMasuk">
           Rp0
         </div>
@@ -1037,6 +1037,12 @@
       const sisaSPP = sisaBackend !== null
         ? Math.max(0, sisaBackend)
         : Math.max(0, sppMasuk - pengeluaranSPP - transferSPP);
+
+      // Kartu Dana SPP menampilkan saldo yang masih tersedia, bukan total
+      // pemasukan historis. Total pemasukan tetap ditampilkan pada panel
+      // Pemasukan SPP di bawah dashboard.
+      const danaSPPTersediaEl = document.getElementById("sppMasuk");
+      if (danaSPPTersediaEl) danaSPPTersediaEl.textContent = rupiah(sisaSPP);
 
       window.pengeluaranSPPDashboard = pengeluaranSPP;
       if (elPengeluaran) elPengeluaran.textContent = rupiah(pengeluaranSPP);
