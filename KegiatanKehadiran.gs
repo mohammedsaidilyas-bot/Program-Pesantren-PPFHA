@@ -122,34 +122,7 @@ function saveAttendanceConfig_(data) {
 }
 
 // Folder foto yang sama dengan aplikasi Uang Jajan Santri PPFHA.
-const ATTENDANCE_PHOTO_FOLDER_ID = '14N7q8LsBZBVZjfP0nvtqwuE21LRi0T2L';
-// Mengikuti cara pencarian foto yang sudah terbukti dipakai aplikasi Uang Jajan.
-// Jangan cache hasil kosong: jika izin Drive baru diberikan, pencarian berikutnya
-// harus langsung mencoba membaca folder lagi.
-function attendancePhotoUrl_(nis) {
-  const key = String(nis || '').trim();
-  if (!key) return '';
-  try {
-    const cache = CacheService.getScriptCache();
-    const cached = cache.get('attendance_photo_v2_' + key);
-    if (cached) return cached;
-    const folder = DriveApp.getFolderById(ATTENDANCE_PHOTO_FOLDER_ID);
-    const files = folder.getFiles();
-    while (files.hasNext()) {
-      const file = files.next();
-      const name = String(file.getName() || '').trim();
-      const base = name.replace(/\\.[^.]+$/, '');
-      if (base === key) {
-        const url = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(file.getId()) + '&sz=w320';
-        cache.put('attendance_photo_v2_' + key, url, 21600);
-        return url;
-      }
-    }
-  } catch (err) {
-    console.warn('Gagal membaca foto santri PUTRA dari Drive: ' + err.message);
-  }
-  return '';
-}
+// Foto santri ditangani modul terpisah: FotoKehadiranPutra.gs
 function attendanceStudentRoster_() {
   // Kolom A=NIS, B=Nama, H=Status; foto dicari di folder Drive berdasarkan nama file=NIS.
   const ss = SpreadsheetApp.openById(STUDENT_DB_ID);
