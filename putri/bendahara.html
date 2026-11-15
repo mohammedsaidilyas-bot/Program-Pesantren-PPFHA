@@ -927,7 +927,7 @@
       const sppMasuk = money(window.dashboardKeuangan?.sppMasuk || 0);
 
       const [ringResponse, txResponse] = await Promise.all([
-        fetch(API_URL + "?action=getRingkasanKeuangan&_=" + Date.now(), { cache: "no-store" }),
+        fetch(API_URL + "?action=getRingkasanKeuangan&periode="+encodeURIComponent(window.keuanganPeriodeAktif||periodeBendaharaAktif())+"&_=" + Date.now(), { cache: "no-store" }),
         fetch(API_URL + "?action=getPengeluaranTerbaru&_=" + Date.now(), { cache: "no-store" })
       ]);
       if (!ringResponse.ok) throw new Error("Ringkasan HTTP " + ringResponse.status);
