@@ -877,49 +877,52 @@ async function sppApiPost(action,data){
 }
 function sppMoney(n){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0)}
 
-async function sppLoadFinanceDashboard(){
+const KEUANGAN_PUTRI_API_URL="https://script.google.com/macros/s/AKfycbzxt5JeaKVOQ-T2Xgmif4Wx_GAXgGGnKPm4_gHPqKzXLrW1WLM3Vvwxa5pO-wr5vhRN/exec";
+function sppFinancePeriodOptions(selected){
+ const el=document.getElementById('financePeriodSelect');if(!el)return;
+ const now=new Date();const opts=[];
+ for(let i=0;i<18;i++){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const code=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');const label=d.toLocaleDateString('id-ID',{month:'long',year:'numeric'});opts.push({code,label});}
+ el.innerHTML=opts.map(x=>'<option value="'+x.code+'">'+x.label+'</option>').join('');
+ el.value=selected||opts[0].code;
+ return el.value;
+}
+async function sppLoadFinanceDashboard(requestedPeriod){
  const label=document.querySelector('.finance-refresh-label');
  const status=document.querySelector('.finance-status');
- if(label)label.textContent='Memuat data SPP PUTRI…';
+ const selected=sppFinancePeriodOptions(requestedPeriod);
+ if(label)label.textContent='Memuat ringkasan periode…';
  try{
-  const j=await sppApiGet('spp_dashboard');
-  if(!j.ok||!j.data)throw new Error(j.error||'Ringkasan SPP gagal dimuat.');
-  const d=j.data, money=sppMoney;
-  const stats=document.querySelectorAll('#finance-dashboard .finance-stat strong');
-  if(stats[0])stats[0].textContent=money(d.totalReceived);
-  if(stats[2])stats[2].textContent=Number(d.paidCount||0).toLocaleString('id-ID')+' santri';
-  if(stats[3])stats[3].textContent=Number(d.unpaidCount||0).toLocaleString('id-ID')+' santri';
-  if(stats[4])stats[4].textContent=money(d.expenseSPP||0);
-  if(stats[5])stats[5].textContent=money(d.remainingSPP||0);
-  const period=document.querySelector('#finance-dashboard .finance-period b');
-  if(period)period.textContent=d.periode||'Periode aktif';
-  const progress=document.querySelector('#finance-dashboard .finance-progress-panel');
-  const pct=d.totalSantri?Math.round((d.paidCount/d.totalSantri)*100):0;
-  if(progress){
-   const strong=progress.querySelector('.finance-panel-heading strong');if(strong)strong.textContent=pct+'%';
-   const bar=progress.querySelector('.finance-progress-track span');if(bar)bar.style.width=pct+'%';
-   const note=progress.querySelector('.finance-muted');if(note)note.textContent=d.paidCount+' dari '+d.totalSantri+' santri aktif sudah membayar pada periode ini.';
-  }
+  const url=KEUANGAN_PUTRI_API_URL+'?action=getDashboardKeuangan&periode='+encodeURIComponent(selected||'')+'&_='+Date.now();
+  const response=await fetch(url,{cache:'no-store'});const d=await response.json();
+  if(!d.success)throw new Error(d.message||'Ringkasan keuangan gagal dimuat.');
+  const money=sppMoney,stats=document.querySelectorAll('#finance-dashboard .finance-stat strong');
+  if(stats[0])stats[0].textContent=money(d.sppMasuk||0);
+  if(stats[1])stats[1].textContent=money(d.saldoKas||0);
+  if(stats[2])stats[2].textContent=Number(d.lunas||0)+' santri';
+  if(stats[3])stats[3].textContent=Number(d.belumBayar||0)+' santri';
+  if(stats[4])stats[4].textContent=money(d.pengeluaranSPP||0);
+  if(stats[5])stats[5].textContent=money(d.sisaSPP||0);
+  const period=document.querySelector('#finance-dashboard .finance-period select');
+  if(period&&period.value!==d.periodeKode)period.value=d.periodeKode;
+  const periodAlert=document.querySelector('#finance-dashboard .finance-period-alert p');
+  if(periodAlert)periodAlert.textContent='Seluruh ringkasan mengikuti periode '+(d.periode||d.periodeKode)+'. Pilih bulan lain untuk meninjau transaksi sebelumnya.';
   const income=document.querySelector('#finance-dashboard .finance-income-widget');
-  if(income){const strong=income.querySelector(':scope > strong');if(strong)strong.textContent=money(d.totalReceived);const foot=income.querySelector('.finance-widget-foot b');if(foot)foot.textContent=(d.paidCount||0)+' santri';const bar=income.querySelector('.finance-progress-track span');if(bar)bar.style.width=pct+'%';}
-  // Pembayaran SPP adalah pemasukan, bukan pengeluaran. Jangan tampilkan
-  // riwayat pembayaran pada widget "Pengeluaran Terakhir".
-  const expenseList=document.querySelector('#finance-dashboard .finance-dashboard-grid .finance-widget:nth-child(2) .finance-empty-list');
-  if(expenseList) expenseList.innerHTML='<div><span>Belum ada transaksi pengeluaran SPP</span><b>—</b></div><div><span>Pengeluaran akan tampil setelah dicatat</span><b>—</b></div>';
-  // Riwayat pembayaran ditampilkan dalam tabel agar nama, periode, tanggal, dan nominal mudah dibaca.
-  const paymentHistory=document.querySelector('#finance-dashboard .finance-payment-history .spp-history-empty');
-  if(paymentHistory){
-   const recentPayments=Array.isArray(d.recent)?d.recent:[];
-   paymentHistory.innerHTML=recentPayments.length
-    ? '<div class="finance-payment-table-wrap"><table class="finance-payment-table"><thead><tr><th>Santri</th><th>Periode</th><th>Tanggal bayar</th><th class="amount">Nominal</th></tr></thead><tbody>'+
-      recentPayments.map(x=>'<tr><td><b>'+esc(x.nama||x.nis||'Santri')+'</b>'+(x.nis?'<small>NIS '+esc(x.nis)+'</small>':'')+'</td><td>'+financePeriodLabel(x.periode)+'</td><td>'+financeDateLabel(x.tanggal||x.tanggalAjukan)+'</td><td class="amount">'+money(x.nominal)+'</td></tr>').join('')+
-      '</tbody></table></div>'
-    : '<div class="finance-payment-empty">Belum ada riwayat pembayaran pada periode ini.</div>';
-  }
-  if(status)status.innerHTML='<i></i> Data terhubung';
-  if(label)label.textContent='Data SPP PUTRI diperbarui';
+  if(income){const strong=income.querySelector(':scope > strong');if(strong)strong.textContent=money(d.sppMasuk||0);const foot=income.querySelector('.finance-widget-foot b');if(foot)foot.textContent=(d.lunas||0)+' santri';}
+  const pct=d.totalSantri?Math.round((Number(d.lunas||0)/Number(d.totalSantri))*100):0;
+  const progress=document.querySelector('#finance-dashboard .finance-progress-panel');
+  if(progress){const p=progress.querySelector('.finance-panel-heading strong');if(p)p.textContent=pct+'%';const bar=progress.querySelector('.finance-progress-track span');if(bar)bar.style.width=pct+'%';const note=progress.querySelector('.finance-muted');if(note)note.textContent=(d.lunas||0)+' dari '+(d.totalSantri||0)+' santri aktif sudah membayar pada '+(d.periode||'periode ini')+'.';}
+  const statusText=document.querySelector('#finance-dashboard .finance-status');
+  if(statusText)statusText.innerHTML='<i></i> Data terhubung';
+  if(label)label.textContent='Periode '+(d.periode||d.periodeKode)+' · data diperbarui';
   const note=document.querySelector('#finance-dashboard .finance-preview-note');
-  if(note)note.textContent='Ringkasan pemasukan berdasarkan pembayaran SPP berstatus Lunas pada bulan berjalan. Pengeluaran SPP akan terhubung setelah modul pengeluaran PUTRI diaktifkan.';
+  if(note)note.textContent='Ringkasan mengikuti periode terpilih. Saldo Kas Pondok menunjukkan saldo berjalan seluruh transaksi kas; riwayat pembayaran tetap dapat ditelusuri di bawah.';
+  // Riwayat detail tetap diambil dari modul SPP PUTRI dan tidak dibatasi oleh bulan aktif.
+  try{
+   const history=await sppApiGet('spp_dashboard');
+   const recent=history&&history.ok&&history.data&&Array.isArray(history.data.recent)?history.data.recent:[];
+   const box=document.querySelector('#finance-dashboard .finance-payment-history .spp-history-empty');
+   if(box)box.innerHTML=recent.length?'<div class="finance-payment-table-wrap"><table class="finance-payment-table"><thead><tr><th>Santri</th><th>Periode</th><th>Tanggal bayar</th><th class="amount">Nominal</th></tr></thead><tbody>'+recent.map(x=>'<tr><td><b>'+esc(x.nama||x.nis||'Santri')+'</b>'+(x.nis?'<small>NIS '+esc(x.nis)+'</small>':'')+'</td><td>'+financePeriodLabel(x.periode)+'</td><td>'+financeDateLabel(x.tanggal||x.tanggalAjukan)+'</td><td class="amount">'+money(x.nominal)+'</td></tr>').join('')+'</tbody></table></div>':'<div class="finance-payment-empty">Belum ada riwayat pembayaran.</div>';
+  }catch(historyError){console.warn('Riwayat SPP tidak termuat:',historyError);}
  }catch(e){if(label)label.textContent='Gagal memuat data';if(status)status.textContent='Koneksi database bermasalah';toast('Dashboard keuangan: '+e.message);}
 }
 function sppPeriodNow(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
