@@ -61,6 +61,7 @@ document.addEventListener('keydown',function(e){
  e.preventDefault();lookupAlbabStudent();
 },true);
 const API_URL='https://script.google.com/macros/s/AKfycbxyn0OdDg-sVCIMS1DDjzVi5N0fTwD4fJcPDMa-2CtMYgWhhHWpwSc2YRFEomLcGFfcnA/exec';
+const KEUANGAN_PUTRI_API_URL="https://script.google.com/macros/s/AKfycbzxt5JeaKVOQ-T2Xgmif4Wx_GAXgGGnKPm4_gHPqKzXLrW1WLM3Vvwxa5pO-wr5vhRN/exec";
 const data={izin:[],peng:[],keg:[]};const names={dashboard:'Dashboard',izin:'Izin Santri',pengumuman:'Pengumuman',kegiatan:'Kegiatan & Jadwal',kehadiran:'Kegiatan & Kehadiran',pendidikan:'Pendidikan Santri',liburan:'Liburan Santri','finance-dashboard':'Dashboard Keuangan',spp:'SPP Santri','spp-portal':'Portal Bayar SPP',uangjajan:'Uang Jajan Santri',bendahara:'Bendahara',laporan:'Laporan Keuangan'};let adminKey=sessionStorage.getItem('ppfha_admin_key')||'';
 function go(p){
  // Bendahara PUTRI memakai halaman mandiri dan endpoint keuangan PUTRI.
@@ -877,7 +878,7 @@ async function sppApiPost(action,data){
 }
 function sppMoney(n){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0)}
 
-const KEUANGAN_PUTRI_API_URL="https://script.google.com/macros/s/AKfycbzxt5JeaKVOQ-T2Xgmif4Wx_GAXgGGnKPm4_gHPqKzXLrW1WLM3Vvwxa5pO-wr5vhRN/exec";
+
 function sppFinancePeriodOptions(selected){
  const el=document.getElementById('financePeriodSelect');if(!el)return;
  const now=new Date();const opts=[];
