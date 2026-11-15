@@ -406,5 +406,22 @@
 </style>
 <script>
 /* Muat modul utama PUTRI agar fungsi cek NIS dan pembayaran tersedia. */
-</script><script src="app_PUTRI.js?v=putri-bendahara-link-20261112b"></script>
+</script><script src="app_PUTRI.js?v=putri-nav-hotfix-20261115a"></script>
+<script>
+/* HOTFIX NAVIGASI PUTRI: tangkap sentuhan menu lebih awal pada browser mobile. */
+(function(){
+ document.addEventListener('click',function(event){
+  var nav=event.target&&event.target.closest?event.target.closest('button.nav[data-page]'):null;
+  var quick=event.target&&event.target.closest?event.target.closest('[data-go]'):null;
+  if(!nav&&!quick)return;
+  event.preventDefault();
+  var page=nav?nav.getAttribute('data-page'):quick.getAttribute('data-go');
+  if(typeof window.go==='function')window.go(page);
+  else {
+   var title=document.getElementById('title');
+   if(title)title.textContent='Aplikasi sedang memuat. Silakan muat ulang halaman.';
+  }
+ },true);
+})();
+</script>
 </body></html>
