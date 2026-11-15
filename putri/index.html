@@ -424,4 +424,49 @@
  },true);
 })();
 </script>
+
+<script>
+/* NAVIGASI MANDIRI PUTRI: tidak bergantung pada handler lama app_PUTRI.js. */
+(function(){
+  function putriNavigate(page){
+    var target=document.getElementById(page);
+    if(!target || !target.classList.contains('page')) return false;
+    document.querySelectorAll('main > .page').forEach(function(section){
+      var active=section.id===page;
+      section.classList.toggle('active',active);
+      section.hidden=!active;
+      if(active)section.removeAttribute('hidden');
+    });
+    document.querySelectorAll('aside .nav[data-page]').forEach(function(button){
+      var active=button.getAttribute('data-page')===page;
+      button.classList.toggle('active',active);
+      if(active)button.setAttribute('aria-current','page');
+      else button.removeAttribute('aria-current');
+    });
+    var names={dashboard:'Dashboard',izin:'Izin Santri',liburan:'Liburan Santri',pengumuman:'Pengumuman','kegiatan':'Kegiatan & Jadwal','kehadiran':'Kegiatan & Kehadiran',pendidikan:'Pendidikan Santri','finance-dashboard':'Dashboard Keuangan',spp:'SPP Santri','spp-portal':'Portal Bayar SPP',uangjajan:'Uang Jajan Santri',bendahara:'Bendahara',laporan:'Laporan Keuangan'};
+    var heading=document.getElementById('title');
+    if(heading)heading.textContent=names[page]||'Dashboard';
+    if(page==='bendahara'){window.location.href='bendahara.html';return true;}
+    window.scrollTo(0,0);
+    try{
+      if(page==='izin'&&typeof window.loadIzin==='function')window.loadIzin();
+      if(page==='liburan'&&typeof window.loadLiburan==='function')window.loadLiburan();
+      if(page==='kehadiran'&&typeof window.loadAttendanceConfig==='function')window.loadAttendanceConfig();
+      if(page==='finance-dashboard'&&typeof window.sppLoadFinanceDashboard==='function')window.sppLoadFinanceDashboard();
+    }catch(err){console.error('Navigasi PUTRI:',err);}
+    return true;
+  }
+  window.go=putriNavigate;
+  document.addEventListener('click',function(event){
+    var button=event.target&&event.target.closest?event.target.closest('aside .nav[data-page], [data-go], #backDashboard'):null;
+    if(!button)return;
+    var page=button.id==='backDashboard'?'dashboard':(button.getAttribute('data-page')||button.getAttribute('data-go'));
+    if(!page)return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    putriNavigate(page);
+  },true);
+})();
+</script>
+
 </body></html>
