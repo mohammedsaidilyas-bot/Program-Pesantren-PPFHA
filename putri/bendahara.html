@@ -458,7 +458,7 @@
       </div>
       <div class="header-controls">
         <button onclick="muatUlangData()" class="header-reload">↻ Muat Ulang</button>
-        <div class="header-period"><div class="header-period-label">📅 Periode SPP</div><div class="header-period-value" id="periodeHeader">Memuat...</div></div>
+        <div class="header-period"><div class="header-period-label">📅 PERIODE SPP</div><select id="periodeSelect" onchange="ubahPeriodeBendahara(this.value)" style="width:100%;border:0;background:transparent;color:#0f766e;font-size:16px;font-weight:900;outline:none"><option value="">Memuat...</option></select><div class="header-period-value" id="periodeHeader" style="display:none">Memuat...</div></div>
       </div>
     </div>
   </div>
@@ -721,13 +721,21 @@
   }
 
 
+  function periodeBendaharaAktif(){return document.getElementById("periodeSelect")?.value||new Date().getFullYear()+"-"+String(new Date().getMonth()+1).padStart(2,"0");}
+  function siapkanPilihanPeriodeBendahara(selected){
+    const el=document.getElementById("periodeSelect");if(!el)return;
+    const now=new Date(),items=[];
+    for(let i=0;i<18;i++){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const code=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");items.push({code,label:d.toLocaleDateString("id-ID",{month:"long",year:"numeric"})});}
+    el.innerHTML=items.map(x=>'<option value="'+x.code+'">'+x.label+'</option>').join("");
+    el.value=selected||items[0].code;
+  }
+  function ubahPeriodeBendahara(period){siapkanPilihanPeriodeBendahara(period);loadDashboard();}
   async function loadDashboard() {
-
+    siapkanPilihanPeriodeBendahara(window.keuanganPeriodeAktif||periodeBendaharaAktif());
+    const periodeDipilih=periodeBendaharaAktif();
+    window.keuanganPeriodeAktif=periodeDipilih;
     try {
-
-      const response = await fetch(
-        API_URL + "?action=getDashboardKeuangan"
-      );
+      const response = await fetch(API_URL + "?action=getDashboardKeuangan&periode="+encodeURIComponent(periodeDipilih)+"&_="+Date.now(),{cache:"no-store"});
 
       const data = await response.json();
 
