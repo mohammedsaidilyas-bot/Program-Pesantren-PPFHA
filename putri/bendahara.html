@@ -2027,21 +2027,24 @@ function renderLaporanPengeluaran(){
 
 <script>
 async function bukaLaporanKeuanganPDF(){
+  const periodeDipilih=String(window.keuanganPeriodeAktif||periodeBendaharaAktif());
   const modal=document.createElement("div"); modal.id="modalLaporanKeuanganPDF";
   modal.innerHTML='<div style="position:fixed;inset:0;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;padding:16px;z-index:9999"><div style="width:100%;max-width:1100px;max-height:94vh;overflow:auto;background:white;border-radius:24px;padding:22px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div><div style="font-size:22px;font-weight:800;color:#172554">📄 Laporan Keuangan Pesantren</div><div id="laporanKeuanganSub" style="color:#64748b;font-size:13px;margin-top:4px">Laporan pertanggungjawaban rinci</div></div><button onclick="document.getElementById(\'modalLaporanKeuanganPDF\').remove()" style="border:0;background:#f1f5f9;width:40px;height:40px;border-radius:50%;font-size:22px">×</button></div><div id="laporanKeuanganLoading" class="loading">Mengambil data terbaru...</div><div id="laporanKeuanganIsi" style="display:none"></div></div></div>';
   document.body.appendChild(modal);
   try{
     // Hitung ulang transaksi SPP sebelum laporan dibuka agar tidak memakai ringkasan lama.
     if (typeof loadRingkasan === "function") await loadRingkasan();
+    const qPeriode="&periode="+encodeURIComponent(periodeDipilih);
     const hasil=await Promise.all([
-      fetch(API_URL+"?action=getDashboardKeuangan&_="+Date.now(),{cache:"no-store"}),
-      fetch(API_URL+"?action=getStatusPembayaran&_="+Date.now(),{cache:"no-store"}),
-      fetch(API_URL+"?action=getPengeluaranTerbaru&_="+Date.now(),{cache:"no-store"}),
-      fetch(API_URL+"?action=getKasPondok&_="+Date.now(),{cache:"no-store"}),
-      fetch(API_URL+"?action=getTransferSPP&_="+Date.now(),{cache:"no-store"})
+      fetch(API_URL+"?action=getDashboardKeuangan"+qPeriode+"&_="+Date.now(),{cache:"no-store"}),
+      fetch(API_URL+"?action=getStatusPembayaran"+qPeriode+"&_="+Date.now(),{cache:"no-store"}),
+      fetch(API_URL+"?action=getPengeluaranTerbaru"+qPeriode+"&_="+Date.now(),{cache:"no-store"}),
+      fetch(API_URL+"?action=getKasPondok"+qPeriode+"&_="+Date.now(),{cache:"no-store"}),
+      fetch(API_URL+"?action=getTransferSPP"+qPeriode+"&_="+Date.now(),{cache:"no-store"})
     ]);
     const dash=await hasil[0].json(), stat=await hasil[1].json(), exp=await hasil[2].json(), kas=await hasil[3].json(), tr=await hasil[4].json();
     if(!dash.success) throw new Error(dash.message||"Gagal mengambil dashboard");
+    if(String(dash.periodeKode||"")!==periodeDipilih) throw new Error("Periode laporan dari server tidak sesuai. Dipilih "+periodeDipilih+", diterima "+(dash.periodeKode||dash.periode||"tidak diketahui")+".");
     const periode=String(dash.periode||stat.periode||"-"), pnorm=normalisasiPeriodeLaporan(periode);
     const santri=(stat.data||[]).filter(s=>["nis","nama","kelas"].some(k=>String(s[k]||"").trim()&&String(s[k]||"").trim()!=="-"));
     const total=santri.length, lunas=santri.filter(s=>String(s.status||"").toUpperCase()==="LUNAS").length, belum=Math.max(0,total-lunas);
