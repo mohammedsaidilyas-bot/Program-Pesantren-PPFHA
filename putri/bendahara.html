@@ -737,6 +737,17 @@
     siapkanPilihanPeriodeBendahara(dipilih);
     loadDashboard(dipilih);
   }
+  // Batasi waktu tunggu API agar layar tidak menggantung tanpa batas.
+  async function fetchBendaharaPutri(url, options, timeoutMs) {
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),timeoutMs||20000);
+    try {
+      return await fetch(url,{...(options||{}),signal:controller.signal});
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function loadDashboard(requestedPeriod) {
     const periodeAwal=String(requestedPeriod||window.keuanganPeriodeAktif||periodeBendaharaAktif());
     siapkanPilihanPeriodeBendahara(periodeAwal);
@@ -746,7 +757,7 @@
     const requestId=(window.__bendaharaPutriLoadId||0)+1;
     window.__bendaharaPutriLoadId=requestId;
     try {
-      const response = await fetch(API_URL + "?action=getDashboardKeuangan&periode="+encodeURIComponent(periodeDipilih)+"&_="+Date.now(),{cache:"no-store"});
+      const response = await fetchBendaharaPutri(API_URL + "?action=getDashboardKeuangan&periode="+encodeURIComponent(periodeDipilih)+"&_="+Date.now(),{cache:"no-store"},20000);
       if(!response.ok) throw new Error("HTTP "+response.status);
       const data = await response.json();
       if(requestId!==window.__bendaharaPutriLoadId || periodeBendaharaAktif()!==periodeDipilih) return;
@@ -770,7 +781,7 @@
       }
       const danaSPPLabel = document.getElementById("danaSPPLabel");
       if (danaSPPLabel) danaSPPLabel.textContent = "Dana SPP · " + (data.periode || "Periode Aktif");
-      loadDashboardRecent();
+      loadDashboardRecent(periodeDipilih);
 
       document.getElementById("sppMasuk").textContent =
         rupiah(data.sppMasuk);
@@ -861,7 +872,7 @@
   async function loadKasPondok(requestedPeriod) {
     const period=String(requestedPeriod||window.keuanganPeriodeAktif||periodeBendaharaAktif());
     try {
-      const response=await fetch(API_URL+"?action=getKasPondok&periode="+encodeURIComponent(period)+"&_="+Date.now(),{cache:"no-store"});
+      const response=await fetchBendaharaPutri(API_URL+"?action=getKasPondok&periode="+encodeURIComponent(period)+"&_="+Date.now(),{cache:"no-store"},20000);
       if(!response.ok) throw new Error("HTTP "+response.status);
       const data=await response.json();
       if(!data || !data.success) throw new Error(data&&data.message||"Data kas tidak valid");
@@ -917,8 +928,8 @@
       const sppMasuk = money(window.dashboardKeuangan?.sppMasuk || 0);
 
       const [ringResponse, txResponse] = await Promise.all([
-        fetch(API_URL + "?action=getRingkasanKeuangan&periode="+encodeURIComponent(window.keuanganPeriodeAktif||periodeBendaharaAktif())+"&_=" + Date.now(), { cache: "no-store" }),
-        fetch(API_URL + "?action=getPengeluaranTerbaru&_=" + Date.now(), { cache: "no-store" })
+        fetchBendaharaPutri(API_URL + "?action=getRingkasanKeuangan&periode="+encodeURIComponent(window.keuanganPeriodeAktif||periodeBendaharaAktif())+"&_=" + Date.now(), { cache: "no-store" },20000),
+        fetchBendaharaPutri(API_URL + "?action=getPengeluaranTerbaru&periode="+encodeURIComponent(window.keuanganPeriodeAktif||periodeBendaharaAktif())+"&_=" + Date.now(), { cache: "no-store" },20000)
       ]);
       if (!ringResponse.ok) throw new Error("Ringkasan HTTP " + ringResponse.status);
       if (!txResponse.ok) throw new Error("Transaksi HTTP " + txResponse.status);
@@ -999,7 +1010,7 @@
 
       let transferSPP = 0;
       try {
-        const trResponse = await fetch(API_URL + "?action=getTransferSPP&_=" + Date.now(), { cache: "no-store" });
+        const trResponse = await fetchBendaharaPutri(API_URL + "?action=getTransferSPP&periode="+encodeURIComponent(window.keuanganPeriodeAktif||periodeBendaharaAktif())+"&_=" + Date.now(), { cache: "no-store" },20000);
         const trData = await trResponse.json();
         const transfers = cariArray(trData);
         transferSPP = transfers
@@ -1821,7 +1832,7 @@ async function bukaLaporanPengeluaran(){
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center"><div style="font-size:13px;font-weight:700;color:#475569">Filter tanggal:</div><input id="laporanPengeluaranMulai" onchange="renderLaporanPengeluaran()" type="date" style="flex:1;min-width:180px;border:1px solid #d1d5db;border-radius:12px;padding:12px;background:white"><span style="color:#64748b">s/d</span><input id="laporanPengeluaranSampai" onchange="renderLaporanPengeluaran()" type="date" style="flex:1;min-width:180px;border:1px solid #d1d5db;border-radius:12px;padding:12px;background:white"><button onclick="resetFilterLaporanPengeluaran()" style="border:0;background:#f1f5f9;color:#334155;padding:12px 15px;border-radius:12px;font-weight:700">Reset</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 16px"><button onclick="setPeriodeLaporanPengeluaran('bulan')" style="border:0;background:#ecfdf5;color:#047857;padding:9px 13px;border-radius:10px;font-weight:700">Bulan Ini</button><button onclick="setPeriodeLaporanPengeluaran('bulanLalu')" style="border:0;background:#eff6ff;color:#1d4ed8;padding:9px 13px;border-radius:10px;font-weight:700">Bulan Lalu</button><button onclick="setPeriodeLaporanPengeluaran('tahun')" style="border:0;background:#fef3c7;color:#92400e;padding:9px 13px;border-radius:10px;font-weight:700">Tahun Ini</button></div>
     <div id="laporanPengeluaranLoading" class="loading">Memuat laporan pengeluaran...</div><div id="laporanPengeluaranIsi" style="display:none"></div></div></div>`;
   document.body.appendChild(modal);
-  try{ const response=await fetch(API_URL+"?action=getPengeluaranTerbaru&_="+Date.now(),{cache:"no-store"}); const data=await response.json(); if(!data.success) throw new Error(data.message||"Gagal mengambil pengeluaran"); window.dataLaporanPengeluaran=data.transaksi||[]; document.getElementById("laporanPengeluaranLoading").style.display="none"; document.getElementById("laporanPengeluaranIsi").style.display="block"; renderLaporanPengeluaran(); }
+  try{ const response=await fetchBendaharaPutri(API_URL+"?action=getPengeluaranTerbaru&periode="+encodeURIComponent(requestedPeriod||window.keuanganPeriodeAktif||periodeBendaharaAktif())+"&_="+Date.now(),{cache:"no-store"},20000); const data=await response.json(); if(!data.success) throw new Error(data.message||"Gagal mengambil pengeluaran"); window.dataLaporanPengeluaran=data.transaksi||[]; document.getElementById("laporanPengeluaranLoading").style.display="none"; document.getElementById("laporanPengeluaranIsi").style.display="block"; renderLaporanPengeluaran(); }
   catch(e){ document.getElementById("laporanPengeluaranLoading").textContent="Laporan pengeluaran belum dapat dimuat."; console.error(e); }
 }
 function setPeriodeLaporanPengeluaran(mode){
@@ -1915,7 +1926,7 @@ function renderLaporanPengeluaran(){
     }
   }
   
-  async function loadDashboardRecent(){
+  async function loadDashboardRecent(requestedPeriod){
     const list=document.getElementById("dashboardExpenseList");
     const bars=document.getElementById("dashboardExpenseBars");
     try{
