@@ -742,10 +742,17 @@
     siapkanPilihanPeriodeBendahara(periodeAwal);
     const periodeDipilih=periodeBendaharaAktif();
     window.keuanganPeriodeAktif=periodeDipilih;
+    // Abaikan respons lama jika pengguna sudah memilih periode lain atau pemuatan baru dimulai.
+    const requestId=(window.__bendaharaPutriLoadId||0)+1;
+    window.__bendaharaPutriLoadId=requestId;
     try {
       const response = await fetch(API_URL + "?action=getDashboardKeuangan&periode="+encodeURIComponent(periodeDipilih)+"&_="+Date.now(),{cache:"no-store"});
-
+      if(!response.ok) throw new Error("HTTP "+response.status);
       const data = await response.json();
+      if(requestId!==window.__bendaharaPutriLoadId || periodeBendaharaAktif()!==periodeDipilih) return;
+      if(String(data.periodeKode||"")!==periodeDipilih) {
+        throw new Error("Server mengembalikan periode "+(data.periode||data.periodeKode||"tidak diketahui")+" padahal yang dipilih "+periodeDipilih+". Periksa versi deployment Apps Script.");
+      }
 
       if (!data.success) {
 
