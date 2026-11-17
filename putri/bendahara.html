@@ -842,7 +842,7 @@
        */
 
       loadRingkasan();
-      loadKasPondok();
+      loadKasPondok(periodeDipilih);
 
     } catch (error) {
       const loadingEl=document.getElementById("loading");
@@ -858,44 +858,23 @@
   }
 
 
-  async function loadKasPondok() {
+  async function loadKasPondok(requestedPeriod) {
+    const period=String(requestedPeriod||window.keuanganPeriodeAktif||periodeBendaharaAktif());
     try {
-      const response = await fetch(
-        API_URL + "?action=getKasPondok&_=" + Date.now(),
-        { cache: "no-store" }
-      );
-      const data = await response.json();
-
-      console.log("Data Kas Pondok:", data);
-
-      if (data && data.success) {
-        let saldoKas = Number(data.saldoKas || 0);
-
-        // Backend lama belum memasukkan transaksi Transfer SPP -> Kas.
-        // Tambahkan transfer yang tercatat di sheet keuangan ke tampilan Kas.
-        try {
-          const txResponse = await fetch(
-            API_URL + "?action=getTransferSPP&_=" + Date.now(),
-            { cache: "no-store" }
-          );
-          const txData = await txResponse.json();
-          const transaksi = (txData && txData.success && Array.isArray(txData.transaksi))
-            ? txData.transaksi : [];
-
-          const transferSPP = transaksi
-            .filter(t => String(t.jenis || "").trim().toLowerCase() === "transfer")
-            .filter(t => String(t.keterangan || "").trim().toLowerCase().indexOf("sisa spp periode ") === 0)
-            .reduce((n,t) => n + Number(t.jumlah || 0), 0);
-
-          saldoKas += transferSPP;
-        } catch (e) {
-          console.log("Gagal membaca transfer SPP ke Kas:", e);
-        }
-
-        document.getElementById("kas").textContent = rupiah(saldoKas);
-      }
-    } catch (error) {
-      console.log("Gagal mengambil Kas Pondok:", error);
+      const response=await fetch(API_URL+"?action=getKasPondok&periode="+encodeURIComponent(period)+"&_="+Date.now(),{cache:"no-store"});
+      if(!response.ok) throw new Error("HTTP "+response.status);
+      const data=await response.json();
+      if(!data || !data.success) throw new Error(data&&data.message||"Data kas tidak valid");
+      if(period!==periodeBendaharaAktif()) return;
+      const kasEl=document.getElementById("kas");
+      if(kasEl) kasEl.textContent=rupiah(data.saldoKas||0);
+      const incomeEl=document.getElementById("kasMasuk");
+      if(incomeEl) incomeEl.textContent=rupiah(data.pemasukanKas||0);
+      const expenseEl=document.getElementById("kasKeluar");
+      if(expenseEl) expenseEl.textContent=rupiah(data.pengeluaranKas||0);
+      window.keuanganKasPeriode=data;
+    } catch(error) {
+      console.error("Gagal mengambil Kas Pondok periode "+period,error);
     }
   }
 
