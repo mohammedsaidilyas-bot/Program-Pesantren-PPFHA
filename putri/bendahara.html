@@ -729,9 +729,17 @@
     el.innerHTML=items.map(x=>'<option value="'+x.code+'">'+x.label+'</option>').join("");
     el.value=selected||items[0].code;
   }
-  function ubahPeriodeBendahara(period){siapkanPilihanPeriodeBendahara(period);loadDashboard();}
-  async function loadDashboard() {
-    siapkanPilihanPeriodeBendahara(window.keuanganPeriodeAktif||periodeBendaharaAktif());
+  function ubahPeriodeBendahara(period){
+    const dipilih=String(period||"").trim();
+    if(!/^\\d{4}-\\d{2}$/.test(dipilih)) return;
+    // Simpan pilihan terbaru sebelum memuat ulang agar tidak ditimpa periode lama.
+    window.keuanganPeriodeAktif=dipilih;
+    siapkanPilihanPeriodeBendahara(dipilih);
+    loadDashboard(dipilih);
+  }
+  async function loadDashboard(requestedPeriod) {
+    const periodeAwal=String(requestedPeriod||window.keuanganPeriodeAktif||periodeBendaharaAktif());
+    siapkanPilihanPeriodeBendahara(periodeAwal);
     const periodeDipilih=periodeBendaharaAktif();
     window.keuanganPeriodeAktif=periodeDipilih;
     try {
@@ -830,18 +838,14 @@
       loadKasPondok();
 
     } catch (error) {
-
-      document.getElementById("loading").style.display =
-        "none";
-
-      const errorBox =
-        document.getElementById("error");
-
-      errorBox.style.display = "block";
-
-      errorBox.textContent =
-        "Data belum dapat dimuat. Dashboard akan kita sambungkan setelah URL Apps Script dimasukkan.";
-
+      const loadingEl=document.getElementById("loading");
+      if(loadingEl) loadingEl.style.display="none";
+      const errorBox=document.getElementById("error");
+      if(errorBox){
+        errorBox.style.display="block";
+        errorBox.textContent="Data periode "+periodeDipilih+" belum dapat dimuat: "+(error&&error.message?error.message:"kesalahan koneksi");
+      }
+      console.error("Gagal memuat Bendahara PUTRI periode "+periodeDipilih,error);
     }
 
   }
