@@ -731,7 +731,7 @@
   }
   function ubahPeriodeBendahara(period){
     const dipilih=String(period||"").trim();
-    if(!/^\\d{4}-\\d{2}$/.test(dipilih)) return;
+    if(!/^\d{4}-\d{2}$/.test(dipilih)) return;
     // Simpan pilihan terbaru sebelum memuat ulang agar tidak ditimpa periode lama.
     window.keuanganPeriodeAktif=dipilih;
     siapkanPilihanPeriodeBendahara(dipilih);
