@@ -532,18 +532,18 @@ function kirimAntrianNotifikasiWali() {
   // Entry point: siapkan antrean harian WIB, kemudian sender terkendali.
   const hasilAntrean = siapkanAntrianTidakHadir();
   if (hasilAntrean && hasilAntrean.ditunda) return hasilAntrean;
-  const hasilKirim = kirimPendingTidakHadir19Nov_();
+  const hasilKirim = kirimPendingTidakHadirHarian_();
   const target = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
   const out = {berhasil:true, tanggalTarget:target, antreanBaru:hasilAntrean.antreanBaru||0, hasilPengiriman:hasilKirim, mode:'PENGIRIMAN_HARIAN_TERKONTROL'};
   Logger.log(JSON.stringify(out)); return out;
 }
 
 /**
- * Sender manual TERKONTROL tanggal 19-11-2026.
+ * Sender harian TERKONTROL, hanya tanggal aktif WIB.
  * Tidak dipanggil oleh trigger. Dedup per event + token, dan hasil ambigu
  * dikunci sebagai UNCERTAIN agar tidak retry otomatis (risiko pesan ganda).
  */
-function kirimPendingTidakHadir19Nov_() {
+function normalisasiTanggalNotifSender_(nilai) {\n  const s=String(nilai||'').trim();\n  let m=s.match(/^(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})/);\n  if(m)return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);\n  m=s.match(/^(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})$/);\n  if(m)return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);\n  return '';\n}\n\nfunction kirimPendingTidakHadirHarian_() {
   const TARGET_NOTIF_TANGGAL = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(1000)) {
@@ -569,7 +569,7 @@ function kirimPendingTidakHadir19Nov_() {
     let checked=0,sentRows=0,noToken=0,manual=0,sentTokens=0,skipped=0;
     for(let i=1;i<values.length;i++){
       const row=values[i];
-      if(String(row[1]||'').trim()!==TARGET_NOTIF_TANGGAL) continue;
+      if(normalisasiTanggalNotifSender_(row[1])!==TARGET_NOTIF_TANGGAL) continue;
       if(String(row[6]||'').trim().toUpperCase()!=='PENDING') continue;
       const statusAbsensi=String(row[9]||'').replace(/^Status absensi:\s*/i,'').split(' — ')[0].trim().toLowerCase();
       if(!['tidak hadir','izin pulang','izin sakit','izin keluar'].includes(statusAbsensi)) continue;
