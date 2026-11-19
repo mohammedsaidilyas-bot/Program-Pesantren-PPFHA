@@ -529,24 +529,18 @@ function kirimSatuNotifIzinAbsensiWali(kunciAntrean) {
  * setelah jalur token dan FCM diverifikasi.
  */
 function kirimAntrianNotifikasiWali() {
-  const hasilAntrean = siapkanAntrianTidakHadir();
-  const sh = getNotifAbsenSheet_();
-  const rows = sh.getDataRange().getDisplayValues();
-  let pending = 0;
-  for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][1] || '').trim() === '2026-11-19' &&
-        String(rows[i][6] || '').trim().toUpperCase() === 'PENDING') pending++;
+  // Entry point trigger/editor: idempotent queue prep, then controlled sender.
+  // Target remains explicitly limited to 19 Nov 2026 in sender.
+  const lockCheck = LockService.getScriptLock();
+  if (!lockCheck.tryLock(1000)) {
+    const defer={berhasil:false,ditunda:true,alasan:'Proses notifikasi lain sedang berjalan',firebaseDikirim:false};
+    Logger.log(JSON.stringify(defer)); return defer;
   }
-  const hasil = {
-    berhasil: true,
-    mode: 'AMAN_TANPA_PENGIRIMAN',
-    tanggalTarget: '2026-11-19',
-    antreanBaru: hasilAntrean.antreanBaru || 0,
-    pending: pending,
-    firebaseDikirim: false
-  };
-  Logger.log(JSON.stringify(hasil));
-  return hasil;
+  lockCheck.releaseLock();
+  const hasilAntrean=siapkanAntrianTidakHadir();
+  const hasilKirim=kirimPendingTidakHadir19Nov_();
+  const out={berhasil:true,tanggalTarget:'2026-11-19',antreanBaru:hasilAntrean.antreanBaru||0,hasilPengiriman:hasilKirim,mode:'PENGIRIMAN_TERKONTROL'};
+  Logger.log(JSON.stringify(out));return out;
 }
 
 /**
