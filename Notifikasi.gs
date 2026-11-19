@@ -526,3 +526,29 @@ function kirimSatuNotifIzinAbsensiWali(kunciAntrean) {
 function kirimAntrianNotifikasiWali() {
   return siapkanAntrianTidakHadir();
 }
+
+
+// DIAGNOSTIK READ-ONLY: menelusuri data Absensi tanggal 19 Nov 2026.
+function diagnosaAbsensiNotif19Nov() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName('Absensi');
+  if (!sh) throw new Error('Sheet Absensi tidak ditemukan');
+  const values = sh.getDataRange().getDisplayValues();
+  const headers = values[0].map(function(x){return String(x).trim();});
+  const idx = function(n){return headers.indexOf(n);};
+  const tanggalCol = idx('tanggal'), statusCol = idx('status');
+  if (tanggalCol < 0 || statusCol < 0) throw new Error('Kolom tanggal/status tidak ditemukan. Header: '+JSON.stringify(headers));
+  let tanggalCocok=0, tidakHadir=0, targetStatus=[];
+  for (let i=1;i<values.length;i++) {
+    const t=String(values[i][tanggalCol]||'').trim();
+    const st=String(values[i][statusCol]||'').trim();
+    if (t.indexOf('2026-11-19')===0 || t.indexOf('19/11/2026')===0 || t.indexOf('19-11-2026')===0) {
+      tanggalCocok++;
+      if (st.toLowerCase()==='tidak hadir') tidakHadir++;
+      if (targetStatus.length<12) targetStatus.push({baris:i+1,tanggal:t,status:st});
+    }
+  }
+  const hasil={sheet:sh.getName(),headers:headers,tanggalCocok:tanggalCocok,tidakHadir:tidakHadir,contoh:targetStatus,readOnly:true};
+  Logger.log(JSON.stringify(hasil));
+  return hasil;
+}
