@@ -104,8 +104,8 @@ function siapkanAntrianTidakHadir() {
         : []
     );
 
-    // UJI TERBATAS: hanya data tanggal 19 November 2026 yang boleh masuk antrean.
-    const TARGET_NOTIF_TANGGAL = '2026-11-19';
+    // Target harian WIB. Data tanggal lampau tidak otomatis dimasukkan ulang.
+    const TARGET_NOTIF_TANGGAL = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
     function normalisasiTanggalNotif_(nilai) {
       const s = String(nilai || '').trim();
       let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
@@ -529,18 +529,13 @@ function kirimSatuNotifIzinAbsensiWali(kunciAntrean) {
  * setelah jalur token dan FCM diverifikasi.
  */
 function kirimAntrianNotifikasiWali() {
-  // Entry point trigger/editor: idempotent queue prep, then controlled sender.
-  // Target remains explicitly limited to 19 Nov 2026 in sender.
-  const lockCheck = LockService.getScriptLock();
-  if (!lockCheck.tryLock(1000)) {
-    const defer={berhasil:false,ditunda:true,alasan:'Proses notifikasi lain sedang berjalan',firebaseDikirim:false};
-    Logger.log(JSON.stringify(defer)); return defer;
-  }
-  lockCheck.releaseLock();
-  const hasilAntrean=siapkanAntrianTidakHadir();
-  const hasilKirim=kirimPendingTidakHadir19Nov_();
-  const out={berhasil:true,tanggalTarget:'2026-11-19',antreanBaru:hasilAntrean.antreanBaru||0,hasilPengiriman:hasilKirim,mode:'PENGIRIMAN_TERKONTROL'};
-  Logger.log(JSON.stringify(out));return out;
+  // Entry point: siapkan antrean harian WIB, kemudian sender terkendali.
+  const hasilAntrean = siapkanAntrianTidakHadir();
+  if (hasilAntrean && hasilAntrean.ditunda) return hasilAntrean;
+  const hasilKirim = kirimPendingTidakHadir19Nov_();
+  const target = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
+  const out = {berhasil:true, tanggalTarget:target, antreanBaru:hasilAntrean.antreanBaru||0, hasilPengiriman:hasilKirim, mode:'PENGIRIMAN_HARIAN_TERKONTROL'};
+  Logger.log(JSON.stringify(out)); return out;
 }
 
 /**
@@ -549,6 +544,7 @@ function kirimAntrianNotifikasiWali() {
  * dikunci sebagai UNCERTAIN agar tidak retry otomatis (risiko pesan ganda).
  */
 function kirimPendingTidakHadir19Nov_() {
+  const TARGET_NOTIF_TANGGAL = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(1000)) {
     const out={berhasil:false,ditunda:true,alasan:'Lock sedang dipakai',firebaseDikirim:false};
@@ -573,7 +569,7 @@ function kirimPendingTidakHadir19Nov_() {
     let checked=0,sentRows=0,noToken=0,manual=0,sentTokens=0,skipped=0;
     for(let i=1;i<values.length;i++){
       const row=values[i];
-      if(String(row[1]||'').trim()!=='2026-11-19') continue;
+      if(String(row[1]||'').trim()!==TARGET_NOTIF_TANGGAL) continue;
       if(String(row[6]||'').trim().toUpperCase()!=='PENDING') continue;
       const statusAbsensi=String(row[9]||'').replace(/^Status absensi:\s*/i,'').split(' — ')[0].trim().toLowerCase();
       if(!['tidak hadir','izin pulang','izin sakit','izin keluar'].includes(statusAbsensi)) continue;
@@ -623,7 +619,7 @@ function kirimPendingTidakHadir19Nov_() {
         manual++;
       }
     }
-    const out={tanggalTarget:'2026-11-19',barisDiperiksa:checked,barisTerkirim:sentRows,tokenTerkirim:sentTokens,barisTanpaToken:noToken,periksaManual:manual,dedupeSkip:skipped,mode:'MANUAL_TERKONTROL'};
+    const out={tanggalTarget:TARGET_NOTIF_TANGGAL,barisDiperiksa:checked,barisTerkirim:sentRows,tokenTerkirim:sentTokens,barisTanpaToken:noToken,periksaManual:manual,dedupeSkip:skipped,mode:'HARIAN_TERKONTROL'};
     Logger.log(JSON.stringify(out));return out;
   } finally { lock.releaseLock(); }
 }
