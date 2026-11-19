@@ -100,14 +100,27 @@ function siapkanAntrianTidakHadir() {
         : []
     );
 
+    // UJI TERBATAS: hanya data tanggal 19 November 2026 yang boleh masuk antrean.
+    const TARGET_NOTIF_TANGGAL = '2026-11-19';
+    function normalisasiTanggalNotif_(nilai) {
+      const s = String(nilai || '').trim();
+      let m = s.match(/^(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})/);
+      if (m) return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
+      m = s.match(/^(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})$/);
+      if (m) return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+      return '';
+    }
+
     const baru = [];
 
     data.forEach(function(r) {
+      const tanggal = r[idx('tanggal')];
+      if (normalisasiTanggalNotif_(tanggal) !== TARGET_NOTIF_TANGGAL) return;
+
       const statusAbsensi = String(r[idx('status')] || '').trim().toLowerCase();
       // Ketidakhadiran berizin juga harus masuk antrean notifikasi wali.
       if (!['tidak hadir', 'izin pulang', 'izin sakit', 'izin keluar'].includes(statusAbsensi)) return;
 
-      const tanggal = r[idx('tanggal')];
       const kegiatan = r[idx('activity')];
       const sesi = r[idx('session')];
       const nis = r[idx('nis')];
@@ -136,6 +149,7 @@ function siapkanAntrianTidakHadir() {
 
     const hasil = {
       berhasil: true,
+      tanggalTarget: '2026-11-19',
       antreanBaru: baru.length,
       firebaseDikirim: false
     };
