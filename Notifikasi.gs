@@ -479,7 +479,7 @@ function kirimSatuNotifIzinAbsensiWali(kunciAntrean) {
       throw new Error('Antrean tidak berstatus PENDING: ' + statusKirim);
     }
 
-    const statusAbsensi = String(row[9] || '').replace(/^Status absensi:\\s*/i, '').split(' — ')[0].trim().toLowerCase();
+    const statusAbsensi = String(row[9] || '').replace(/^Status absensi:\s*/i, '').split(' — ')[0].trim().toLowerCase();
     const pesan = {
       'izin pulang': {
         title:'Informasi Izin Santri: Izin Pulang',
@@ -540,7 +540,7 @@ function kirimPendingTidakHadir19Nov_() {
       const row=values[i];
       if (String(row[1]||'').trim()!=='2026-11-19') continue;
       if (String(row[6]||'').trim().toUpperCase()!=='PENDING') continue;
-      const statusAbsensi=String(row[9]||'').replace(/^Status absensi:\\s*/i,'').split(' — ')[0].trim().toLowerCase();
+      const statusAbsensi=String(row[9]||'').replace(/^Status absensi:\s*/i,'').split(' — ')[0].trim().toLowerCase();
       if (!['tidak hadir','izin pulang','izin sakit','izin keluar'].includes(statusAbsensi)) continue;
       diproses++;
       const rowNum=i+1, nis=String(row[4]||'').trim(), nama=String(row[5]||'Santri');
