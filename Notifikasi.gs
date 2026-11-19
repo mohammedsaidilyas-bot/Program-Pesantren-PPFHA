@@ -524,7 +524,54 @@ function kirimSatuNotifIzinAbsensiWali(kunciAntrean) {
  * Tidak mengirim FCM massal; pengiriman tetap dikunci sampai jalur token/FCM diverifikasi.
  */
 function kirimAntrianNotifikasiWali() {
-  return siapkanAntrianTidakHadir();
+  // Siapkan antrean tanggal uji, lalu kirim antrean PENDING yang sudah ada.
+  siapkanAntrianTidakHadir();
+  return kirimPendingTidakHadir19Nov_();
+}
+
+function kirimPendingTidakHadir19Nov_() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = getNotifAbsenSheet_();
+    const values = sh.getDataRange().getDisplayValues();
+    let diproses=0, terkirim=0, tanpaToken=0, gagal=0;
+    for (let i=1;i<values.length;i++) {
+      const row=values[i];
+      if (String(row[1]||'').trim()!=='2026-11-19') continue;
+      if (String(row[6]||'').trim().toUpperCase()!=='PENDING') continue;
+      const statusAbsensi=String(row[9]||'').replace(/^Status absensi:\\s*/i,'').split(' — ')[0].trim().toLowerCase();
+      if (!['tidak hadir','izin pulang','izin sakit','izin keluar'].includes(statusAbsensi)) continue;
+      diproses++;
+      const rowNum=i+1, nis=String(row[4]||'').trim(), nama=String(row[5]||'Santri');
+      const tokens=cariTokenWaliUntukNis_(nis);
+      if(!tokens.length){tanpaToken++;sh.getRange(rowNum,10).setValue('PENDING: token aktif tidak ditemukan');continue;}
+      sh.getRange(rowNum,7).setValue('SEDANG_DIKIRIM');
+      sh.getRange(rowNum,10).setValue('Pengiriman FCM dimulai; jangan retry otomatis.');
+      SpreadsheetApp.flush();
+      let sukses=0, errs=[];
+      for(let t=0;t<tokens.length;t++){
+        try {
+          const kegiatan=String(row[2]||'')+(row[3]?' - '+row[3]:'');
+          const body=nama+' tercatat '+statusAbsensi+' pada '+kegiatan+' tanggal '+String(row[1])+'.';
+          const res=kirimFCMWali_(tokens[t],'Informasi Kehadiran Santri',body,{tipe:'ketidakhadiran',status:statusAbsensi,nis:nis,tanggal:String(row[1]),kegiatan:kegiatan});
+          sukses++;
+        } catch(e) { errs.push(String(e)); }
+      }
+      if(sukses===tokens.length){
+        sh.getRange(rowNum,7).setValue('TERKIRIM');
+        sh.getRange(rowNum,9).setValue(new Date());
+        sh.getRange(rowNum,10).setValue('FCM menerima pesan untuk '+sukses+' perangkat.');
+        terkirim++;
+      } else {
+        sh.getRange(rowNum,7).setValue('PERIKSA_MANUAL');
+        sh.getRange(rowNum,10).setValue('FCM sebagian/gagal ('+sukses+'/'+tokens.length+'): '+errs.join(' | ').slice(0,800));
+        gagal++;
+      }
+    }
+    const out={tanggalTarget:'2026-11-19',pendingDiproses:diproses,terkirim:terkirim, tanpaToken:tanpaToken,periksaManual:gagal};
+    Logger.log(JSON.stringify(out));return out;
+  } finally {lock.releaseLock();}
 }
 
 
