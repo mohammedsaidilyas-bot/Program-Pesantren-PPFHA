@@ -549,51 +549,90 @@ function kirimAntrianNotifikasiWali() {
   return hasil;
 }
 
+/**
+ * Sender manual TERKONTROL tanggal 19-11-2026.
+ * Tidak dipanggil oleh trigger. Dedup per event + token, dan hasil ambigu
+ * dikunci sebagai UNCERTAIN agar tidak retry otomatis (risiko pesan ganda).
+ */
 function kirimPendingTidakHadir19Nov_() {
   const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  if (!lock.tryLock(1000)) {
+    const out={berhasil:false,ditunda:true,alasan:'Lock sedang dipakai',firebaseDikirim:false};
+    Logger.log(JSON.stringify(out)); return out;
+  }
   try {
-    const sh = getNotifAbsenSheet_();
-    const values = sh.getDataRange().getDisplayValues();
-    let diproses=0, terkirim=0, tanpaToken=0, gagal=0;
-    for (let i=1;i<values.length;i++) {
+    const sh=getNotifAbsenSheet_();
+    const values=sh.getDataRange().getDisplayValues();
+    const logSS=SpreadsheetApp.openById(SPREADSHEET_ID);
+    let log=logSS.getSheetByName('PengirimanNotifikasiWali');
+    if(!log) throw new Error('Sheet PengirimanNotifikasiWali tidak ditemukan; sender dihentikan.');
+    if(log.getLastRow()===0 || String(log.getRange(1,1).getDisplayValue()).trim()!=='eventKey') {
+      throw new Error('Header log deduplikasi tidak dikenali. Sender dihentikan.');
+    }
+    if(log.getLastColumn()<5) log.getRange(1,4,1,2).setValues([['status','catatan']]);
+    const logData=log.getDataRange().getDisplayValues();
+    const seen=new Map();
+    for(let j=1;j<logData.length;j++){
+      const k=String(logData[j][0]||'').trim()+'|'+String(logData[j][1]||'').trim();
+      if(k!=='|') seen.set(k,String(logData[j][3]||'LEGACY').trim().toUpperCase());
+    }
+    let checked=0,sentRows=0,noToken=0,manual=0,sentTokens=0,skipped=0;
+    for(let i=1;i<values.length;i++){
       const row=values[i];
-      if (String(row[1]||'').trim()!=='2026-11-19') continue;
-      if (String(row[6]||'').trim().toUpperCase()!=='PENDING') continue;
+      if(String(row[1]||'').trim()!=='2026-11-19') continue;
+      if(String(row[6]||'').trim().toUpperCase()!=='PENDING') continue;
       const statusAbsensi=String(row[9]||'').replace(/^Status absensi:\s*/i,'').split(' — ')[0].trim().toLowerCase();
-      if (!['tidak hadir','izin pulang','izin sakit','izin keluar'].includes(statusAbsensi)) continue;
-      diproses++;
-      const rowNum=i+1, nis=String(row[4]||'').trim(), nama=String(row[5]||'Santri');
+      if(!['tidak hadir','izin pulang','izin sakit','izin keluar'].includes(statusAbsensi)) continue;
+      checked++;
+      const rowNum=i+1,nis=String(row[4]||'').trim(),nama=String(row[5]||'Santri');
       const tokens=cariTokenWaliUntukNis_(nis);
-      if(!tokens.length){tanpaToken++;sh.getRange(rowNum,10).setValue('PENDING: token aktif tidak ditemukan');continue;}
-      sh.getRange(rowNum,7).setValue('SEDANG_DIKIRIM');
-      sh.getRange(rowNum,10).setValue('Pengiriman FCM dimulai; jangan retry otomatis.');
-      SpreadsheetApp.flush();
-      let sukses=0, errs=[];
+      if(!tokens.length){noToken++;sh.getRange(rowNum,10).setValue('PENDING: token aktif tidak ditemukan');continue;}
+      const kegiatan=String(row[2]||'')+(row[3]?' - '+row[3]:'');
+      const body=nama+' tercatat '+statusAbsensi+' pada '+kegiatan+' tanggal '+String(row[1])+'.';
+      let tokenSuccess=0,tokenAmbiguous=0,tokenFail=0;
       for(let t=0;t<tokens.length;t++){
-        try {
-          const kegiatan=String(row[2]||'')+(row[3]?' - '+row[3]:'');
-          const body=nama+' tercatat '+statusAbsensi+' pada '+kegiatan+' tanggal '+String(row[1])+'.';
-          const res=kirimFCMWali_(tokens[t],'Informasi Kehadiran Santri',body,{tipe:'ketidakhadiran',status:statusAbsensi,nis:nis,tanggal:String(row[1]),kegiatan:kegiatan});
-          sukses++;
-        } catch(e) { errs.push(String(e)); }
+        const token=tokens[t];
+        const digest=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,token);
+        const tokenHash=digest.map(b=>('0'+((b<0?b+256:b).toString(16))).slice(-2)).join('');
+        const eventKey=String(row[0]||'').trim();
+        const dedupKey=eventKey+'|'+tokenHash;
+        const prior=seen.get(dedupKey);
+        if(prior){
+          skipped++;
+          if(prior==='SENT') tokenSuccess++;
+          else tokenAmbiguous++;
+          continue;
+        }
+        // Reservasi ditulis dan di-flush sebelum FCM. Timeout/hasil ambigu
+        // tidak boleh dicoba ulang otomatis.
+        const logRow=log.getLastRow()+1;
+        log.getRange(logRow,1,1,5).setValues([[eventKey,tokenHash,new Date(),'RESERVED','Attempt dimulai; retry otomatis dilarang']]);
+        SpreadsheetApp.flush();
+        seen.set(dedupKey,'RESERVED');
+        try{
+          const fcm=kirimFCMWali_(token,'Informasi Kehadiran Santri',body,{tipe:'ketidakhadiran',status:statusAbsensi,nis:nis,tanggal:String(row[1]),kegiatan:kegiatan});
+          log.getRange(logRow,4,1,2).setValues([['SENT',String(fcm.name||'accepted').slice(0,400)]]);
+          seen.set(dedupKey,'SENT');tokenSuccess++;sentTokens++;
+        }catch(err){
+          log.getRange(logRow,4,1,2).setValues([['UNCERTAIN',String(err).slice(0,400)]]);
+          seen.set(dedupKey,'UNCERTAIN');tokenFail++;
+        }
       }
-      if(sukses===tokens.length){
+      if(tokenSuccess===tokens.length){
         sh.getRange(rowNum,7).setValue('TERKIRIM');
         sh.getRange(rowNum,9).setValue(new Date());
-        sh.getRange(rowNum,10).setValue('FCM menerima pesan untuk '+sukses+' perangkat.');
-        terkirim++;
-      } else {
+        sh.getRange(rowNum,10).setValue('Log deduplikasi memastikan token terkirim/tercatat; token dipakai '+tokenSuccess+'.');
+        sentRows++;
+      }else{
         sh.getRange(rowNum,7).setValue('PERIKSA_MANUAL');
-        sh.getRange(rowNum,10).setValue('FCM sebagian/gagal ('+sukses+'/'+tokens.length+'): '+errs.join(' | ').slice(0,800));
-        gagal++;
+        sh.getRange(rowNum,10).setValue('Sebagian/ambigu: sukses '+tokenSuccess+', ambigu '+tokenAmbiguous+', gagal '+tokenFail+'. Retry otomatis dihentikan.');
+        manual++;
       }
     }
-    const out={tanggalTarget:'2026-11-19',pendingDiproses:diproses,terkirim:terkirim, tanpaToken:tanpaToken,periksaManual:gagal};
+    const out={tanggalTarget:'2026-11-19',barisDiperiksa:checked,barisTerkirim:sentRows,tokenTerkirim:sentTokens,barisTanpaToken:noToken,periksaManual:manual,dedupeSkip:skipped,mode:'MANUAL_TERKONTROL'};
     Logger.log(JSON.stringify(out));return out;
-  } finally {lock.releaseLock();}
+  } finally { lock.releaseLock(); }
 }
-
 
 // DIAGNOSTIK READ-ONLY: menelusuri data Absensi tanggal 19 Nov 2026.
 function diagnosaAbsensiNotif19Nov() {
