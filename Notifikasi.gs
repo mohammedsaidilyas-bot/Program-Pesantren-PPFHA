@@ -552,3 +552,26 @@ function diagnosaAbsensiNotif19Nov() {
   Logger.log(JSON.stringify(hasil));
   return hasil;
 }
+
+
+function diagnosaKunciAntrean19Nov() {
+  const ss=SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sumber=ss.getSheetByName('Absensi');
+  const tujuan=ss.getSheetByName(NOTIF_ABSEN_SHEET);
+  if(!sumber) throw new Error('Absensi tidak ditemukan');
+  if(!tujuan) throw new Error('Sheet antrean tidak ditemukan');
+  const d=sumber.getDataRange().getDisplayValues(), h=d.shift().map(String);
+  const ix=n=>h.indexOf(n);
+  const existing=tujuan.getLastRow()>1?new Set(tujuan.getRange(2,1,tujuan.getLastRow()-1,1).getDisplayValues().map(r=>String(r[0]))):new Set();
+  let eligible=0,already=0,missing=0,sample=[];
+  d.forEach(r=>{
+    if(String(r[ix('tanggal')]).trim()!=='2026-11-19')return;
+    if(String(r[ix('status')]).trim().toLowerCase()!=='tidak hadir')return;
+    eligible++;
+    const key=[r[ix('tanggal')],r[ix('activity')],r[ix('session')],r[ix('nis')]].join('|');
+    if(existing.has(key)){already++; if(sample.length<5)sample.push({key:'ADA',kunci:key});}
+    else {missing++; if(sample.length<12)sample.push({key:'BELUM ADA',kunci:key});}
+  });
+  const out={tanggal:'2026-11-19',tidakHadirEligible:eligible,kunciSudahAda:already,kunciBelumAda:missing,contohKunci:sample,readOnly:true};
+  Logger.log(JSON.stringify(out));return out;
+}
