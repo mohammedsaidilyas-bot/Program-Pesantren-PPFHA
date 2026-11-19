@@ -76,7 +76,11 @@ function tesNotifikasiTidakHadir() {
 // Aman dijalankan berulang karena memakai kunci unik.
 function siapkanAntrianTidakHadir() {
   const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  if (!lock.tryLock(1000)) {
+    const hasilTunda = {berhasil:false, ditunda:true, alasan:'Proses lain sedang memegang lock', firebaseDikirim:false};
+    Logger.log(JSON.stringify(hasilTunda));
+    return hasilTunda;
+  }
 
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -519,14 +523,30 @@ function kirimSatuNotifIzinAbsensiWali(kunciAntrean) {
 
 
 /**
- * ENTRY POINT trigger kirimAntrianNotifikasiWali.
- * Pemulihan fungsi yang hilang: membangun antrean notifikasi absensi.
- * Tidak mengirim FCM massal; pengiriman tetap dikunci sampai jalur token/FCM diverifikasi.
+ * ENTRY POINT: pemantauan antrean notifikasi (MODE AMAN).
+ * Tidak mengirim Firebase. Hanya menyiapkan antrean terbatas tanggal 19 Nov 2026
+ * dan melaporkan jumlah PENDING. Pengiriman harus dilakukan melalui uji satu wali
+ * setelah jalur token dan FCM diverifikasi.
  */
 function kirimAntrianNotifikasiWali() {
-  // Siapkan antrean tanggal uji, lalu kirim antrean PENDING yang sudah ada.
-  siapkanAntrianTidakHadir();
-  return kirimPendingTidakHadir19Nov_();
+  const hasilAntrean = siapkanAntrianTidakHadir();
+  const sh = getNotifAbsenSheet_();
+  const rows = sh.getDataRange().getDisplayValues();
+  let pending = 0;
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][1] || '').trim() === '2026-11-19' &&
+        String(rows[i][6] || '').trim().toUpperCase() === 'PENDING') pending++;
+  }
+  const hasil = {
+    berhasil: true,
+    mode: 'AMAN_TANPA_PENGIRIMAN',
+    tanggalTarget: '2026-11-19',
+    antreanBaru: hasilAntrean.antreanBaru || 0,
+    pending: pending,
+    firebaseDikirim: false
+  };
+  Logger.log(JSON.stringify(hasil));
+  return hasil;
 }
 
 function kirimPendingTidakHadir19Nov_() {
