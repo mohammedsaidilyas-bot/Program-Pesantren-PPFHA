@@ -153,7 +153,7 @@ function siapkanAntrianTidakHadir() {
 
     const hasil = {
       berhasil: true,
-      tanggalTarget: '2026-11-19',
+      tanggalTarget: TARGET_NOTIF_TANGGAL,
       antreanBaru: baru.length,
       firebaseDikirim: false
     };
