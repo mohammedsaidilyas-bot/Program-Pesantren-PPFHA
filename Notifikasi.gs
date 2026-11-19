@@ -548,7 +548,16 @@ function kirimAntrianNotifikasiWali() {
  * Tidak dipanggil oleh trigger. Dedup per event + token, dan hasil ambigu
  * dikunci sebagai UNCERTAIN agar tidak retry otomatis (risiko pesan ganda).
  */
-function normalisasiTanggalNotifSender_(nilai) {\n  const s=String(nilai||'').trim();\n  let m=s.match(/^(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})/);\n  if(m)return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);\n  m=s.match(/^(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})$/);\n  if(m)return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);\n  return '';\n}\n\nfunction kirimPendingTidakHadirHarian_() {
+function normalisasiTanggalNotifSender_(nilai) {
+  const s=String(nilai||'').trim();
+  let m=s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if(m)return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+  m=s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if(m)return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+  return '';
+}
+
+function kirimPendingTidakHadirHarian_() {
   const TARGET_NOTIF_TANGGAL = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(1000)) {
