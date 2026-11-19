@@ -502,3 +502,13 @@ function kirimSatuNotifIzinAbsensiWali(kunciAntrean) {
     lock.releaseLock();
   }
 }
+
+
+/**
+ * ENTRY POINT trigger kirimAntrianNotifikasiWali.
+ * Pemulihan fungsi yang hilang: membangun antrean notifikasi absensi.
+ * Tidak mengirim FCM massal; pengiriman tetap dikunci sampai jalur token/FCM diverifikasi.
+ */
+function kirimAntrianNotifikasiWali() {
+  return siapkanAntrianTidakHadir();
+}
