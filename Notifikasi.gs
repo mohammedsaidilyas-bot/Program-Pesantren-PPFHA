@@ -575,3 +575,36 @@ function diagnosaKunciAntrean19Nov() {
   const out={tanggal:'2026-11-19',tidakHadirEligible:eligible,kunciSudahAda:already,kunciBelumAda:missing,contohKunci:sample,readOnly:true};
   Logger.log(JSON.stringify(out));return out;
 }
+
+/**
+ * Uji terkendali: kirim hanya 1 notifikasi Tidak Hadir
+ * untuk NIS 20260001 (Maghrib, 19 Nov 2026), memakai 1 token.
+ */
+function ujiKirimTidakHadirSatuWali19Nov() {
+  const key = '2026-11-19|jamaah|Maghrib|20260001';
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = getNotifAbsenSheet_();
+    const values = sh.getDataRange().getDisplayValues();
+    let rowNumber=-1, row=null;
+    for (let i=1;i<values.length;i++) {
+      if (String(values[i][0]||'').trim()===key) { rowNumber=i+1; row=values[i]; break; }
+    }
+    if (!row) throw new Error('Kunci uji tidak ditemukan: '+key);
+    if (String(row[6]||'').trim().toUpperCase()!=='PENDING') throw new Error('Status harus PENDING. Terbaca: '+row[6]);
+    const statusAbsensi=String(row[9]||'').replace(/^Status absensi:\s*/i,'').split(' — ')[0].trim().toLowerCase();
+    if(statusAbsensi!=='tidak hadir') throw new Error('Status bukan Tidak Hadir: '+statusAbsensi);
+    const tokens=cariTokenWaliUntukNis_(String(row[4]));
+    if(!tokens.length) throw new Error('Token aktif wali tidak ditemukan untuk NIS '+row[4]);
+    const pesan={
+      title:'Informasi Kehadiran Santri',
+      body:String(row[5]||'Santri')+' tercatat Tidak Hadir pada '+String(row[2]||'')+(row[3]?' - '+row[3]:'')+' tanggal '+String(row[1]||'')+'.'
+    };
+    const hasil=kirimFCMWali_(tokens[0],pesan.title,pesan.body,{tipe:'ketidakhadiran',status:'tidak hadir',nis:String(row[4]),tanggal:String(row[1]),kegiatan:String(row[2]),sesi:String(row[3])});
+    sh.getRange(rowNumber,7).setValue('TERKIRIM');
+    sh.getRange(rowNumber,9).setValue(new Date());
+    sh.getRange(rowNumber,10).setValue('FCM sukses: '+(hasil.name||'message accepted')+'; uji satu token.');
+    return {berhasil:true,firebaseDikirim:true,nis:String(row[4]),nama:String(row[5]),tokenDipakai:1,message:hasil.name||''};
+  } finally { lock.releaseLock(); }
+}
