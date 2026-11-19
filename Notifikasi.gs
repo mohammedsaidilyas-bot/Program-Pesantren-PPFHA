@@ -273,6 +273,7 @@ function kirimFCMWali_(token, title, body, dataTambahan) {
  * Menandai baris TERKIRIM hanya setelah Firebase merespons sukses.
  */
 function kirimSatuNotifAsharAditya() {
+  throw new Error('Pengiriman uji tanggal lama dinonaktifkan. Jalur ini hanya mengizinkan tanggal aktif WIB.');
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
 
@@ -355,6 +356,7 @@ function cekNotifMaghribAditya() {
  * Jika gagal/timeout, status PERIKSA_MANUAL untuk mencegah kirim ganda.
  */
 function kirimNotifMaghribAditya() {
+  throw new Error('Pengiriman uji tanggal lama dinonaktifkan. Jalur ini hanya mengizinkan tanggal aktif WIB.');
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -457,6 +459,9 @@ function cekNotifPengumuman() {
  */
 function kirimSatuNotifIzinAbsensiWali(kunciAntrean) {
   const key = String(kunciAntrean || '').trim();
+  const tanggalKey = key.split('|')[0];
+  const targetHariIni = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
+  if (normalisasiTanggalNotifSender_(tanggalKey) !== targetHariIni) throw new Error('Pengiriman manual hanya diizinkan untuk tanggal aktif WIB: '+targetHariIni);
   if (!key) throw new Error('Isi kunci antrean yang akan diuji.');
 
   const lock = LockService.getScriptLock();
@@ -677,6 +682,7 @@ function diagnosaKunciAntrean19Nov() {
  * untuk NIS 20260001 (Maghrib, 19 Nov 2026), memakai 1 token.
  */
 function ujiKirimTidakHadirSatuWali19Nov() {
+  throw new Error('Pengiriman uji tanggal lama dinonaktifkan. Jalur ini hanya mengizinkan tanggal aktif WIB.');
   const key = '2026-11-19|jamaah|Maghrib|20260001';
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
