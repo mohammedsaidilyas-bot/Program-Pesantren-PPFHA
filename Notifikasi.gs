@@ -104,9 +104,9 @@ function siapkanAntrianTidakHadir() {
     const TARGET_NOTIF_TANGGAL = '2026-11-19';
     function normalisasiTanggalNotif_(nilai) {
       const s = String(nilai || '').trim();
-      let m = s.match(/^(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})/);
+      let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
       if (m) return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
-      m = s.match(/^(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})$/);
+      m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
       if (m) return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
       return '';
     }
