@@ -25,7 +25,7 @@ function doPost(e){
     const data=rows.filter(r=>String(r[0]||'').trim()).map(r=>({nis:String(r[0]),descriptor:JSON.parse(String(r[1]||'[]'))}));
     return faceOutput_({ok:true,data});
    }
-   const nis=String(x.nis||body.nis||'').trim().replace(/\\D/g,'');
+   const nis=String(x.nis||body.nis||'').trim().replace(/\D/g,'');
    if(!nis||nis.length>20)return faceOutput_({ok:false,error:'NIS tidak valid.'});
    if(action==='faceenroll'){
     const d=x.descriptor;
