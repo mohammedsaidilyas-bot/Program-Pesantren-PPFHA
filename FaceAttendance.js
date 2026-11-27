@@ -5,7 +5,7 @@
 (function(){
 'use strict';
 const STORE='ppfha_face_descriptors_v1',MODEL='https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights/';
-let stream=null,video=null,canvas=null,mode='recognize',busy=false,loopTimer=null,modal=null;
+let stream=null,video=null,canvas=null,mode='recognize',busy=false,loopTimer=null,modal=null,enrollPauseUntil=0;
 function getDB(){try{return JSON.parse(localStorage.getItem(STORE)||'{}')}catch(e){return {}}}
 function setDB(db){localStorage.setItem(STORE,JSON.stringify(db))}
 function close(){if(loopTimer)clearTimeout(loopTimer);loopTimer=null;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;if(modal)modal.remove();modal=null;video=null;canvas=null;busy=false}
@@ -32,15 +32,15 @@ async function enroll(){
  if(busy)return;busy=true;const msg=modal.querySelector('#faceMsg');
  try{const nis=modal.querySelector('#faceNis').value.trim();if(!nis){msg.textContent='Masukkan NIS terlebih dahulu.';return}
  const result=await detect();if(!result){msg.textContent='Wajah belum terdeteksi. Posisikan wajah dengan pencahayaan baik.';return}
- const db=getDB();db[nis]=Array.from(result.descriptor);setDB(db);msg.textContent='Descriptor wajah NIS '+nis+' tersimpan pada perangkat ini.'; 
+ const db=getDB();db[nis]=Array.from(result.descriptor);setDB(db);enrollPauseUntil=Date.now()+15000;msg.textContent='Descriptor wajah NIS '+nis+' tersimpan pada perangkat ini. Pendaftaran tidak otomatis mencatat kehadiran; tunggu 15 detik atau tutup modul.'; 
  }catch(e){msg.textContent='Pendaftaran gagal: '+e.message}finally{busy=false}
 }
 async function recognitionLoop(){
- if(!modal||busy)return;try{
+ if(!modal||busy)return;if(Date.now()<enrollPauseUntil){loopTimer=setTimeout(recognitionLoop,900);return;}try{
  const result=await detect();if(result){
  const db=getDB(),entries=Object.entries(db);if(entries.length){
  let best={nis:null,distance:1};entries.forEach(([nis,descriptor])=>{const distance=window.faceapi.euclideanDistance(result.descriptor,new Float32Array(descriptor));if(distance<best.distance)best={nis,distance}});
- if(best.distance<.48){busy=true;const msg=modal.querySelector('#faceMsg');msg.textContent='Wajah cocok: NIS '+best.nis+' — mencatat kehadiran…';close();if(typeof window.recordAttendanceScan==='function')await window.recordAttendanceScan(best.nis,window.currentAttendanceActivity,new Date().toISOString());else alert('Fungsi pencatat absensi belum tersedia.');busy=false;return}
+ if(best.distance<.42){busy=true;const msg=modal.querySelector('#faceMsg');msg.textContent='Wajah cocok: NIS '+best.nis+' — mencatat kehadiran…';close();if(typeof window.recordAttendanceScan==='function')await window.recordAttendanceScan(best.nis,window.currentAttendanceActivity,new Date().toISOString());else alert('Fungsi pencatat absensi belum tersedia.');busy=false;return}
  modal.querySelector('#faceMsg').textContent='Wajah belum cocok. Jarak terbaik '+best.distance.toFixed(2)+'; coba lagi atau scan KTS.';
  }else modal.querySelector('#faceMsg').textContent='Belum ada wajah terdaftar di perangkat ini. Masukkan NIS dan daftarkan wajah.'}
  }catch(e){if(modal)modal.querySelector('#faceMsg').textContent='Pengenalan gagal: '+e.message}
