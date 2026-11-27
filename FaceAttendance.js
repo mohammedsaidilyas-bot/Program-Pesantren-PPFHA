@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const API='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbKFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
+const API='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbFFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
 const MODEL='https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights/';
 let stream=null,video=null,loopTimer=null,modal=null,busy=false,enrollPauseUntil=0,descriptors=[];
 function close(){if(loopTimer)clearTimeout(loopTimer);loopTimer=null;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;if(modal)modal.remove();modal=null;video=null;busy=false}
