@@ -147,7 +147,22 @@ function doGet(e) {
 }
 
 /** POST JSON: {action:"izin|pengumuman|kegiatan",apiKey:"...",data:{...}} */
-function doPost(e) {
+function handleFaceEnrollment_(body, action) {
+  const key=PropertiesService.getScriptProperties().getProperty('FACE_API_KEY');
+  if(!key||!body.apiKey||body.apiKey!==key)return output_({ok:false,error:'Akses wajah ditolak.'});
+  const x=body.data||{},ss=SpreadsheetApp.openById('1JdBEnLlJHeIlb8XI8OoqzxTj84wYGkU2Hr0ySq6p6gA');
+  const headers=['nis','descriptor','consent','consentAt','updatedAt'];let sh=ss.getSheetByName('FaceDescriptors');
+  if(!sh){sh=ss.insertSheet('FaceDescriptors');sh.getRange(1,1,1,headers.length).setValues([headers]);sh.setFrozenRows(1);}
+  const lock=LockService.getScriptLock();lock.waitLock(15000);
+  try{
+    const rows=sh.getLastRow()>1?sh.getRange(2,1,sh.getLastRow()-1,headers.length).getValues():[];
+    if(action==='facelist')return output_({ok:true,data:rows.filter(r=>String(r[0]||'').trim()).map(r=>({nis:String(r[0]),descriptor:JSON.parse(String(r[1]||'[]'))}))});
+    const nis=String(x.nis||body.nis||'').trim().replace(/\D/g,'');if(!nis||nis.length>20)return output_({ok:false,error:'NIS tidak valid.'});
+    if(action==='faceenroll'){const d=x.descriptor;if(x.consent!==true||!x.consentAt)return output_({ok:false,error:'Persetujuan wajib.'});if(!Array.isArray(d)||d.length!==128||d.some(v=>!isFinite(Number(v))))return output_({ok:false,error:'Descriptor tidak valid.'});const idx=rows.findIndex(r=>String(r[0]).trim()===nis),row=[nis,JSON.stringify(d.map(Number)),true,String(x.consentAt),new Date()];if(idx>=0)sh.getRange(idx+2,1,1,headers.length).setValues([row]);else sh.appendRow(row);return output_({ok:true,message:'Pendaftaran descriptor berhasil disimpan untuk NIS '+nis+'.'});}
+    const idx=rows.findIndex(r=>String(r[0]).trim()===nis);if(idx<0)return output_({ok:true,deleted:false,message:'Data pendaftaran tidak ditemukan.'});sh.deleteRow(idx+2);return output_({ok:true,deleted:true,message:'Data descriptor dihapus.'});
+  }finally{lock.releaseLock();}
+}
+\nfunction doPost(e) {
   try {
     const body = parseBody_(e);
     const savedKey = PropertiesService.getScriptProperties().getProperty('ADMIN_API_KEY');
