@@ -22,11 +22,19 @@ async function start(){
  await Promise.all([window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL),window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL),window.faceapi.nets.faceRecognitionNet.loadFromUri(MODEL)]);
  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;await new Promise(resolve=>video.onloadedmetadata=resolve);await video.play();
  msg.textContent='Kamera aktif. Membaca database wajah Google…';
- const key=prompt('Masukkan kunci pengurus untuk memuat data pendaftaran wajah (tidak disimpan):');if(!key){msg.textContent='Kunci tidak dimasukkan. Kamera tetap aktif, pendaftaran belum dapat dilakukan.';recognitionLoop();return}
- const res=await request('faceList',{},key);if(!res.ok)throw new Error(res.error||'Gagal memuat daftar wajah');
- descriptors=Array.isArray(res.data)?res.data:[];
- msg.textContent='Kamera aktif. '+descriptors.length+' wajah terdaftar. Arahkan wajah dengan pencahayaan cukup.';
- recognitionLoop();
+ // Kamera/model tidak bergantung pada isi database. Database kosong adalah kondisi normal.
+ const key=prompt('Masukkan kunci pengurus untuk memuat data pendaftaran wajah (tidak disimpan):');
+ if(!key){descriptors=[];msg.textContent='Kamera aktif. Database belum dimuat; pendaftaran baru tetap dapat dilakukan. Untuk pengenalan, muat daftar wajah dengan membuka ulang portal.';return}
+ try {
+   const res=await request('faceList',{},key);
+   if(!res||res.ok!==true)throw new Error((res&&res.error)||'Server tidak mengonfirmasi daftar wajah.');
+   descriptors=Array.isArray(res.data)?res.data:[];
+   msg.textContent='Kamera aktif. '+descriptors.length+' wajah terdaftar. '+(descriptors.length===0?'Database kosong—silakan daftarkan santri pertama.':'Arahkan wajah dengan pencahayaan cukup.');
+   recognitionLoop();
+ } catch(listErr) {
+   descriptors=[];
+   msg.textContent='Kamera aktif, tetapi daftar wajah gagal dimuat ('+listErr.message+'). Pendaftaran baru tetap bisa dicoba; absensi pengenalan belum aktif.';
+ }
  }catch(e){msg.textContent='Kamera/model/data gagal: '+e.message+' (periksa izin kamera dan koneksi).'}
 }
 async function detect(){return window.faceapi.detectSingleFace(video,new window.faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.5})).withFaceLandmarks().withFaceDescriptor()}
