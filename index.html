@@ -207,7 +207,7 @@
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
  else init();
 })();
-</script><script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script><script src="FaceAttendance.js?v=4"></script><script src="FaceLocalStorageSync.js?v=4"></script><script>document.addEventListener("DOMContentLoaded",function(){var start=document.getElementById("startFaceAttendance");if(start&&!document.getElementById("syncOldFaces")){var b=document.createElement("button");b.id="syncOldFaces";b.type="button";b.className="secondary";b.style.marginTop="10px";b.textContent="↥ Sinkronkan data wajah lama";b.onclick=function(){if(window.FaceLocalStorageSync)window.FaceLocalStorageSync.open();else alert("Modul sinkronisasi belum dimuat.");};start.insertAdjacentElement("afterend",b);}});</script><script>
+</script><script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script><script src="FaceAttendance.js?v=5"></script><script src="FaceLocalStorageSync.js?v=5"></script><script>document.addEventListener("DOMContentLoaded",function(){var start=document.getElementById("startFaceAttendance");if(start&&!document.getElementById("syncOldFaces")){var b=document.createElement("button");b.id="syncOldFaces";b.type="button";b.className="secondary";b.style.marginTop="10px";b.textContent="↥ Sinkronkan data wajah lama";b.onclick=function(){if(window.FaceLocalStorageSync)window.FaceLocalStorageSync.open();else alert("Modul sinkronisasi belum dimuat.");};start.insertAdjacentElement("afterend",b);}});</script><script>
 (function(){
  function addFaceExportLauncher(){
   if(document.getElementById('faceExportLauncher'))return;
