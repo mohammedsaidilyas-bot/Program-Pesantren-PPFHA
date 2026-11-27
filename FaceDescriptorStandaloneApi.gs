@@ -1,9 +1,9 @@
 /**
- * Endpoint standalone khusus FaceDescriptors.
- * COPY FILE INI + FaceDatabaseConnector.gs KE PROYEK APPS SCRIPT TERPISAH.
- * Deploy sebagai Web App; jangan ditempel ke proyek yang sudah memiliki doPost(e).
+ * Handler khusus FaceDescriptors.
+ * TANPA doPost/doGet agar tidak bentrok dengan handler utama.
+ * Panggil dari doPost/doGet utama menggunakan action faceList/faceEnroll/faceDelete.
  */
-function doPost(e) {
+function faceDescriptorApiPostHandler_(e) {
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     const action = String(body.action || '').toLowerCase();
@@ -19,8 +19,8 @@ function doPost(e) {
     return faceStandaloneOutput_({ok:false,error:String(err && err.message || err)});
   }
 }
-function doGet() {
-  return faceStandaloneOutput_({ok:true,message:'FaceDescriptors API aktif.'});
+function faceDescriptorApiGetHandler_() {
+  return faceStandaloneOutput_({ok:true,message:'FaceDescriptors handler tersedia.'});
 }
 function faceStandaloneOutput_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
