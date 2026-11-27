@@ -1,9 +1,10 @@
 /**
- * Handler khusus FaceDescriptors.
- * TANPA doPost/doGet agar tidak bentrok dengan handler utama.
- * Panggil dari doPost/doGet utama menggunakan action faceList/faceEnroll/faceDelete.
+ * HANDLER KHUSUS FaceDescriptor (nama unik, tidak bentrok Code.gs utama).
+ * Fungsi ini tidak otomatis menjadi endpoint Web App.
+ * Untuk endpoint, gunakan dispatcher dari doPost/doGet utama,
+ * atau deploy project terpisah yang memiliki handler doPost/doGet standar.
  */
-function faceDescriptorApiPostHandler_(e) {
+function doPostFaceDescriptor(e) {
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     const action = String(body.action || '').toLowerCase();
@@ -19,8 +20,8 @@ function faceDescriptorApiPostHandler_(e) {
     return faceStandaloneOutput_({ok:false,error:String(err && err.message || err)});
   }
 }
-function faceDescriptorApiGetHandler_() {
-  return faceStandaloneOutput_({ok:true,message:'FaceDescriptors handler tersedia.'});
+function doGetFaceDescriptor() {
+  return faceStandaloneOutput_({ok:true,message:'FaceDescriptor handler aktif.'});
 }
 function faceStandaloneOutput_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
