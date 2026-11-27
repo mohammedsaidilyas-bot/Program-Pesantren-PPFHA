@@ -147,14 +147,31 @@ function doGet(e) {
 }
 
 /** POST JSON: {action:"izin|pengumuman|kegiatan",apiKey:"...",data:{...}} */
+function handleFaceEnrollment_(body, action) {
+  const key=PropertiesService.getScriptProperties().getProperty('FACE_API_KEY');
+  if(!key||!body.apiKey||!constantTimeEquals_(String(body.apiKey),key))
+    return output_({ok:false,error:'Akses wajah ditolak.'});
+  try {
+    const x=body.data||body;
+    if(action==='facelist') return output_({ok:true,data:faceDbConnectorList_()});
+    if(action==='faceenroll') return output_(faceDbConnectorSave_(x));
+    if(action==='facedelete') return output_(faceDbConnectorDelete_(x.nis||body.nis));
+    return output_({ok:false,error:'Action wajah tidak dikenal.'});
+  } catch(err) {
+    return output_({ok:false,error:String(err.message||err)});
+  }
+}
+
 function doPost(e) {
   try {
     const body = parseBody_(e);
+    const action = String(body.action||'').toLowerCase();
+    // Face actions authenticate independently using FACE_API_KEY and write to the central FaceDescriptors sheet.
+    if (action === 'faceenroll' || action === 'facelist' || action === 'facedelete') return handleFaceEnrollment_(body, action);
     const savedKey = PropertiesService.getScriptProperties().getProperty('ADMIN_API_KEY');
     if (!savedKey) return output_({ok:false,error:'ADMIN_API_KEY belum disetel di Script Properties; penulisan dinonaktifkan.'});
     if (!body.apiKey || !constantTimeEquals_(String(body.apiKey),savedKey))
       return output_({ok:false,error:'Akses ditolak: kunci pengurus tidak valid.'});
-    const action = String(body.action||'').toLowerCase();
     if (action === 'saveeducationraport') {
       const records = Array.isArray(body.records) ? body.records : [];
       if (!records.length) return output_({ok:false,error:'Tidak ada nilai raport untuk disimpan.'});
