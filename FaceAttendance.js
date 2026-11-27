@@ -1,7 +1,4 @@
-/* FaceAttendance.js — face enrollment central branch prototype.
- * Enrollment stores descriptors centrally in Apps Script. QR/KTS remains fallback.
- * Do not use in production until biometric consent/retention and anti-spoof controls are reviewed.
- */
+/* FaceAttendance.js — direct central Google Sheets enrollment. */
 (function(){
 'use strict';
 const API='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbFFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
@@ -16,15 +13,15 @@ function open(){
  if(!window.currentAttendanceActivity){alert('Buka portal kegiatan absensi terlebih dahulu.');return}
  if(!window.faceapi){alert('Library pengenalan wajah belum berhasil dimuat. Periksa internet lalu coba kembali.');return}
  modal=document.createElement('div');modal.style.cssText='position:fixed;inset:0;z-index:100000;background:#0b1720eF;display:flex;align-items:center;justify-content:center;padding:14px;color:white';
- modal.innerHTML='<div style="background:#13232e;border:1px solid #36515f;border-radius:20px;padding:18px;width:min(100%,560px);max-height:95vh;overflow:auto"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Absensi Wajah</h2><button id="faceClose" style="font-size:24px">×</button></div><p style="color:#c4d6df">Arahkan wajah ke kamera. Masukkan NIS untuk pendaftaran.</p><video id="faceVideo" autoplay muted playsinline style="width:100%;border-radius:14px;background:#000;margin-top:10px"></video><div style="display:flex;gap:8px;margin-top:12px"><input id="faceNis" inputmode="numeric" placeholder="NIS santri" style="min-width:0;flex:1;padding:12px;border-radius:10px"><button id="faceEnroll" style="padding:12px;border-radius:10px">Daftarkan wajah</button></div><button id="syncOldFacesInside" type="button" style="margin-top:10px;padding:10px;border-radius:10px;width:100%">↥ Sinkronkan data wajah lama ke Google Sheet</button><label style="display:flex;gap:9px;align-items:flex-start;margin-top:12px;font-size:13px;color:#d4e3e8"><input id="faceConsent" type="checkbox" style="margin-top:3px">Saya menyatakan santri telah diberi penjelasan dan menyetujui pendaftaran biometrik secara sukarela. Absensi KTS tetap tersedia sebagai alternatif.</label><div id="faceMsg" style="padding:12px;color:#b9e3cf">Memuat model dan data pendaftaran…</div><div style="font-size:12px;color:#a9bdc9">Data descriptor disimpan di server. Prototipe ini belum dilengkapi liveness/anti-spoofing; jangan gunakan untuk keputusan disiplin tanpa verifikasi petugas.</div></div>';
- document.body.appendChild(modal);video=modal.querySelector('#faceVideo');modal.querySelector('#faceClose').onclick=close;modal.querySelector('#faceEnroll').onclick=enroll;modal.querySelector('#syncOldFacesInside').onclick=function(){if(window.FaceLocalStorageSync&&window.FaceLocalStorageSync.open)window.FaceLocalStorageSync.open();else alert("Modul sinkronisasi belum dimuat. Muat ulang halaman.");};start();
+ modal.innerHTML='<div style="background:#13232e;border:1px solid #36515f;border-radius:20px;padding:18px;width:min(100%,560px);max-height:95vh;overflow:auto"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Absensi Wajah</h2><button id="faceClose" style="font-size:24px">×</button></div><p style="color:#c4d6df">Arahkan wajah ke kamera. Masukkan NIS untuk pendaftaran.</p><video id="faceVideo" autoplay muted playsinline style="width:100%;border-radius:14px;background:#000;margin-top:10px"></video><div style="display:flex;gap:8px;margin-top:12px"><input id="faceNis" inputmode="numeric" placeholder="NIS santri" style="min-width:0;flex:1;padding:12px;border-radius:10px"><button id="faceEnroll" style="padding:12px;border-radius:10px">Daftarkan wajah</button></div><label style="display:flex;gap:9px;align-items:flex-start;margin-top:12px;font-size:13px;color:#d4e3e8"><input id="faceConsent" type="checkbox" style="margin-top:3px">Saya menyatakan santri telah diberi penjelasan dan menyetujui pendaftaran biometrik secara sukarela. Absensi KTS tetap tersedia sebagai alternatif.</label><div id="faceMsg" style="padding:12px;color:#b9e3cf">Memuat kamera dan database wajah Google…</div><div style="font-size:12px;color:#a9bdc9">Pendaftaran wajah disimpan langsung ke Google Sheets database pusat. Absensi KTS tetap tersedia sebagai alternatif.</div></div>';
+ document.body.appendChild(modal);video=modal.querySelector('#faceVideo');modal.querySelector('#faceClose').onclick=close;modal.querySelector('#faceEnroll').onclick=enroll;start();
 }
 async function start(){
  const msg=modal.querySelector('#faceMsg');
  try{
  await Promise.all([window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL),window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL),window.faceapi.nets.faceRecognitionNet.loadFromUri(MODEL)]);
  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;await new Promise(resolve=>video.onloadedmetadata=resolve);await video.play();
- msg.textContent='Kamera aktif. Memuat daftar wajah terdaftar…';
+ msg.textContent='Kamera aktif. Membaca database wajah Google…';
  const key=prompt('Masukkan kunci pengurus untuk memuat data pendaftaran wajah (tidak disimpan):');if(!key){msg.textContent='Kunci tidak dimasukkan. Kamera tetap aktif, pendaftaran belum dapat dilakukan.';recognitionLoop();return}
  const res=await request('faceList',{},key);if(!res.ok)throw new Error(res.error||'Gagal memuat daftar wajah');
  descriptors=Array.isArray(res.data)?res.data:[];
