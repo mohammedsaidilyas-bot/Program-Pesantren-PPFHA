@@ -1,32 +1,39 @@
-/* FaceLocalStorageSync.js
- * Manual migration helper: browser-local face descriptors -> central FaceDescriptors API.
- * Does NOT delete local records. Requires operator confirmation that records were collected with consent.
- * Add this file to the face enrollment page and invoke FaceLocalStorageSync.open().
+/* FaceLocalStorageSync.js — safe migration from browser storage to central Sheet.
+ * Diagnostic-first; does not erase browser records.
  */
 (function(){
 'use strict';
 const API='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbFFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
 function normalizeNis(v){return String(v==null?'':v).trim().replace(/\\D/g,'');}
+function isDescriptor(v){return Array.isArray(v)&&v.length===128&&v.every(x=>x!==null&&x!==''&&isFinite(Number(x)));}
 function findRecords(){
- const found=[],seen=new Set();
- function walk(value,depth){
-  if(depth>7||!value)return;
-  if(Array.isArray(value)){
-   if(value.length===128&&value.every(x=>typeof x==='number'||!isNaN(Number(x))))return;
-   value.forEach(v=>walk(v,depth+1));return;
-  }
+ const found=new Map(),diagnostics=[];
+ function walk(value,depth,inheritedNis,keyHint){
+  if(depth>10||value==null)return;
+  if(Array.isArray(value)){value.forEach((v,i)=>walk(v,depth+1,inheritedNis,keyHint+'['+i+']'));return;}
   if(typeof value!=='object')return;
-  const nis=normalizeNis(value.nis||value.NIS||value.idSantri||value.studentId);
-  let d=value.descriptor||value.faceDescriptor||value.descriptors||value.embedding||value.vector;
-  if(Array.isArray(d)&&d.length===128&&nis&&!seen.has(nis)){
-   seen.add(nis);found.push({nis,descriptor:d.map(Number)});return;
+  const candidateNis=normalizeNis(value.nis||value.NIS||value.idSantri||value.studentId||value.nomorInduk||inheritedNis);
+  const keys=Object.keys(value);
+  for(const k of keys){
+   const v=value[k];
+   if(isDescriptor(v)&&candidateNis&&!found.has(candidateNis)){found.set(candidateNis,{nis:candidateNis,descriptor:v.map(Number)});}
+   else if(isDescriptor(v)&&!candidateNis){diagnostics.push('Descriptor ditemukan tanpa NIS pada '+keyHint+'.'+k);}
+   else walk(v,depth+1,candidateNis,keyHint+'.'+k);
   }
-  Object.values(value).forEach(v=>walk(v,depth+1));
+  const d=value.descriptor||value.faceDescriptor||value.embedding||value.vector;
+  if(isDescriptor(d)&&candidateNis&&!found.has(candidateNis))found.set(candidateNis,{nis:candidateNis,descriptor:d.map(Number)});
+  if(Array.isArray(value.descriptors)&&value.descriptors.length===128&&candidateNis&&isDescriptor(value.descriptors)&&!found.has(candidateNis))found.set(candidateNis,{nis:candidateNis,descriptor:value.descriptors.map(Number)});
  }
  for(let i=0;i<localStorage.length;i++){
-  const k=localStorage.key(i);try{walk(JSON.parse(localStorage.getItem(k)),0);}catch(_){}
+  const k=localStorage.key(i),raw=localStorage.getItem(k);
+  try{
+   const parsed=JSON.parse(raw);
+   const keyNis=normalizeNis((k.match(/\\d{5,}/)||[])[0]||'');
+   walk(parsed,0,keyNis,k);
+   if(parsed&&Array.isArray(parsed)&&isDescriptor(parsed)&&keyNis&&!found.has(keyNis))found.set(keyNis,{nis:keyNis,descriptor:parsed.map(Number)});
+  }catch(_){}
  }
- return found;
+ return {records:Array.from(found.values()),diagnostics,keys:Array.from({length:localStorage.length},(_,i)=>localStorage.key(i))};
 }
 async function send(rec,key){
  const payload={action:'faceEnroll',apiKey:key,data:{nis:rec.nis,descriptor:rec.descriptor,consent:true,consentAt:new Date().toISOString()}};
@@ -34,22 +41,22 @@ async function send(rec,key){
  return response.json();
 }
 function open(){
- const records=findRecords();
+ const scan=findRecords(),records=scan.records;
  const box=document.createElement('div');box.style.cssText='position:fixed;inset:0;z-index:999999;background:#06121deE;color:white;display:flex;align-items:center;justify-content:center;padding:12px';
- box.innerHTML='<div style="background:#142533;padding:20px;border-radius:16px;width:min(600px,100%);max-height:90vh;overflow:auto"><h2>Sinkronisasi data wajah lama</h2><p id="fsInfo"></p><p id="fsList" style="max-height:35vh;overflow:auto"></p><label style="display:block;margin:12px 0"><input type="checkbox" id="fsConsent"> Saya memastikan data yang akan disinkronkan telah dikumpulkan dengan persetujuan yang sah.</label><button id="fsGo" style="padding:12px">Kirim ke database pusat</button> <button id="fsClose" style="padding:12px">Tutup</button><p id="fsStatus"></p></div>';
+ box.innerHTML='<div style="background:#142533;padding:20px;border-radius:16px;width:min(600px,100%);max-height:90vh;overflow:auto"><h2>Sinkronisasi data wajah lama</h2><p id="fsInfo"></p><p id="fsList" style="max-height:35vh;overflow:auto;white-space:pre-wrap"></p><label style="display:block;margin:12px 0"><input type="checkbox" id="fsConsent"> Saya memastikan data yang akan disinkronkan telah dikumpulkan dengan persetujuan yang sah.</label><button id="fsGo" style="padding:12px">Kirim ke database pusat</button> <button id="fsClose" style="padding:12px">Tutup</button><p id="fsStatus"></p></div>';
  document.body.appendChild(box);const info=box.querySelector('#fsInfo'),list=box.querySelector('#fsList'),status=box.querySelector('#fsStatus');
- info.textContent='Ditemukan '+records.length+' NIS dengan descriptor 128 angka pada penyimpanan browser.';
- list.textContent=records.length?records.map(x=>x.nis).join(', '):'Tidak ditemukan data descriptor yang dikenali. Format penyimpanan mungkin berbeda.';
+ info.textContent='Ditemukan '+records.length+' NIS dengan descriptor wajah pada penyimpanan browser.';
+ list.textContent=records.length?records.map(x=>x.nis).join(', '):'Belum ditemukan descriptor yang terhubung ke NIS. Diagnostik: '+scan.diagnostics.slice(0,8).join(' | ')+'\nKunci storage: '+scan.keys.join(', ');
  box.querySelector('#fsClose').onclick=()=>box.remove();
  box.querySelector('#fsGo').onclick=async()=>{
-  if(!records.length){status.textContent='Tidak ada data yang ditemukan.';return}
+  if(!records.length){status.textContent='Data belum ditemukan. Kirim screenshot panel ini untuk menyesuaikan pembacaan storage.';return}
   if(!box.querySelector('#fsConsent').checked){status.textContent='Konfirmasi persetujuan wajib dicentang.';return}
-  const key=prompt('Masukkan kunci API pengurus:');if(!key)return;
-  box.querySelector('#fsGo').disabled=true;let ok=0,fail=0;
-  for(const rec of records){try{const r=await send(rec,key);if(r&&r.ok)ok++;else fail++;}catch(e){fail++;}}
-  status.textContent='Selesai: '+ok+' tersinkron, '+fail+' gagal. Data lokal tidak dihapus.';
-  box.querySelector('#fsGo').disabled=false;
+  const key=prompt('Masukkan kunci API wajah (FACE_API_KEY):');if(!key)return;
+  const btn=box.querySelector('#fsGo');btn.disabled=true;let ok=0,fail=[];
+  for(const rec of records){try{const r=await send(rec,key);if(r&&r.ok)ok++;else fail.push(rec.nis+': '+(r.error||'respons gagal'));}catch(e){fail.push(rec.nis+': '+e.message);}}
+  status.textContent='Selesai: '+ok+' tersinkron, '+fail.length+' gagal. '+(fail.length?fail.join(' | '):'')+' Data lokal tidak dihapus.';
+  btn.disabled=false;
  };
 }
-window.FaceLocalStorageSync={open,findRecords};
+window.FaceLocalStorageSync={open,findRecords:function(){return findRecords().records;}};
 })();
