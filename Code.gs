@@ -165,13 +165,13 @@ function handleFaceEnrollment_(body, action) {
 \nfunction doPost(e) {
   try {
     const body = parseBody_(e);
+    const action = String(body.action||'').toLowerCase();
+    // Face actions authenticate independently using FACE_API_KEY and write to the central FaceDescriptors sheet.
+    if (action === 'faceenroll' || action === 'facelist' || action === 'facedelete') return handleFaceEnrollment_(body, action);
     const savedKey = PropertiesService.getScriptProperties().getProperty('ADMIN_API_KEY');
     if (!savedKey) return output_({ok:false,error:'ADMIN_API_KEY belum disetel di Script Properties; penulisan dinonaktifkan.'});
     if (!body.apiKey || !constantTimeEquals_(String(body.apiKey),savedKey))
       return output_({ok:false,error:'Akses ditolak: kunci pengurus tidak valid.'});
-    const action = String(body.action||'').toLowerCase();
-    // Face enrollment logic lives in the separate FaceEnrollment.gs module.
-    if (action === 'faceenroll' || action === 'facelist' || action === 'facedelete') return handleFaceEnrollment_(body, action);
     if (action === 'saveeducationraport') {
       const records = Array.isArray(body.records) ? body.records : [];
       if (!records.length) return output_({ok:false,error:'Tidak ada nilai raport untuk disimpan.'});
