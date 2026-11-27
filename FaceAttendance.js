@@ -1,13 +1,13 @@
 /* FaceAttendance.js — direct central Google Sheets enrollment. */
 (function(){
 'use strict';
-const API='https://script.google.com/macros/s/AKfycbwgGOvBV8fKNBamDVYNBAgMeFS6-ld0nfjU2OCkbFFxTCEMSRZAf7nSW7Odj5OYxEWQ/exec';
+const API='/api/face';
 const MODEL='https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights/';
 let stream=null,video=null,loopTimer=null,modal=null,busy=false,enrollPauseUntil=0,descriptors=[];
 function close(){if(loopTimer)clearTimeout(loopTimer);loopTimer=null;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;if(modal)modal.remove();modal=null;video=null;busy=false}
 function request(action,data,key){
- return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,apiKey:key,data}),redirect:'follow'})
- .then(r=>r.json());
+ return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,apiKey:key,data})})
+ .then(async r=>{const j=await r.json().catch(()=>null);if(!r.ok)throw new Error((j&&j.error)||('HTTP '+r.status));return j;});
 }
 function open(){
  if(!window.currentAttendanceActivity){alert('Buka portal kegiatan absensi terlebih dahulu.');return}
