@@ -222,6 +222,7 @@ render();loadIzin();loadCollection('pengumuman','#rowsPeng','peng');loadCollecti
 /* ATTENDANCE MODULE — uses the same KTS QR/NIS */
 const ATTENDANCE_ACTIVITIES={jamaah:'Sholat Berjamaah','kitab-pagi':'Ngaji Kitab Pagi',albab:'Ngaji Kitab Metode Albab',alquran:"Ngaji Al-Qur'an",madrasiyah:'Madrasiyah'};
 let currentAttendanceActivity='',attendanceScanBusy=false,attendanceConfig={};
+Object.defineProperty(window,'currentAttendanceActivity',{configurable:true,get:function(){return currentAttendanceActivity;}});
 function todayLocal(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
 // HTML input[type=time] requires zero-padded HH:mm; Sheets may return H:mm.
 function normalizeTimeInput(value){const raw=String(value??'').trim().toUpperCase();if(!raw)return '';let m=raw.match(/^(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?\s*(AM|PM)?$/);if(m){let h=Number(m[1]),min=Number(m[2]);if(min>59||h>23)return '';if(m[4]){if(h<1||h>12)return '';h=(h%12)+(m[4]==='PM'?12:0)}return String(h).padStart(2,'0')+':'+String(min).padStart(2,'0')}if(/^\d+(?:\.\d+)?$/.test(raw)){const n=Number(raw);if(n>=0&&n<1){const mins=Math.round(n*1440);return String(Math.floor(mins/60)%24).padStart(2,'0')+':'+String(mins%60).padStart(2,'0')}}return '';}
