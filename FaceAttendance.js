@@ -41,10 +41,16 @@ async function enroll(){
  const result=await detect();if(!result){msg.textContent='Wajah belum terdeteksi. Posisikan wajah dengan pencahayaan baik.';return}
  const key=prompt('Masukkan kunci pengurus untuk menyimpan pendaftaran wajah:');if(!key){msg.textContent='Pendaftaran dibatalkan.';return}
  msg.textContent='Memverifikasi dan menyimpan descriptor…';
- const res=await request('faceEnroll',{nis,descriptor:Array.from(result.descriptor),consent:true,consentAt:new Date().toISOString()},key);
- if(!res.ok)throw new Error(res.error||'Pendaftaran gagal');
- descriptors=descriptors.filter(x=>String(x.nis)!==nis);descriptors.push({nis,descriptor:Array.from(result.descriptor)});
- enrollPauseUntil=Date.now()+15000;msg.textContent=res.message+' Tunggu 15 detik sebelum pengenalan.';
+ const payload={nis,descriptor:Array.from(result.descriptor),consent:true,consentAt:new Date().toISOString()};
+ const res=await request('faceEnroll',payload,key);
+ if(!res||res.ok!==true)throw new Error((res&&res.error)||'Server tidak mengonfirmasi penyimpanan.');
+ // Read back from central sheet before declaring success.
+ const verify=await request('faceList',{},key);
+ if(!verify||verify.ok!==true||!Array.isArray(verify.data)||!verify.data.some(x=>String(x.nis)===nis&&Array.isArray(x.descriptor)&&x.descriptor.length===128))
+   throw new Error('Pendaftaran terkirim, tetapi verifikasi baca ulang dari Google Sheet gagal. Jangan daftar ulang; periksa server.');
+ descriptors=verify.data;
+ enrollPauseUntil=Date.now()+15000;
+ msg.textContent='✓ TERKONFIRMASI: NIS '+nis+' tersimpan dan terbaca dari Google Sheet FaceDescriptors. Tunggu 15 detik sebelum pengenalan.';
  }catch(e){msg.textContent='Pendaftaran gagal: '+e.message}finally{busy=false}
 }
 async function recognitionLoop(){
