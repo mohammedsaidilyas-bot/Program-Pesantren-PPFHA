@@ -7,7 +7,7 @@ let stream=null,video=null,loopTimer=null,modal=null,busy=false,enrollPauseUntil
 function close(){if(loopTimer)clearTimeout(loopTimer);loopTimer=null;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;if(modal)modal.remove();modal=null;video=null;busy=false}
 function request(action,data,key){
  return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,apiKey:key,data})})
- .then(async r=>{const j=await r.json().catch(()=>null);if(!r.ok){let detail=(j&&j.error)||('HTTP '+r.status);if(j&&j.responsePreview)detail+=' | respons: '+j.responsePreview;if(j&&j.contentType)detail+=' | tipe: '+j.contentType;if(j&&j.finalUrl)detail+=' | URL: '+j.finalUrl;throw new Error(detail);}return j;});
+ .then(async r=>{const j=await r.json().catch(()=>null);if(!j)throw new Error('Proxy tidak mengirim JSON (HTTP '+r.status+').');if(j.ok!==true){let detail=j.error||((j.data&&j.data.error)||('HTTP '+r.status));if(j.data&&j.data.error)detail+=' | Apps Script: '+j.data.error;if(j.responsePreview)detail+=' | respons: '+j.responsePreview;if(j.contentType)detail+=' | tipe: '+j.contentType;if(j.finalUrl)detail+=' | URL: '+j.finalUrl;if(j.upstreamStatus)detail+=' | status Google: '+j.upstreamStatus;throw new Error(detail);}return j.data||j;});
 }
 function open(){
  if(!window.currentAttendanceActivity){alert('Buka portal kegiatan absensi terlebih dahulu.');return}
