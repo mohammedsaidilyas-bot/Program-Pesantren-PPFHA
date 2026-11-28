@@ -77,6 +77,7 @@ function doGet(e) {
   try {
     const action = String((e && e.parameter && e.parameter.action) || 'health').toLowerCase();
     if (action === 'health') return output_({ok:true,app:'Program Pesantren PPFHA',message:'Endpoint aktif',actions:['izin','pengumuman','kegiatan','student','educationrecords','saveeducationraport','saveeducationalbab','saveeducationhafalan']});
+    if (action === 'facelist') { const faceKey=String((e.parameter && (e.parameter.key||e.parameter.apiKey))||''); return handleFaceEnrollment_({apiKey:faceKey},'facelist'); }
     if (action === 'student') {
       const nis = String((e && e.parameter && e.parameter.nis) || '').trim().replace(/\D/g, '');
       if (!nis) return output_({ok:false,error:'NIS wajib diisi.'});
