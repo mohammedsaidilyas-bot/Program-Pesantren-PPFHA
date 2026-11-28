@@ -1,16 +1,19 @@
-/** FaceEnrollmentFix.gs — endpoint wajah TERPISAH.
- * Pasang di project Apps Script BARU (standalone), jangan di Code.gs utama.
+/** FaceEnrollmentFix.gs — helper khusus fitur pendaftaran wajah.
+ * Handler dibuat bernama unik agar tidak bentrok dengan doGet/doPost utama.
  * Script Property FACE_API_KEY wajib diset.
  */
 const FACE_FIX_SHEET_ID='1JdBEnLlJHeIlb8XI8OoqzxTj84wYGkU2Hr0ySq6p6gA';
 const FACE_FIX_TAB='FaceDescriptors';
 const FACE_FIX_HEADERS=['nis','descriptor','consent','consentAt','updatedAt'];
-function doGet(){return faceFixJson_({ok:true,app:'FaceEnrollmentFix',message:'Endpoint aktif',actions:['facelist','faceenroll','facedelete']});}
-function doPost(e){
+
+function faceFixGet(e){
+ return faceFixJson_({ok:true,app:'FaceEnrollmentFix',message:'Helper aktif',actions:['facelist','faceenroll','facedelete']});
+}
+function faceFixPost(e){
  try{
   const b=JSON.parse((e&&e.postData&&e.postData.contents)||'{}'),a=String(b.action||'').toLowerCase(),k=PropertiesService.getScriptProperties().getProperty('FACE_API_KEY');
   if(!k||!b.apiKey||!faceFixCompare_(String(b.apiKey),k))return faceFixJson_({ok:false,error:'Kunci API tidak valid.'});
-  const sh=faceFixSheet_(),rows=faceFixRows_(sh),d=b.data||b,n=String(d.nis||b.nis||'').replace(/\D/g,'').trim();
+  const sh=faceFixSheet_(),rows=faceFixRows_(sh),d=b.data||b,n=String(d.nis||b.nis||'').replace(/\\D/g,'').trim();
   if(a==='facelist')return faceFixJson_({ok:true,data:rows});
   if(a==='faceenroll'){
    if(!n||n.length>20||d.consent!==true||!d.consentAt)return faceFixJson_({ok:false,error:'NIS atau persetujuan tidak valid.'});
