@@ -35,7 +35,7 @@ async function start(){
    descriptors=[];
    msg.textContent='Kamera aktif, tetapi daftar wajah gagal dimuat ('+listErr.message+'). Pendaftaran baru tetap bisa dicoba; absensi pengenalan belum aktif.';
  }
- }catch(e){msg.textContent='Kamera/model/data gagal: '+e.message+' (periksa izin kamera dan koneksi).'}
+ }catch(e){const detail=String(e&&e.message||e);msg.textContent='Gagal memuat model pengenalan wajah atau mengaktifkan kamera: '+detail+'. Kamera yang tampil berarti izin kamera sudah aktif; periksa koneksi model/API, bukan izin kamera.';}
 }
 async function detect(){return window.faceapi.detectSingleFace(video,new window.faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.5})).withFaceLandmarks().withFaceDescriptor()}
 async function enroll(){
